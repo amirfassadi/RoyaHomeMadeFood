@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  CUSTOMER
+}
+enum SaleUnit {
+  KG
+  GRAM
+  PIECE
+  PACK
+}
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+enum OrderStatus {
+  PENDING
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+enum PaymentMethod {
+  ZARINPAL
+  CASH_ON_DELIVERY
+}
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  name               String
+  mobile             String   @unique @db.VarChar(16)
+  email              String?  @unique
+  passwordHash       String?
+  role               UserRole @default(CUSTOMER)
+  active             Boolean  @default(true)
+  // Store only encrypted TOTP secrets; JWT credentials auth is configured in phase 4.
+  twoFactorSecretEnc String?
+  twoFactorEnabled   Boolean  @default(false)
+  sessionVersion     Int      @default(0)
+  orders             Order[]
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  nameFa      String
+  nameEn      String
+  descriptionFa String?
+  descriptionEn String?
+  sortOrder   Int       @default(0)
+  active      Boolean   @default(true)
+  products    Product[]
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+}
+
+model Product {
+  id                  String    @id @default(cuid())
+  slug                String    @unique
+  nameFa              String
+  nameEn              String
+  descriptionFa       String    @db.Text
+  descriptionEn       String    @db.Text
+  categoryId          String
+  category            Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  // All money is integer Toman. Price is per priceBasisQuantity units.
+  priceToman          Int
+  unit                SaleUnit
+  priceBasisQuantity  Decimal   @default(1) @db.Decimal(12, 3)
+  minOrderQuantity    Decimal   @default(1) @db.Decimal(12, 3)
+  orderStepQuantity   Decimal   @default(1) @db.Decimal(12, 3)
+  // Null means no limit. Capacity reservations are transactional in phase 3.
+  stockQuantity       Decimal?  @db.Decimal(12, 3)
+  dailyCapacity       Decimal?  @db.Decimal(12, 3)
+  preparationMinutes  Int
+  featured            Boolean   @default(false)
+  active              Boolean   @default(true)
+  media               ProductMedia[]
+  orderItems          OrderItem[]
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @updatedAt @db.Timestamptz(3)
+  @@index([active, categoryId])
+  @@index([featured, active])
+}
+
+model ProductMedia {
+  id              String    @id @default(cuid())
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type            MediaType
+  cloudinaryId    String    @unique
+  secureUrl       String
+  altFa           String
+  altEn           String
+  width           Int
+  height          Int
+  bytes           Int
+  durationSeconds Decimal?  @db.Decimal(8, 3)
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  @@index([productId, sortOrder])
+}
+
+model DeliveryZone {
+  id              String   @id @default(cuid())
+  cityFa          String
+  cityEn          String
+  nameFa          String
+  nameEn          String
+  feeToman        Int
+  deliveryMinutes Int
+  active          Boolean  @default(true)
+  orders          Order[]
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
+  @@unique([cityFa, nameFa])
+}
+
+model DiscountCode {
+  id                  String       @id @default(cuid())
+  code                String       @unique
+  type                DiscountType
+  value               Int
+  minSubtotalToman    Int          @default(0)
+  maxDiscountToman    Int?
+  usageLimit          Int?
+  usedCount           Int          @default(0)
+  startsAt            DateTime?    @db.Timestamptz(3)
+  expiresAt           DateTime?    @db.Timestamptz(3)
+  active              Boolean      @default(true)
+  orders              Order[]
+  createdAt           DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime     @updatedAt @db.Timestamptz(3)
+}
+
+model Order {
+  id                         String         @id @default(cuid())
+  // Generate cryptographically random tracking codes in checkout; never expose sequential IDs.
+  trackingCode               String         @unique @db.VarChar(32)
+  idempotencyKey             String         @unique @db.VarChar(64)
+  userId                     String?
+  user                       User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName               String
+  mobile                     String         @db.VarChar(16)
+  address                    String         @db.Text
+  city                       String
+  deliveryNotes              String?        @db.Text
+  deliveryZoneId             String
+  deliveryZone               DeliveryZone   @relation(fields: [deliveryZoneId], references: [id], onDelete: Restrict)
+  deliveryZoneNameSnapshot    String
+  status                     OrderStatus    @default(PENDING)
+  paymentMethod              PaymentMethod
+  paymentStatus              PaymentStatus  @default(UNPAID)
+  subtotalToman              Int
+  discountToman              Int            @default(0)
+  deliveryFeeToman           Int
+  totalToman                 Int
+  discountCodeId             String?
+  discountCode               DiscountCode?  @relation(fields: [discountCodeId], references: [id], onDelete: SetNull)
+  discountCodeSnapshot       String?
+  longestPreparationMinutes  Int
+  zoneDeliveryMinutes        Int
+  estimatedDeliveryAt        DateTime       @db.Timestamptz(3)
+  items                      OrderItem[]
+  statusHistory              OrderStatusHistory[]
+  paymentAttempts            PaymentAttempt[]
+  createdAt                  DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt                  DateTime       @updatedAt @db.Timestamptz(3)
+  @@index([status, createdAt])
+  @@index([mobile, createdAt])
+  @@index([userId, createdAt])
+}
+
+model OrderItem {
+  id                    String    @id @default(cuid())
+  orderId               String
+  order                 Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  // Soft-delete products; snapshots also survive exceptional hard deletion.
+  productId             String?
+  product               Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productNameFa          String
+  productNameEn          String
+  unit                  SaleUnit
+  quantity              Decimal   @db.Decimal(12, 3)
+  priceBasisQuantity    Decimal   @db.Decimal(12, 3)
+  unitPriceToman         Int
+  lineTotalToman         Int
+  preparationMinutes    Int
+  createdAt             DateTime  @default(now()) @db.Timestamptz(3)
+  @@index([orderId])
+}
+
+model OrderStatusHistory {
+  id          String      @id @default(cuid())
+  orderId     String
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status      OrderStatus
+  note        String?
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
+  @@index([orderId, createdAt])
+}
+
+model PaymentAttempt {
+  id             String        @id @default(cuid())
+  orderId        String
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  authority      String?       @unique
+  referenceId    String?       @unique
+  amountToman    Int
+  status         PaymentStatus @default(PENDING)
+  verifiedAt     DateTime?      @db.Timestamptz(3)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+  @@index([orderId, createdAt])
+}
+
+model Setting {
+  key         String   @id
+  value       Json
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// Shared across VPS processes / Vercel instances, unlike in-memory rate limits.
+model RateLimitBucket {
+  key           String   @id
+  count         Int      @default(0)
+  expiresAt     DateTime @db.Timestamptz(3)
+  @@index([expiresAt])
+}

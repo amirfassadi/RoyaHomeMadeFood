@@ -1,0 +1,20 @@
+{
+  "Brand": {"name": "Roya Food Products", "short": "Roya", "slogan": "Fresh Homemade Food, No Additives", "tagline": "A little taste of home", "english": "ROYA FOOD PRODUCTS"},
+  "Foundation": {
+    "notice": "Private preview · Phase 1", "navIdentity": "Roya identity", "navElements": "Design elements", "navRules": "Order rules",
+    "eyebrow": "From our kitchen, with love", "title1": "Freshness,", "title2": "the homemade way.",
+    "intro": "Familiar flavors, fresh ingredients, and food prepared with care. Roya brings something special to the moments around your table.",
+    "primary": "Explore the design", "secondary": "Order rules", "promise1": "Fresh & homemade", "promise2": "No additives", "promise3": "Prepared with care",
+    "identityLabel": "01 / Visual identity", "identityTitle": "Simple, warm, familiar", "identityText": "Nature green, gentle cream, and warm brown. A thoughtful palette for a welcoming homemade food shop.",
+    "green": "Roya green", "cream": "Warm cream", "brown": "Warm brown", "ink": "Text ink",
+    "typeTitle": "Easy to read at every size", "typeSample": "Real flavors, made at home", "typeBody": "Vazirmatn typography, comfortable spacing, and layouts that adapt to each language.",
+    "elementsLabel": "02 / Design elements", "elementsTitle": "Little details, easier shopping", "elementsText": "Working examples of buttons, fields, and cards for the upcoming store.",
+    "buttons": "Buttons & states", "buttonPrimary": "Primary button", "buttonSecondary": "Secondary button", "buttonDisabled": "Unavailable", "buttonFeedback": "The button works correctly.",
+    "fields": "Clear inputs", "fieldLabel": "Your name", "fieldPlaceholder": "For example, Roya", "fieldHelp": "Enter your name to try the field styling.", "hello": "Welcome, {name}",
+    "badges": "Status labels", "available": "Available", "preparing": "Preparing", "soldOut": "Unavailable", "fresh": "Fresh & homemade",
+    "rulesLabel": "03 / Order rules", "rulesTitle": "Clear quantities, clear timing", "rulesText": "This is a calculation example only, not a purchasable product or a real order.",
+    "sample": "Weight quantity example", "sampleDescription": "Minimum 500 g · Increments of 250 g", "unit": "g", "priceBasis": "Example price per kilogram", "price": "Example total", "minus": "Decrease quantity", "plus": "Increase quantity",
+    "etaTitle": "Estimated delivery", "etaText": "Longest product preparation time + delivery time for the zone", "prepLabel": "Example item preparation", "prepValue": "2 and 4 hours", "deliveryLabel": "Example delivery", "deliveryValue": "1 hour", "totalLabel": "From order acceptance", "totalValue": "5 hours",
+    "footer": "The store is being built. Shopping and payment will be added in later phases.", "footerNote": "Freshness. Simplicity. Trust.", "switchLanguage": "فارسی", "skip": "Skip to main content", "languageLabel": "Change language"
+  }
+}

@@ -1,0 +1,28 @@
+@import "tailwindcss";
+@import "@fontsource-variable/vazirmatn";
+
+@theme {
+  --color-roya-green: #4A7C59;
+  --color-roya-green-dark: #345C40;
+  --color-roya-cream: #FAF6EE;
+  --color-roya-brown: #8B5E3C;
+  --color-roya-ink: #2B2B2B;
+  --color-roya-muted: #6B6C60;
+  --color-roya-line: #E8E4D9;
+  --color-roya-leaf: #EAF0E5;
+  --font-sans: 'Vazirmatn Variable', sans-serif;
+  --radius-card: 1.5rem;
+  --shadow-card: 0 8px 32px rgb(43 43 43 / 4%);
+}
+:root { color-scheme: light; }
+html { scroll-behavior: smooth; scroll-padding-top: 6rem; }
+body { background: var(--color-roya-cream); color: var(--color-roya-ink); font-family: var(--font-sans); }
+button, a, input { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), a { cursor: pointer; }
+::selection { background: #d8e4cd; color: #2b2b2b; }
+:focus-visible { outline: 3px solid var(--color-roya-green); outline-offset: 4px; }
+.section-shell { width: min(100% - 2.5rem, 1200px); margin-inline: auto; }
+.soft-grid { background-image: linear-gradient(#4a7c5908 1px, transparent 1px), linear-gradient(90deg, #4a7c5908 1px, transparent 1px); background-size: 36px 36px; }
+@media (min-width: 768px) { .section-shell { width: min(100% - 5rem, 1200px); } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+@media print { header, .no-print { display: none !important; } body { background: white; } }
