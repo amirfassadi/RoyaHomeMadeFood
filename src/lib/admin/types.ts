@@ -1,0 +1,12 @@
+import type {z} from 'zod';
+import type {productSchema} from '@/lib/validation/product';
+import type {ContactSettings} from '@/lib/validation/contact';
+export type AdminProduct=z.infer<typeof productSchema>&{id:string;updatedAt:string;media:{id:string;url:string;type:'IMAGE'|'VIDEO';altFa:string;altEn:string}[]};
+export type AdminOrder={id:string;trackingCode:string;customerName:string;mobile:string;status:string;paymentMethod:string;paymentStatus:string;totalToman:number;createdAt:string;estimatedDeliveryAt:string;refundRequired:boolean};
+export type OrderDetail=AdminOrder&{address:string;city:string;deliveryNotes:string|null;deliveryZoneNameSnapshot:string;subtotalToman:number;discountToman:number;deliveryFeeToman:number;items:{id:string;productNameFa:string;unit:string;quantity:number;lineTotalToman:number}[];statusHistory:{status:string;createdAt:string}[];requestState:string|null};
+export type Zone={id:string;cityFa:string;cityEn:string;nameFa:string;nameEn:string;feeToman:number;deliveryMinutes:number;active:boolean;updatedAt:string};
+export type Discount={id:string;code:string;type:'FIXED'|'PERCENT';value:number;minSubtotalToman:number;maxDiscountToman:number|null;usageLimit:number|null;usedCount:number;startsAt:string|null;expiresAt:string|null;active:boolean;updatedAt:string};
+export type Customer={mobile:string;name:string;orders:number;totalToman:number;lastOrder:string};
+export type AdminData={products:AdminProduct[];categories:{id:string;nameFa:string}[];orders:AdminOrder[];customers:Customer[];zones:Zone[];discounts:Discount[];contact:ContactSettings;page:number;totalPages:number;stats:{products:number;orders:number;pending:number};detail?:OrderDetail};
+export type Section='dashboard'|'products'|'orders'|'customers'|'settings';
+export const emptyData=():AdminData=>({products:[],categories:[],orders:[],customers:[],zones:[],discounts:[],contact:{},page:1,totalPages:1,stats:{products:0,orders:0,pending:0}});

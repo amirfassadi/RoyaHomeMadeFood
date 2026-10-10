@@ -17,7 +17,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "node --import tsx prisma/seed.ts",
-    "test": "node --import tsx --test tests/*.test.ts && node --conditions=react-server --import tsx --test tests/server/*.test.ts"
+    "test": "node --import tsx --test tests/*.test.ts && node --conditions=react-server --import tsx --test tests/server/*.test.ts",
+    "admin:create": "prisma generate && node --import tsx scripts/create-admin.ts"
   },
   "dependencies": {
     "next": "16.4.0",

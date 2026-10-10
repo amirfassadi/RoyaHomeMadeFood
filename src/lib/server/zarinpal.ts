@@ -26,10 +26,15 @@ async function call(sandbox:boolean,action:'request'|'verify',body:unknown){
 export async function initiatePayment(orderId:string){
   const db=getDb(), attempt=await db.paymentAttempt.findUnique({where:{orderId},include:{order:true}});
   if(!attempt)return null;
-  if(attempt.order.paymentStatus==='PAID')return null;
+  if(attempt.order.paymentStatus==='PAID' || attempt.order.status==='CANCELLED')return null;
   if(attempt.authority)return paymentUrl(attempt.sandbox,attempt.authority);
   // A single caller can initiate. Uncertain network results are never retried blindly.
-  const claim=await db.paymentAttempt.updateMany({where:{id:attempt.id,requestState:'NEW'},data:{requestState:'REQUESTING'}});
+  const claim=await db.$transaction(async tx=>{
+    await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id"=${attempt.orderId} FOR UPDATE`;
+    const order=await tx.order.findUniqueOrThrow({where:{id:attempt.orderId}});
+    if(order.status==='CANCELLED' || order.paymentStatus==='PAID')return {count:0};
+    return tx.paymentAttempt.updateMany({where:{id:attempt.id,requestState:'NEW'},data:{requestState:'REQUESTING'}});
+  });
   if(!claim.count)return null;
   let response;
   try{

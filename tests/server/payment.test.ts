@@ -47,3 +47,13 @@ test('incomplete or failed gateway verification never reports a successful payme
  assert.equal((await verifyPayment('attempt','nonce',authority,'OK')).result,'pending');assert.equal(s.order.paymentStatus,'PENDING');
  s.respond({code:-51});assert.equal((await verifyPayment('attempt','nonce',authority,'OK')).result,'pending');
 });
+test('an order cancelled before initiation cannot obtain a gateway authority',async()=>{
+ const s=setup();Object.assign(s.order,{status:'CANCELLED'});s.respond({code:100,authority});
+ assert.equal(await initiatePayment('order'),null);assert.equal(s.calls(),0);
+});
+test('cancellation between initial read and gateway claim is checked under the order lock',async()=>{
+ const s=setup();s.respond({code:100,authority});
+ const db=(globalThis as any).royaDb,read=db.paymentAttempt.findUnique;
+ db.paymentAttempt.findUnique=async()=>{const snapshot=await read();Object.assign(s.order,{status:'CANCELLED'});return snapshot;};
+ assert.equal(await initiatePayment('order'),null);assert.equal(s.calls(),0);
+});

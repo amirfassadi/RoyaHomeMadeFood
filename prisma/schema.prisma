@@ -164,6 +164,7 @@ model Order {
   locale                     String         @db.VarChar(2)
   capacityDay                String         @db.VarChar(10)
   inventoryReserved          Boolean        @default(true)
+  refundRequired             Boolean        @default(false)
   userId                     String?
   user                       User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
   customerName               String
@@ -276,4 +277,22 @@ model ProductDailyUsage {
   quantity Decimal @default(0) @db.Decimal(12, 3)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   @@id([productId, day])
+}
+
+// Signed Cloudinary uploads are allocated by an authenticated admin.
+model MediaUpload {
+ id String @id @default(cuid())
+ publicId String @unique
+ type MediaType
+ adminId String
+ consumed Boolean @default(false)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+}
+model AdminAudit {
+ id String @id @default(cuid())
+ adminId String
+ action String
+ targetId String
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ @@index([createdAt])
 }

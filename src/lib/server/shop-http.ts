@@ -7,7 +7,7 @@ import {consumeRateLimit} from './rate-limit';
 export class ShopError extends Error {constructor(public code: string, public status = 400) {super(code);}}
 export function json(data: unknown, status=200) {return NextResponse.json(data, {status, headers:{'Cache-Control':'no-store'}});}
 export function failure(e: unknown) {return json({error:e instanceof ShopError ? e.code : 'UNAVAILABLE'}, e instanceof ShopError ? e.status : 503);}
-export async function readShopBody<T>(request: Request, schema: ZodType<T>, operation: string): Promise<T> {
+export async function readShopBody<T>(request: Request, schema: ZodType<T>, operation: string, maxBytes=16384): Promise<T> {
   if (!process.env.DATABASE_URL || isDemoCatalog()) throw new ShopError('UNAVAILABLE',503);
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL;
   if (!site || request.headers.get('origin') !== new URL(site).origin) throw new ShopError('ORIGIN',403);
@@ -15,7 +15,7 @@ export async function readShopBody<T>(request: Request, schema: ZodType<T>, oper
   if (!await consumeRateLimit(`shop:${operation}:global`, 150, 60)) throw new ShopError('RATE_LIMIT',429);
   const reader=request.body?.getReader(); if (!reader) throw new ShopError('INVALID');
   const chunks: Uint8Array[]=[]; let bytes=0;
-  for (;;) {const {done,value}=await reader.read(); if(done)break; bytes+=value.byteLength; if(bytes>16384){await reader.cancel();throw new ShopError('INVALID',413);}chunks.push(value);}
+  for (;;) {const {done,value}=await reader.read(); if(done)break; bytes+=value.byteLength; if(bytes>maxBytes){await reader.cancel();throw new ShopError('INVALID',413);}chunks.push(value);}
   let body: unknown; try {body=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new ShopError('INVALID');}
   const result=schema.safeParse(body); if(!result.success)throw new ShopError('INVALID');
   return result.data;
