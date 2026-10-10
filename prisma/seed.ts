@@ -6,8 +6,8 @@ if (!connectionString) throw new Error('DATABASE_URL is required');
 const db = new PrismaClient({adapter: new PrismaPg({connectionString})});
 try {
   for (const [slug, nameFa, nameEn] of [
-    ['home-meals', 'غذاهای خانگی', 'Home meals'], ['pickles', 'ترشی و شور', 'Pickles'],
-    ['jams', 'مربا و صبحانه', 'Jams & breakfast'], ['ready-to-cook', 'آمادهٔ پخت', 'Ready to cook'],
+    ['finger-food', 'فینگر فود', 'Finger foods'], ['snack-platters', 'سینی مزه', 'Snack platters'],
+    ['homemade-sausages', 'سوسیس خانگی', 'Homemade sausages'], ['homemade-cold-cuts', 'کالباس خانگی', 'Homemade cold cuts'],
   ]) await db.category.upsert({where: {slug}, update: {}, create: {slug, nameFa, nameEn}});
   await db.setting.upsert({where: {key: 'brand'}, update: {}, create: {key: 'brand', value: {
     nameFa: 'محصولات غذایی رویا', nameEn: 'Roya Food Products',

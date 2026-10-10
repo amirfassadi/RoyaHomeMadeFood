@@ -247,3 +247,14 @@ model RateLimitBucket {
   expiresAt     DateTime @db.Timestamptz(3)
   @@index([expiresAt])
 }
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(100)
+  mobile    String   @db.VarChar(16)
+  message   String   @db.Text
+  locale    String   @db.VarChar(2)
+  readAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@index([createdAt])
+}

@@ -4,6 +4,7 @@ const staticPreview = process.env.SITES_STATIC_PREVIEW === '1';
 const config: NextConfig = {
   output: staticPreview ? 'export' : 'standalone',
   trailingSlash: true,
+  pageExtensions: staticPreview ? ['tsx'] : ['ts', 'tsx'],
   poweredByHeader: false,
   images: {
     unoptimized: staticPreview,
