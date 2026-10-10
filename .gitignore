@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+dist/
+src/generated/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+*.log
+.sites-runtime/
+.openai/*.tar.gz
