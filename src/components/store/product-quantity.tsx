@@ -1,4 +1,5 @@
 'use client';
+import {useCart} from './cart-provider';
 import {useState} from 'react';
 import {useLocale, useTranslations} from 'next-intl';
 import type {ProductView} from '@/lib/catalog/types';
@@ -8,6 +9,7 @@ import {formatToman} from '@/lib/format';
 import {calculateLineTotal} from '@/lib/domain/order';
 import {Button} from '@/components/ui/button';
 export function ProductQuantity({product: p}: {product: ProductView}) {
+  const cart=useCart(),shop=useTranslations('Shop'),[feedback,setFeedback]=useState('');
   const [quantity, setQuantity] = useState(p.minOrderQuantity), t = useTranslations('Catalog'), locale = useLocale() as Locale;
   const limits = [p.stockQuantity, p.dailyCapacity].filter((n): n is number => n != null);
   const maximum = limits.length ? Math.min(...limits) : undefined;
@@ -15,6 +17,6 @@ export function ProductQuantity({product: p}: {product: ProductView}) {
   return <div className="rounded-2xl border border-roya-line bg-white p-5"><p className="mb-3 text-sm font-semibold">{t('quantity')}</p>
     {available ? <QuantitySelector value={quantity} minimum={p.minOrderQuantity} step={p.orderStepQuantity} maximum={maximum} unit={t(p.unit)} onChange={setQuantity}/> : <p className="text-sm text-roya-muted">{t('outOfStock')}</p>}
     <div className="my-5 flex flex-wrap items-center justify-between gap-3"><span className="text-sm text-roya-muted">{t('total')}</span><output aria-live="polite" className="text-xl font-bold text-roya-green-dark">{formatToman(calculateLineTotal(p.priceToman, quantity, p.priceBasisQuantity), locale)}</output></div>
-    <Button disabled className="w-full">{t('buyLater')}</Button><p className="mt-3 text-xs leading-6 text-roya-muted">{t('buyNote')}</p>
+    <Button disabled={!available || !cart.ready} className="w-full" onClick={()=>setFeedback(cart.add(p.id,quantity)?shop('added'):shop('QUANTITY_CHANGED'))}>{shop('add')}</Button><p role="status" className="mt-3 text-sm text-roya-green">{feedback}</p><p className="mt-3 text-xs leading-6 text-roya-muted">{t('buyNote')}</p>
   </div>;
 }
