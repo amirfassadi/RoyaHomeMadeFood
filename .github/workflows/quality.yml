@@ -33,10 +33,7 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - name: Report dependency advisories
-        run: |
-          npm audit --json > npm-audit.json || true
-          node -e "const a=require('./npm-audit.json'); console.log(JSON.stringify({metadata:a.metadata,error:a.error,vulnerabilities:a.vulnerabilities},null,2))"
+      - run: npm audit --audit-level=high
       - run: npm run db:validate
       - run: npm run db:deploy
       - run: npm run db:seed

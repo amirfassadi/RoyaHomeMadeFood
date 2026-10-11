@@ -150,3 +150,7 @@ npm run test:integration
 ```
 
 این آزمون‌ها سفارش‌های ساختگی با نام مشخص ایجاد و فقط fixtureهای خودشان را پاک می‌کنند؛ fallback به دیتابیس فروشگاه ندارند. موجودی/ظرفیت آخر تحت سفارش هم‌زمان، idempotency سفارش، مصرف هم‌زمان OTP، اتصال سفارش به حساب، لغو و آزادسازی یک‌باره، تغییر رمز و نسخهٔ خبر روی PostgreSQL واقعی آزموده می‌شوند. هیچ پیامک یا پرداخت واقعی در این suite ارسال نمی‌شود. آزمون‌های محلی unit/mock و build را مستقل از نتیجهٔ CI گزارش کنید. اجرای عمومی فروشگاه همچنان نیازمند دادهٔ واقعی، دامنه، secretها و آزمون سرویس‌های بیرونی است.
+
+## وابستگی‌ها و نصب تازه
+
+`db:seed` پیش از اجرا Prisma Client را تولید می‌کند و seed در تابع async اجرا می‌شود تا نصب تازه با tsx/CJS هم کار کند. Seed دوباره‌اجراشدنی است و اطلاعات کسب‌وکار موجود را بازنویسی نمی‌کند. در `package.json`، override محدود `@prisma/config → deepmerge-ts@8.0.2` و `mysql2@3.24.5` برای اصلاح advisoryهای وابستگی‌های جانبی Prisma ثبت شده است؛ نسخهٔ اصلی Prisma 7.10.0 تغییر نکرده. پیکربندی فعلی object/array ساده دارد و از تفاوت ادغام Map در deepmerge 8 استفاده نمی‌کند. هر تغییر آیندهٔ این overrideها باید با generate، migrate، seed دوباره، integration و build بررسی شود. [انتشار deepmerge 8](https://github.com/RebeccaStevens/deepmerge-ts/releases/tag/v8.0.0) و [انتشار mysql2](https://github.com/sidorares/node-mysql2/releases). CI بررسی `npm audit --audit-level=high` را نیز اجرا می‌کند؛ قبولی امروز جایگزین پایش وابستگی‌ها در آینده نیست.

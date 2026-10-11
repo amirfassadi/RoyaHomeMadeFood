@@ -50,5 +50,11 @@
     "tailwindcss": "^4.1.18",
     "@tailwindcss/postcss": "^4.1.18",
     "tsx": "^4.21.0"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2"
+    },
+    "mysql2": "3.24.5"
   }
 }
