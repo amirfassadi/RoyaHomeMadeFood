@@ -56,6 +56,9 @@ model User {
   twoFactorSecretEnc String?
   twoFactorEnabled   Boolean  @default(false)
   sessionVersion     Int      @default(0)
+  mobileVerifiedAt   DateTime? @db.Timestamptz(3)
+  marketingSms       Boolean @default(false)
+  consentEvents      MarketingConsentEvent[]
   orders             Order[]
   createdAt          DateTime @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime @updatedAt @db.Timestamptz(3)
@@ -147,6 +150,7 @@ model DiscountCode {
   maxDiscountToman    Int?
   usageLimit          Int?
   usedCount           Int          @default(0)
+  showInCustomerClub  Boolean      @default(false)
   startsAt            DateTime?    @db.Timestamptz(3)
   expiresAt           DateTime?    @db.Timestamptz(3)
   active              Boolean      @default(true)
@@ -295,4 +299,30 @@ model AdminAudit {
  targetId String
  createdAt DateTime @default(now()) @db.Timestamptz(3)
  @@index([createdAt])
+}
+
+// One-time, purpose-specific customer login. No raw OTP is persisted.
+model CustomerLoginChallenge {
+ id String @id @db.Uuid
+ mobile String @db.VarChar(16)
+ name String @db.VarChar(100)
+ verifier String @db.VarChar(64)
+ marketingSms Boolean @default(false)
+ ready Boolean @default(false)
+ attempts Int @default(0)
+ expiresAt DateTime @db.Timestamptz(3)
+ consumedAt DateTime? @db.Timestamptz(3)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ @@index([mobile, createdAt])
+ @@index([expiresAt])
+}
+model MarketingConsentEvent {
+ id String @id @default(cuid())
+ userId String
+ user User @relation(fields:[userId],references:[id],onDelete:Restrict)
+ allowed Boolean
+ policyVersion String @db.VarChar(32)
+ source String @db.VarChar(32)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ @@index([userId, createdAt])
 }

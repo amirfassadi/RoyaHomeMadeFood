@@ -1,0 +1,1 @@
+export type CustomerAccount={name:string;mobile:string;marketingSms:boolean;orders:{trackingCode:string;status:string;totalToman:number;createdAt:string}[];offers:{code:string;type:'PERCENT'|'FIXED';value:number;minSubtotalToman:number;maxDiscountToman:number|null;expiresAt:string|null}[]};

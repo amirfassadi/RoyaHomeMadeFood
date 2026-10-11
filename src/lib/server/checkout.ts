@@ -40,7 +40,7 @@ export async function calculateQuote(tx: Tx, input: QuoteInput, reserve=false, n
 export function publicQuote(q: Awaited<ReturnType<typeof calculateQuote>>) {
   return {subtotalToman:q.subtotalToman,discountToman:q.discountToman,deliveryFeeToman:q.deliveryFeeToman,totalToman:q.totalToman,estimatedDeliveryAt:q.estimatedDeliveryAt.toISOString()};
 }
-export async function placeOrder(input: CheckoutInput) {
+export async function placeOrder(input: CheckoutInput,customer?:{id:string;mobile:string;sessionVersion:number}|null) {
   const gateway=input.paymentMethod==='ZARINPAL'?gatewayConfiguration():null;
   const canonical={...input,items:[...input.items].sort((a,b)=>a.productId.localeCompare(b.productId))};
   const fingerprint=createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
@@ -50,6 +50,12 @@ export async function placeOrder(input: CheckoutInput) {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.idempotencyKey},0))::text`;
     const previous=await tx.order.findUnique({where:{idempotencyKey:input.idempotencyKey}});
     if(previous){if(previous.requestFingerprint!==fingerprint)throw new ShopError('IDEMPOTENCY_CONFLICT',409);return previous;}
+    let userId:string|undefined;
+    if(customer && customer.mobile===input.mobile){
+      await tx.$queryRaw`SELECT \"id\" FROM \"User\" WHERE \"id\"=${customer.id} FOR SHARE`;
+      const owner=await tx.user.findUnique({where:{id:customer.id}});
+      if(owner?.active&&owner.role==='CUSTOMER'&&owner.mobileVerifiedAt&&owner.sessionVersion===customer.sessionVersion)userId=owner.id;
+    }
     const now=new Date(), q=await calculateQuote(tx,input,true,now);
     if(q.totalToman!==input.expectedTotal)throw new ShopError('PRICE_CHANGED',409);
     if(gateway && q.totalToman<=0)throw new ShopError('PAYMENT_AMOUNT');
@@ -58,6 +64,6 @@ export async function placeOrder(input: CheckoutInput) {
       await tx.productDailyUsage.upsert({where:{productId_day:{productId:item.productId,day:q.day}},create:{productId:item.productId,day:q.day,quantity:item.quantity},update:{quantity:{increment:item.quantity}}});
     }
     if(q.discount)await tx.discountCode.update({where:{id:q.discount.id},data:{usedCount:{increment:1}}});
-    return tx.order.create({data:{trackingCode:`ROYA-${randomBytes(12).toString('hex').toUpperCase()}`,idempotencyKey:input.idempotencyKey,requestFingerprint:fingerprint,locale:input.locale,capacityDay:q.day,customerName:input.name,mobile:input.mobile,address:input.address,city:q.zone.cityFa,deliveryNotes:input.notes,deliveryZoneId:q.zone.id,deliveryZoneNameSnapshot:q.zone.nameFa,paymentMethod:input.paymentMethod,paymentStatus:gateway?'PENDING':'UNPAID',subtotalToman:q.subtotalToman,discountToman:q.discountToman,deliveryFeeToman:q.deliveryFeeToman,totalToman:q.totalToman,discountCodeId:q.discount?.id,discountCodeSnapshot:q.discount?.code,longestPreparationMinutes:q.longestPreparationMinutes,zoneDeliveryMinutes:q.zone.deliveryMinutes,estimatedDeliveryAt:q.estimatedDeliveryAt,items:{create:q.items},statusHistory:{create:{status:'PENDING'}},...(gateway?{paymentAttempts:{create:{amountToman:q.totalToman,callbackNonce:randomBytes(32).toString('hex'),merchantId:gateway.merchantId,sandbox:gateway.sandbox}}}:{})}});
+    return tx.order.create({data:{trackingCode:`ROYA-${randomBytes(12).toString('hex').toUpperCase()}`,idempotencyKey:input.idempotencyKey,requestFingerprint:fingerprint,locale:input.locale,capacityDay:q.day,userId,customerName:input.name,mobile:input.mobile,address:input.address,city:q.zone.cityFa,deliveryNotes:input.notes,deliveryZoneId:q.zone.id,deliveryZoneNameSnapshot:q.zone.nameFa,paymentMethod:input.paymentMethod,paymentStatus:gateway?'PENDING':'UNPAID',subtotalToman:q.subtotalToman,discountToman:q.discountToman,deliveryFeeToman:q.deliveryFeeToman,totalToman:q.totalToman,discountCodeId:q.discount?.id,discountCodeSnapshot:q.discount?.code,longestPreparationMinutes:q.longestPreparationMinutes,zoneDeliveryMinutes:q.zone.deliveryMinutes,estimatedDeliveryAt:q.estimatedDeliveryAt,items:{create:q.items},statusHistory:{create:{status:'PENDING'}},...(gateway?{paymentAttempts:{create:{amountToman:q.totalToman,callbackNonce:randomBytes(32).toString('hex'),merchantId:gateway.merchantId,sandbox:gateway.sandbox}}}:{})}});
   },{maxWait:10000,timeout:15000});
 }

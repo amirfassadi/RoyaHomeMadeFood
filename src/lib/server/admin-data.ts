@@ -27,10 +27,12 @@ export async function getAdminData(section:string,options:{page?:number;q?:strin
   const [rows,count]=await Promise.all([db.order.findMany({where,select:summary,orderBy:{createdAt:'desc'},take,skip}),db.order.count({where})]);data.orders=JSON.parse(JSON.stringify(rows));data.totalPages=Math.max(1,Math.ceil(count/take));
  }
  if(section==='customers'){
+  const memberWhere:Prisma.UserWhereInput={role:'CUSTOMER',...(q?{OR:[{name:{contains:q}},{mobile:{contains:q}}]}:{})};
+  const [members,memberCount]=await Promise.all([db.user.findMany({where:memberWhere,select:{id:true,name:true,mobile:true,marketingSms:true,createdAt:true},orderBy:{createdAt:'desc'},take,skip}),db.user.count({where:memberWhere})]);data.members=members.map(m=>({...m,createdAt:m.createdAt.toISOString()}));
   const where:Prisma.OrderWhereInput=q?{OR:[{mobile:{contains:q}},{customerName:{contains:q}}]}:{};
   const rows=await db.order.groupBy({by:['mobile'],where,_count:{_all:true},_sum:{totalToman:true},_max:{createdAt:true},orderBy:{_max:{createdAt:'desc'}},take,skip});
   const latest=await db.order.findMany({where:{mobile:{in:rows.map(r=>r.mobile)}},distinct:['mobile'],orderBy:{createdAt:'desc'},select:{mobile:true,customerName:true}});
-  const groups=await db.order.groupBy({by:['mobile'],where});data.totalPages=Math.max(1,Math.ceil(groups.length/take));
+  const groups=await db.order.groupBy({by:['mobile'],where});data.totalPages=Math.max(1,Math.ceil(Math.max(groups.length,memberCount)/take));
   data.customers=rows.map(r=>({mobile:r.mobile,name:latest.find(n=>n.mobile===r.mobile)?.customerName??'',orders:r._count._all,totalToman:r._sum.totalToman??0,lastOrder:r._max.createdAt!.toISOString()}));
  }
  if(section==='settings'){

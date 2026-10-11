@@ -10,5 +10,9 @@ export function deploymentErrors(env:Record<string,string|undefined>){
  if(!['0','1'].includes(env.ROYA_INDEXABLE??''))errors.push('ROYA_INDEXABLE: use 0 or 1');
  if(!['true','false'].includes(env.ZARINPAL_SANDBOX??''))errors.push('ZARINPAL_SANDBOX: use true or false');
  if(env.ZARINPAL_MERCHANT_ID&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(env.ZARINPAL_MERCHANT_ID))errors.push('ZARINPAL_MERCHANT_ID: invalid UUID');
+ if(env.CUSTOMER_ACCOUNTS_ENABLED==='1'){
+  if((env.CUSTOMER_OTP_SECRET??'').length<32)errors.push('CUSTOMER_OTP_SECRET: at least 32 random characters required');
+  for(const key of ['KAVENEGAR_API_KEY','KAVENEGAR_OTP_TEMPLATE'])if(!env[key]?.trim())errors.push(`${key}: required for customer accounts`);
+ }
  return errors;
 }

@@ -256,3 +256,7 @@ APIهای `/api/admin/*` بدون مدیر معتبر ۴۰۱ می‌دهند. ت
 Localized canonical/hreflang/Open Graph metadata, opt-in real-catalog Product JSON-LD (IRR conversion), sitemap/robots, private-page noindex, production security headers, deployment environment validation, database health endpoint and expired rate-limit maintenance are implemented. Demo/static exports stay noindex. Stock presentation subtracts today's reserved daily capacity.
 
 See [the deployment and recovery guide](docs/DEPLOYMENT.md) for Vercel and VPS/systemd/Caddy setup, secrets, migrations, backups, operational limits and the real-service acceptance checks. `npm run deploy:check` validates production configuration without printing credentials. End-to-end database/gateway/browser verification still requires a configured deployment. Optional 2FA is not implemented.
+
+## Optional customer accounts
+
+`/fa/account/` and `/en/account/` provide optional SMS OTP signup/sign-in, consent settings, linked new orders and shop-selected club discount codes. Checkout and tracking remain available to guests. The admin customer page lists registered members and current marketing preferences; discount settings can opt a code into the club. Marketing campaigns are not sent automatically. Configure the separate OTP secret, Kavenegar template/key and feature flag described in [deployment](docs/DEPLOYMENT.md); the static preview cannot send codes or log customers in.
