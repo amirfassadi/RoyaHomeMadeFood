@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import {PrismaClient} from '../src/generated/prisma/client';
 import {PrismaPg} from '@prisma/adapter-pg';
+async function main(){
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error('DATABASE_URL is required');
 const db = new PrismaClient({adapter: new PrismaPg({connectionString})});
@@ -16,3 +17,6 @@ try {
   // Deliberately no default admin/password, invented contact data, prices or delivery fees.
   console.log('Brand and categories seeded. Configure actual business data before sales.');
 } finally {await db.$disconnect();}
+
+}
+main().catch(()=>{console.error('Seed failed; check the database connection and applied migrations.');process.exitCode=1;});
