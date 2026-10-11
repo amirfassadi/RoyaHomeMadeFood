@@ -1,0 +1,23 @@
+[Unit]
+Description=Roya Food Next.js
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=simple
+User=roya
+Group=roya
+WorkingDirectory=/opt/roya/current
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3000
+EnvironmentFile=/etc/roya/roya.env
+ExecStart=/usr/bin/node /opt/roya/current/.next/standalone/server.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/roya/current/.next
+[Install]
+WantedBy=multi-user.target

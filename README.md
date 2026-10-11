@@ -250,3 +250,9 @@ APIهای `/api/admin/*` بدون مدیر معتبر ۴۰۱ می‌دهند. ت
 مستندات رسمی پیاده‌سازی: https://next-auth.js.org/configuration/options ، https://next-auth.js.org/getting-started/client و https://cloudinary.com/documentation/upload_parameters .
 
 فاز ۴ پایان یافته؛ فاز ۵ شامل SEO، تکمیل امنیت عملیاتی و راهنمای استقرار پس از «ادامه» انجام می‌شود.
+
+## Phase 5 — SEO, security and deployment
+
+Localized canonical/hreflang/Open Graph metadata, opt-in real-catalog Product JSON-LD (IRR conversion), sitemap/robots, private-page noindex, production security headers, deployment environment validation, database health endpoint and expired rate-limit maintenance are implemented. Demo/static exports stay noindex. Stock presentation subtracts today's reserved daily capacity.
+
+See [the deployment and recovery guide](docs/DEPLOYMENT.md) for Vercel and VPS/systemd/Caddy setup, secrets, migrations, backups, operational limits and the real-service acceptance checks. `npm run deploy:check` validates production configuration without printing credentials. End-to-end database/gateway/browser verification still requires a configured deployment. Optional 2FA is not implemented.

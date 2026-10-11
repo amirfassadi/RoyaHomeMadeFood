@@ -1,0 +1,4 @@
+export function securityHeaders(production:boolean){
+ const policy=["default-src 'self'","base-uri 'self'","object-src 'none'","frame-ancestors 'none'",`script-src 'self' 'unsafe-inline'${production?'':" 'unsafe-eval'"}`,"style-src 'self' 'unsafe-inline'","img-src 'self' data: blob: https://res.cloudinary.com","media-src 'self' blob: https://res.cloudinary.com","font-src 'self' data:","connect-src 'self' https://api.cloudinary.com","form-action 'self' https://payment.zarinpal.com https://sandbox.zarinpal.com"];
+ return [{key:'Content-Security-Policy',value:policy.join('; ')},{key:'X-Content-Type-Options',value:'nosniff'},{key:'X-Frame-Options',value:'DENY'},{key:'Referrer-Policy',value:'no-referrer'},{key:'Permissions-Policy',value:'camera=(), microphone=(), geolocation=()'},...(production&&process.env.NEXT_PUBLIC_SITE_URL?.startsWith('https://')?[{key:'Strict-Transport-Security',value:'max-age=31536000'}]:[])];
+}

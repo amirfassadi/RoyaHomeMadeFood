@@ -1,3 +1,4 @@
+import {pageMetadata} from '@/lib/seo/core';
 import Link from 'next/link';
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {Leaf, Heart, Sprout, ArrowUpLeft, ArrowUpRight, Globe2, Clock3, Check} from 'lucide-react';
@@ -55,3 +56,5 @@ export default async function Foundation({params}: {params: Promise<{locale: Loc
 function SectionHeading({label, title, description}: {label: string; title: string; description: string}) {
   return <div className="mb-8"><p className="mb-3 text-xs font-semibold text-roya-brown">{label}</p><h2 className="text-2xl font-bold md:text-3xl">{title}</h2><p className="mt-3 max-w-2xl text-sm leading-7 text-roya-muted">{description}</p></div>;
 }
+
+export async function generateMetadata({params}:{params:Promise<{locale:Locale}>}){const {locale}=await params;return pageMetadata(locale,'/design-system',locale==='fa'?'سیستم طراحی':'Design system',undefined,true);}

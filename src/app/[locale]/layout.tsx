@@ -1,10 +1,11 @@
-import type {Metadata} from 'next';
+import {pageMetadata} from '@/lib/seo/core';
+import type {Locale} from '@/i18n/routing';
 import {NextIntlClientProvider, hasLocale} from 'next-intl';
 import {getMessages, setRequestLocale} from 'next-intl/server';
 import {notFound} from 'next/navigation';
 import {routing} from '@/i18n/routing';
 import '../globals.css';
-export const metadata: Metadata = {title: 'محصولات غذایی رویا | Roya Food Products', robots: {index: false, follow: false}};
+export async function generateMetadata({params}:{params:Promise<{locale:Locale}>}){const {locale}=await params;return pageMetadata(locale,'',locale==='fa'?'فینگر فود و طعم‌های خانگی':'Fresh homemade food');}
 export function generateStaticParams() {return routing.locales.map(locale => ({locale}));}
 export default async function LocaleLayout({children, params}: {children: React.ReactNode; params: Promise<{locale: string}>}) {
   const {locale} = await params;
