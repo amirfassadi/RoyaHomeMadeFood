@@ -326,3 +326,18 @@ model MarketingConsentEvent {
  createdAt DateTime @default(now()) @db.Timestamptz(3)
  @@index([userId, createdAt])
 }
+
+// Plain-text, scheduled announcements shown inside signed-in customer accounts.
+model ClubAnnouncement {
+ id String @id @default(cuid())
+ titleFa String @db.VarChar(150)
+ titleEn String @db.VarChar(150)
+ bodyFa String @db.Text
+ bodyEn String @db.Text
+ startsAt DateTime? @db.Timestamptz(3)
+ expiresAt DateTime? @db.Timestamptz(3)
+ active Boolean @default(false)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @db.Timestamptz(3)
+ @@index([active, createdAt])
+}

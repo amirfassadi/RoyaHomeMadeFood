@@ -1,0 +1,44 @@
+name: Quality and PostgreSQL integration
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: roya_test
+          POSTGRES_PASSWORD: test_only_not_a_production_secret
+          POSTGRES_DB: roya_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U roya_test -d roya_test"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql://roya_test:test_only_not_a_production_secret@localhost:5432/roya_test
+      DIRECT_URL: postgresql://roya_test:test_only_not_a_production_secret@localhost:5432/roya_test
+      ROYA_INTEGRATION_DATABASE_URL: postgresql://roya_test:test_only_not_a_production_secret@localhost:5432/roya_test
+      ROYA_DEMO_CATALOG: '0'
+      ROYA_INDEXABLE: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run db:validate
+      - run: npm run db:deploy
+      - run: npm run db:seed
+      - run: npm run db:seed
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:integration
+      - run: npm run build
+      - run: npm run build:sites
