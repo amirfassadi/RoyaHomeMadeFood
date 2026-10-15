@@ -27,6 +27,7 @@ before(async()=>{
 after(async()=>{
  // Delete only this suite's fixtures, in foreign-key order.
  const orders=await db.order.findMany({where:{deliveryZoneId:zone?.id??'never'},select:{id:true}}),ids=orders.map(o=>o.id);
+ await db.cryptoPayment.deleteMany({where:{orderId:{in:ids}}});
  await db.paymentAttempt.deleteMany({where:{orderId:{in:ids}}});await db.order.deleteMany({where:{id:{in:ids}}});
  await db.productDailyUsage.deleteMany({where:{productId:{in:productIds}}});await db.product.deleteMany({where:{id:{in:productIds}}});
  await db.customerLoginChallenge.deleteMany({where:{id:{in:challengeIds}}});await db.marketingConsentEvent.deleteMany({where:{userId:{in:userIds}}});await db.user.deleteMany({where:{id:{in:userIds}}});
@@ -61,4 +62,17 @@ test('contact read state is idempotent and stale announcement edits cannot overw
  await saveCommunication({action:'announcement',announcement:data},admin.id);const a=await db.clubAnnouncement.findFirstOrThrow({where:{titleFa:prefix}});announcementIds.push(a.id);
  await saveCommunication({action:'announcement',announcement:{...data,id:a.id,expectedUpdatedAt:a.updatedAt.toISOString(),active:true}},admin.id);
  await assert.rejects(()=>saveCommunication({action:'announcement',announcement:{...data,id:a.id,expectedUpdatedAt:'2000-01-01T00:00:00.000Z'}},admin.id),/CONFLICT/);
+});
+
+test('crypto checkout snapshots USD, rejects stale pricing and cannot prepare or release an uncertain payment',async()=>{
+ Object.assign(process.env,{ROYA_INTERNATIONAL_ENABLED:'1',BTCPAY_URL:'https://gateway.example',BTCPAY_STORE_ID:'store',BTCPAY_API_KEY:'test-only-api-key-0000',BTCPAY_WEBHOOK_SECRET:'test-only-webhook-secret'.repeat(2),ROYA_USD_RATE_TOMAN:'100000',ROYA_USD_RATE_EXPIRES_AT:'2099-01-01T00:00:00Z',NEXT_PUBLIC_SITE_URL:'https://shop.example'});
+ const p=await product(),payload={...input(p),paymentMethod:'BTCPAY' as const,buyerEmail:'buyer@example.com',expectedUsdCents:101};
+ await assert.rejects(()=>placeOrder({...payload,expectedUsdCents:100}),/PRICE_CHANGED/);
+ const [a,b]=await Promise.all([placeOrder(payload),placeOrder(payload)]);assert.equal(a.id,b.id);assert.equal(a.userId,null);assert.equal(a.buyerEmail,'buyer@example.com');
+ const payment=await db.cryptoPayment.findUniqueOrThrow({where:{orderId:a.id}});assert.equal(payment.amountUsdCents,101);assert.equal(payment.tomanPerUsd,100000);
+ await assert.rejects(()=>changeOrderStatus(a.id,'PENDING','PREPARING',admin.id),/PAYMENT_PENDING/);
+ await db.cryptoPayment.update({where:{id:payment.id},data:{requestState:'UNKNOWN'}});
+ await assert.rejects(()=>changeOrderStatus(a.id,'PENDING','CANCELLED',admin.id),/PAYMENT_PENDING/);
+ await db.cryptoPayment.update({where:{id:payment.id},data:{requestState:'NEW'}});
+ await changeOrderStatus(a.id,'PENDING','CANCELLED',admin.id);assert.equal(Number((await db.product.findUniqueOrThrow({where:{id:p.id}})).stockQuantity),1);
 });

@@ -14,5 +14,13 @@ export function deploymentErrors(env:Record<string,string|undefined>){
   if((env.CUSTOMER_OTP_SECRET??'').length<32)errors.push('CUSTOMER_OTP_SECRET: at least 32 random characters required');
   for(const key of ['KAVENEGAR_API_KEY','KAVENEGAR_OTP_TEMPLATE'])if(!env[key]?.trim())errors.push(`${key}: required for customer accounts`);
  }
+ if(env.ROYA_INTERNATIONAL_ENABLED==='1'){
+  if(env.ROYA_TRUST_GEO_HEADER!=='1')errors.push('ROYA_TRUST_GEO_HEADER: trusted country proxy required');
+  for(const key of ['BTCPAY_STORE_ID','BTCPAY_API_KEY','BTCPAY_WEBHOOK_SECRET'])if(!env[key]?.trim())errors.push(`${key}: required for international payment`);
+  if((env.BTCPAY_WEBHOOK_SECRET??'').length<32)errors.push('BTCPAY_WEBHOOK_SECRET: at least 32 characters required');
+  try{const u=new URL(env.BTCPAY_URL??'');if(u.protocol!=='https:'||u.username||u.password||u.pathname!=='/'||u.search||u.hash)throw new Error();}catch{errors.push('BTCPAY_URL: HTTPS origin required');}
+  if(!/^[1-9]\d{0,9}$/.test(env.ROYA_USD_RATE_TOMAN??'')||Number(env.ROYA_USD_RATE_TOMAN)>2147483647)errors.push('ROYA_USD_RATE_TOMAN: positive integer required');
+  if(!Number.isFinite(Date.parse(env.ROYA_USD_RATE_EXPIRES_AT??''))||Date.parse(env.ROYA_USD_RATE_EXPIRES_AT!)<=Date.now())errors.push('ROYA_USD_RATE_EXPIRES_AT: future timestamp required');
+ }
  return errors;
 }

@@ -40,9 +40,9 @@ export async function getAdminData(section:string,options:{page?:number;q?:strin
   data.zones=JSON.parse(JSON.stringify(zones));data.discounts=JSON.parse(JSON.stringify(discounts));data.contact=contactSettingsSchema.safeParse(contact?.value).data??{};
  }
  if(section==='order'){
-  const o=await db.order.findUnique({where:{id:options.id??''},select:{...summary,address:true,city:true,deliveryNotes:true,deliveryZoneNameSnapshot:true,subtotalToman:true,discountToman:true,deliveryFeeToman:true,items:{select:{id:true,productNameFa:true,unit:true,quantity:true,lineTotalToman:true}},statusHistory:{select:{status:true,createdAt:true},orderBy:{createdAt:'asc'}},paymentAttempts:{select:{requestState:true}}}});
+  const o=await db.order.findUnique({where:{id:options.id??''},select:{...summary,address:true,city:true,deliveryNotes:true,deliveryZoneNameSnapshot:true,subtotalToman:true,discountToman:true,deliveryFeeToman:true,items:{select:{id:true,productNameFa:true,unit:true,quantity:true,lineTotalToman:true}},statusHistory:{select:{status:true,createdAt:true},orderBy:{createdAt:'asc'}},buyerEmail:true,cryptoPayment:{select:{amountUsdCents:true,requestState:true,invoiceId:true,invoiceStatus:true,additionalStatus:true}},paymentAttempts:{select:{requestState:true}}}});
   if(!o)throw new ShopError('NOT_FOUND',404);
-  const {paymentAttempts,...safe}=o;data.detail=JSON.parse(JSON.stringify({...safe,items:o.items.map(i=>({...i,quantity:Number(i.quantity)})),requestState:paymentAttempts[0]?.requestState??null}));
+  const {paymentAttempts,cryptoPayment,...safe}=o;data.detail=JSON.parse(JSON.stringify({...safe,items:o.items.map(i=>({...i,quantity:Number(i.quantity)})),cryptoPayment,requestState:cryptoPayment?.requestState??paymentAttempts[0]?.requestState??null}));
  }
  return data;
 }

@@ -29,6 +29,7 @@ enum OrderStatus {
   CANCELLED
 }
 enum PaymentMethod {
+  BTCPAY
   ZARINPAL
   CASH_ON_DELIVERY
 }
@@ -194,6 +195,8 @@ model Order {
   estimatedDeliveryAt        DateTime       @db.Timestamptz(3)
   items                      OrderItem[]
   statusHistory              OrderStatusHistory[]
+  buyerEmail                 String? @db.VarChar(254)
+  cryptoPayment              CryptoPayment?
   paymentAttempts            PaymentAttempt[]
   createdAt                  DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt                  DateTime       @updatedAt @db.Timestamptz(3)
@@ -340,4 +343,23 @@ model ClubAnnouncement {
  createdAt DateTime @default(now()) @db.Timestamptz(3)
  updatedAt DateTime @updatedAt @db.Timestamptz(3)
  @@index([active, createdAt])
+}
+
+// One invoice per order; never silently retry an uncertain creation request.
+model CryptoPayment {
+ id String @id @default(cuid())
+ orderId String @unique
+ order Order @relation(fields:[orderId],references:[id],onDelete:Restrict)
+ invoiceId String? @unique
+ amountUsdCents Int
+ tomanPerUsd Int
+ rateExpiresAt DateTime @db.Timestamptz(3)
+ storeId String
+ gatewayOrigin String
+ requestState String @default("NEW")
+ invoiceStatus String?
+ additionalStatus String?
+ checkoutUrl String?
+ verifiedAt DateTime? @db.Timestamptz(3)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
 }

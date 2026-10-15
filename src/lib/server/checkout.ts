@@ -6,6 +6,7 @@ import {ShopError} from './shop-http';
 import {calculateLineTotal, validateQuantity, estimateDelivery} from '@/lib/domain/order';
 import {capacityDay, checkedMoney, discountAmount} from '@/lib/domain/checkout';
 import type {QuoteInput, CheckoutInput} from '@/lib/validation/checkout';
+import {cryptoConfig,cryptoQuote} from './international';
 import {gatewayConfiguration} from './zarinpal';
 type Tx=Prisma.TransactionClient;
 export async function calculateQuote(tx: Tx, input: QuoteInput, reserve=false, now=new Date()) {
@@ -41,6 +42,8 @@ export function publicQuote(q: Awaited<ReturnType<typeof calculateQuote>>) {
   return {subtotalToman:q.subtotalToman,discountToman:q.discountToman,deliveryFeeToman:q.deliveryFeeToman,totalToman:q.totalToman,estimatedDeliveryAt:q.estimatedDeliveryAt.toISOString()};
 }
 export async function placeOrder(input: CheckoutInput,customer?:{id:string;mobile:string;sessionVersion:number}|null) {
+  const crypto=input.paymentMethod==='BTCPAY'?cryptoConfig():null;
+  if(crypto&&(!input.buyerEmail||!input.expectedUsdCents))throw new ShopError('INVALID');
   const gateway=input.paymentMethod==='ZARINPAL'?gatewayConfiguration():null;
   const canonical={...input,items:[...input.items].sort((a,b)=>a.productId.localeCompare(b.productId))};
   const fingerprint=createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
@@ -58,12 +61,14 @@ export async function placeOrder(input: CheckoutInput,customer?:{id:string;mobil
     }
     const now=new Date(), q=await calculateQuote(tx,input,true,now);
     if(q.totalToman!==input.expectedTotal)throw new ShopError('PRICE_CHANGED',409);
+    const foreign=crypto?cryptoQuote(q.totalToman):null;
+    if(foreign&&foreign.amountUsdCents!==input.expectedUsdCents)throw new ShopError('PRICE_CHANGED',409);
     if(gateway && q.totalToman<=0)throw new ShopError('PAYMENT_AMOUNT');
     for(const item of q.items){
       if(item.stockReserved)await tx.product.update({where:{id:item.productId},data:{stockQuantity:{decrement:item.quantity}}});
       await tx.productDailyUsage.upsert({where:{productId_day:{productId:item.productId,day:q.day}},create:{productId:item.productId,day:q.day,quantity:item.quantity},update:{quantity:{increment:item.quantity}}});
     }
     if(q.discount)await tx.discountCode.update({where:{id:q.discount.id},data:{usedCount:{increment:1}}});
-    return tx.order.create({data:{trackingCode:`ROYA-${randomBytes(12).toString('hex').toUpperCase()}`,idempotencyKey:input.idempotencyKey,requestFingerprint:fingerprint,locale:input.locale,capacityDay:q.day,userId,customerName:input.name,mobile:input.mobile,address:input.address,city:q.zone.cityFa,deliveryNotes:input.notes,deliveryZoneId:q.zone.id,deliveryZoneNameSnapshot:q.zone.nameFa,paymentMethod:input.paymentMethod,paymentStatus:gateway?'PENDING':'UNPAID',subtotalToman:q.subtotalToman,discountToman:q.discountToman,deliveryFeeToman:q.deliveryFeeToman,totalToman:q.totalToman,discountCodeId:q.discount?.id,discountCodeSnapshot:q.discount?.code,longestPreparationMinutes:q.longestPreparationMinutes,zoneDeliveryMinutes:q.zone.deliveryMinutes,estimatedDeliveryAt:q.estimatedDeliveryAt,items:{create:q.items},statusHistory:{create:{status:'PENDING'}},...(gateway?{paymentAttempts:{create:{amountToman:q.totalToman,callbackNonce:randomBytes(32).toString('hex'),merchantId:gateway.merchantId,sandbox:gateway.sandbox}}}:{})}});
+    return tx.order.create({data:{trackingCode:`ROYA-${randomBytes(12).toString('hex').toUpperCase()}`,idempotencyKey:input.idempotencyKey,requestFingerprint:fingerprint,locale:input.locale,capacityDay:q.day,userId,customerName:input.name,mobile:input.mobile,address:input.address,city:q.zone.cityFa,deliveryNotes:input.notes,deliveryZoneId:q.zone.id,deliveryZoneNameSnapshot:q.zone.nameFa,paymentMethod:input.paymentMethod,buyerEmail:crypto?input.buyerEmail:undefined,paymentStatus:(gateway||crypto)?'PENDING':'UNPAID',subtotalToman:q.subtotalToman,discountToman:q.discountToman,deliveryFeeToman:q.deliveryFeeToman,totalToman:q.totalToman,discountCodeId:q.discount?.id,discountCodeSnapshot:q.discount?.code,longestPreparationMinutes:q.longestPreparationMinutes,zoneDeliveryMinutes:q.zone.deliveryMinutes,estimatedDeliveryAt:q.estimatedDeliveryAt,...(crypto&&foreign?{cryptoPayment:{create:{amountUsdCents:foreign.amountUsdCents,tomanPerUsd:crypto.rate,rateExpiresAt:new Date(crypto.expires),storeId:crypto.store,gatewayOrigin:crypto.url}}}:{}),items:{create:q.items},statusHistory:{create:{status:'PENDING'}},...(gateway?{paymentAttempts:{create:{amountToman:q.totalToman,callbackNonce:randomBytes(32).toString('hex'),merchantId:gateway.merchantId,sandbox:gateway.sandbox}}}:{})}});
   },{maxWait:10000,timeout:15000});
 }

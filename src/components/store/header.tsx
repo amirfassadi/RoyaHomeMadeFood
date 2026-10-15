@@ -1,4 +1,5 @@
 'use client';
+import {InternationalBanner} from './international-banner';
 import {useCart} from './cart-provider';
 import {formatNumber} from '@/lib/format';
 import type {Locale} from '@/i18n/routing';
@@ -20,6 +21,7 @@ export function StoreHeader({isDemo}: {isDemo: boolean}) {
   return <>
     <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-white focus:p-4">{t('skip')}</a>
     {isDemo && <div className="bg-roya-green-dark px-5 py-2.5 text-center text-[11px] leading-5 text-white">{t('demo')}</div>}
+    <InternationalBanner isDemo={isDemo}/>
     <header className="sticky top-0 z-30 border-b border-roya-line bg-roya-cream/95 backdrop-blur-md"><div className="section-shell flex min-h-22 items-center justify-between gap-3 py-4">
       <Link href={`/${locale}/`} onClick={() => setOpen(false)}><Logo/></Link>
       <nav aria-label={t('menu')} className="hidden items-center gap-6 text-sm xl:flex">{links.map(([key, path]) => <Link key={key} href={`/${locale}${path}/`} className={`transition-colors hover:text-roya-green ${pathname.replace(/\/$/, '') === `/${locale}${path}` ? 'font-semibold text-roya-green' : 'text-roya-muted'}`} aria-current={pathname.replace(/\/$/, '') === `/${locale}${path}` ? 'page' : undefined}>{t(key)}</Link>)}</nav>
