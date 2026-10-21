@@ -51,7 +51,9 @@ jobs:
           ROYA_ACCEPT_ORDERS: '0'
           ROYA_SEND_SMS: '0'
       - name: Verify administrator HTTP flow against isolated PostgreSQL
-        run: bash scripts/test-admin-http.sh
+        run: |
+          bash -n deploy/recover-vps-admin.sh
+          bash scripts/test-admin-http.sh
       - name: Verify backup and isolated restore
         run: python3 scripts/test-backup-restore.py
         env:

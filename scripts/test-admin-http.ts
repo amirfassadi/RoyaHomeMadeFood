@@ -4,6 +4,7 @@ import {createHash,randomBytes,randomUUID} from 'node:crypto';
 import {Prisma,PrismaClient} from '../src/generated/prisma/client';
 import {PrismaPg} from '@prisma/adapter-pg';
 import {hashPassword} from '../src/lib/admin/password';
+import {spawnSync} from 'node:child_process';
 
 async function main(){
 const url=process.env.ROYA_INTEGRATION_DATABASE_URL;
@@ -34,6 +35,11 @@ class Client{
  }
 }
 const client=new Client(),guest=new Client();
+function recover(mode:'cancel'|'mismatch'|'recover',newPassword:string){
+ const result=spawnSync('python3',['scripts/test-admin-recovery-cli.py'],{input:JSON.stringify({mode,mobile,password:newPassword}),encoding:'utf8',timeout:35000});
+ assert.equal(result.status,0,'Recovery CLI failed; hidden input and terminal output omitted.');
+ console.log(result.stdout.trim());
+}
 async function ok(r:Response,status=200){assert.equal(r.status,status,`HTTP ${r.status}: ${await r.clone().text()}`);return r.json();}
 async function productRow(id:string){return (await ok(await client.request('/api/admin/data/?section=products'))).products.find((p:{id:string})=>p.id===id);}
 try{
@@ -46,6 +52,23 @@ try{
  await ok(await client.auth('callback/credentials',{mobile,password}));
  assert.equal((await ok(await client.request('/api/auth/session/'))).adminId,admin.id);
  assert.equal((await client.request('/admin/products/')).status,200);
+ // Exercise the actual operator CLI, including hidden input and session revocation.
+ const replacement=randomBytes(24).toString('base64url');
+ const original=await db.user.findUniqueOrThrow({where:{id:admin.id}});
+ for(const mode of ['cancel','mismatch'] as const){
+  recover(mode,replacement);
+  const unchanged=await db.user.findUniqueOrThrow({where:{id:admin.id}});
+  assert.equal(unchanged.passwordHash,original.passwordHash);assert.equal(unchanged.sessionVersion,original.sessionVersion);
+  assert.equal(await db.adminAudit.count({where:{adminId:admin.id,action:'ADMIN_PASSWORD_RECOVERED'}}),0);
+ }
+ recover('recover',replacement);
+ const recovered=await db.user.findUniqueOrThrow({where:{id:admin.id}});
+ assert.equal(recovered.sessionVersion,original.sessionVersion+1);assert.equal(recovered.role,'ADMIN');assert.equal(recovered.active,true);assert.equal(recovered.twoFactorEnabled,false);
+ assert.equal(await db.adminAudit.count({where:{adminId:admin.id,action:'ADMIN_PASSWORD_RECOVERED'}}),1);
+ await ok(await client.request('/api/admin/data/?section=products'),401);
+ await ok(await client.auth('callback/credentials',{mobile,password}),401);
+ await ok(await client.auth('callback/credentials',{mobile,password:replacement}));
+ assert.equal((await ok(await client.request('/api/auth/session/'))).adminId,admin.id);
  const input={nameFa:'محصول آزمایشی HTTP',nameEn:'HTTP test product',slug:'http-'+suffix,categoryId:category.id,descriptionFa:'این محصول فقط برای آزمون یکپارچه است.',descriptionEn:'This product exists only in an isolated integration database.',priceToman:123456,unit:'PACK',priceBasisQuantity:1,minOrderQuantity:1,orderStepQuantity:1,stockQuantity:12,dailyCapacity:8,preparationMinutes:60,active:false,featured:false};
  const saved=await ok(await client.post('/api/admin/products/',{product:input,media:[]}));products.push(saved.id);
  const before=await productRow(saved.id);assert.equal(before.priceToman,123456);assert.equal(before.stockQuantity,12);assert.equal(before.dailyCapacity,8);
@@ -77,7 +100,7 @@ try{
  assert.equal(await db.order.count(),orderCount);
  await ok(await client.auth('signout'));
  await ok(await client.request('/api/admin/data/?section=products'),401);
- console.log('ADMIN HTTP PASS: real login/logout, guest access controls, create/read/edit/archive, prices, stock, capacity, weighted units, zero stock, unlimited capacity, stale edits, invalid input, origin protection, shared pricing and live-effect guards.');
+ console.log('ADMIN HTTP PASS: real login/logout, hidden-password recovery CLI, cancelled/mismatched recovery, old-session revocation, old-password rejection, new-password login, guest access controls, create/read/edit/archive, prices, stock, capacity, weighted units, zero stock, unlimited capacity, stale edits, invalid input, origin protection, shared pricing and live-effect guards.');
 }finally{
  await db.productMedia.deleteMany({where:{productId:{in:products}}});
  await db.product.deleteMany({where:{id:{in:products}}});
