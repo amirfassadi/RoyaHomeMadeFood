@@ -5,6 +5,7 @@ import {Prisma,PrismaClient} from '../src/generated/prisma/client';
 import {PrismaPg} from '@prisma/adapter-pg';
 import {hashPassword} from '../src/lib/admin/password';
 
+async function main(){
 const url=process.env.ROYA_INTEGRATION_DATABASE_URL;
 if(!url||!['/roya_test','/roya_integration_test'].includes(new URL(url).pathname))throw new Error('Use an isolated integration database.');
 const base='http://127.0.0.1:4313';
@@ -87,3 +88,6 @@ try{
  else await db.setting.deleteMany({where:{key:'international-pricing'}});
  await db.$disconnect();
 }
+
+}
+void main().catch(error=>{console.error(error);process.exitCode=1;});

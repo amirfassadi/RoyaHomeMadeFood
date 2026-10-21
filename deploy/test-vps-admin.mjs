@@ -11,8 +11,9 @@ if(!process.stdin.isTTY||!process.stdout.isTTY)throw new Error('Run interactivel
 const receipt=JSON.parse(execFileSync('sudo',['-n','cat','/var/lib/roya/admin-backup-receipt.json'],{encoding:'utf8'}));
 const current=execFileSync('sudo',['-n','cat','/opt/roya/preview-current/.roya-release'],{encoding:'utf8'}).trim();
 const envDigest=execFileSync('sudo',['-n','sha256sum','/etc/roya/preview.env'],{encoding:'utf8'}).split(/\s/)[0];
+const databaseDigest=execFileSync('sudo',['-n','sha256sum','/etc/roya/database.env'],{encoding:'utf8'}).split(/\s/)[0];
 const age=Date.now()-Date.parse(receipt.createdAt);
-if(receipt.database!=='roya_store'||receipt.restoreVerified!==true||receipt.release!==current||receipt.previewEnvSha256!==envDigest||!Number.isFinite(age)||age< -60000||age>2*3600000)throw new Error('A fresh verified backup for this exact private preview is required.');
+if(receipt.database!=='roya_store'||receipt.restoreVerified!==true||receipt.release!==current||receipt.previewEnvSha256!==envDigest||receipt.databaseEnvSha256!==databaseDigest||!Number.isFinite(age)||age< -60000||age>2*3600000)throw new Error('A fresh verified backup for this exact private preview is required.');
 let muted=false;
 const output=new Writable({write(chunk,_encoding,callback){if(!muted)process.stdout.write(chunk);callback();}});
 const terminal=createInterface({input:process.stdin,output,terminal:true});

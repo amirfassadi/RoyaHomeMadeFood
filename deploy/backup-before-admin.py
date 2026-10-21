@@ -13,6 +13,7 @@ import stat
 import subprocess
 import tarfile
 import uuid
+from urllib.parse import urlparse
 
 def file_sha256(path):
     with Path(path).open('rb') as source:
@@ -98,9 +99,18 @@ def main():
     subprocess.run(['systemctl', 'is-active', '--quiet', 'roya-preview.service'], check=True)
     preview = Path('/etc/roya/preview.env')
     values = dict(line.split('=', 1) for line in preview.read_text().splitlines() if '=' in line and not line.startswith('#'))
-    for key, expected in {'HOSTNAME': '127.0.0.1', 'PORT': '3311', 'ROYA_LIVE_PAYMENTS': '0', 'ROYA_ACCEPT_ORDERS': '0', 'ROYA_SEND_SMS': '0'}.items():
+    database_env = Path('/etc/roya/database.env')
+    database_values = dict(line.split('=', 1) for line in database_env.read_text().splitlines() if '=' in line and not line.startswith('#'))
+    for key in ('DATABASE_URL', 'DIRECT_URL'):
+        target = urlparse(values.get(key, database_values.get(key, '')))
+        if (target.scheme, target.hostname, target.port, target.path, target.username) != ('postgresql', '127.0.0.1', 5432, '/roya_store', 'roya_app') or not target.password:
+            raise SystemExit('STOP: preview database target differs from the backup database.')
+    for key, expected in {'HOSTNAME': '127.0.0.1', 'PORT': '3311', 'ROYA_INDEXABLE': '0', 'ROYA_LIVE_PAYMENTS': '0', 'ROYA_ACCEPT_ORDERS': '0', 'ROYA_SEND_SMS': '0'}.items():
         if values.get(key) != expected:
             raise SystemExit('STOP: private preview configuration differs.')
+    listeners = subprocess.check_output(['ss', '-lntH', '( sport = :3311 )'], text=True).splitlines()
+    if not listeners or any(line.split()[3] != '127.0.0.1:3311' for line in listeners):
+        raise SystemExit('STOP: private preview listener differs.')
     binaries = Path('/usr/lib/postgresql/18/bin')
     if not all((binaries / name).is_file() for name in ('psql', 'pg_dump', 'pg_restore', 'createdb', 'dropdb')):
         raise SystemExit('STOP: PostgreSQL 18 backup tools are missing.')
@@ -127,6 +137,7 @@ def main():
     result = verified_database_backup(pg, 'roya_store', destination)
     result.update({'database': 'roya_store', 'release': current, 'createdAt': datetime.now(timezone.utc).isoformat(),
                    'previewEnvSha256': file_sha256(preview),
+                   'databaseEnvSha256': file_sha256(database_env),
                    'directory': str(destination), 'configurationSha256': hashlib.sha256((destination / 'configuration.tar.gz').read_bytes()).hexdigest()})
     (destination / 'verification.json').write_text(json.dumps(result, sort_keys=True, indent=2) + '\n')
     receipt = Path('/var/lib/roya/admin-backup-receipt.json')
