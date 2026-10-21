@@ -53,6 +53,7 @@ jobs:
       - name: Verify administrator HTTP flow against isolated PostgreSQL
         run: |
           bash -n deploy/recover-vps-admin.sh
+          bash -n deploy/test-vps-pricing.sh
           bash scripts/test-admin-http.sh
       - name: Verify backup and isolated restore
         run: python3 scripts/test-backup-restore.py

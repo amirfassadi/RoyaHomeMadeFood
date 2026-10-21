@@ -5,6 +5,7 @@ import {Prisma,PrismaClient} from '../src/generated/prisma/client';
 import {PrismaPg} from '@prisma/adapter-pg';
 import {hashPassword} from '../src/lib/admin/password';
 import {spawnSync} from 'node:child_process';
+import {editable,runPricingAdminTest,type PricingCheckpoint} from '../deploy/private-pricing-test';
 
 async function main(){
 const url=process.env.ROYA_INTEGRATION_DATABASE_URL;
@@ -89,13 +90,33 @@ try{
  const empty=await productRow(weighted.id);assert.equal(empty.stockQuantity,0);assert.equal(empty.dailyCapacity,null);
  await ok(await client.post('/api/admin/products/archive/',{id:saved.id,expectedUpdatedAt:after.updatedAt}));
  assert.equal((await productRow(saved.id)).active,false);
- const initial=await ok(await guest.request('/api/shop/pricing/'));
- const policy={feeBps:750,countryFees:{TR:300},manualUsdToman:null};
- const updated=await ok(await client.post('/api/admin/settings/pricing/',{policy,expectedUpdatedAt:initial.policy.updatedAt}));
- assert.equal((await ok(await guest.request('/api/shop/pricing/'))).policy.updatedAt,updated.policy.updatedAt);
- assert.equal((await ok(await guest.request('/api/shop/pricing/'))).policy.countryFees.TR,300);
- await ok(await client.post('/api/admin/settings/pricing/',{policy:{...policy,feeBps:900},expectedUpdatedAt:initial.policy.updatedAt}),409);
- assert.equal((await ok(await guest.request('/api/shop/pricing/'))).policy.feeBps,750);
+ const initial=(await ok(await guest.request('/api/shop/pricing/'))).policy;
+ const checkpoints:PricingCheckpoint[]=[];
+ await runPricingAdminTest({admin:client,guest,checkpoint:value=>{checkpoints.push(structuredClone(value));}});
+ assert.equal(checkpoints.at(-1)!.phase,'restored');
+ assert.deepEqual(editable((await ok(await guest.request('/api/shop/pricing/'))).policy),editable(initial));
+ const stored=await db.setting.findUniqueOrThrow({where:{key:'international-pricing'}});
+ assert.deepEqual(editable(stored.value as any),editable(initial));
+ // A simultaneous editor owns its later version: cleanup must not overwrite it.
+ let concurrentVersion='';
+ await assert.rejects(()=>runPricingAdminTest({admin:client,guest,report:()=>{},checkpoint:async value=>{
+  if(value.phase==='manual-saved'){
+   const changed=await ok(await client.post('/api/admin/settings/pricing/',{policy:{...editable(value.owned!),feeBps:1111},expectedUpdatedAt:value.owned!.updatedAt}));concurrentVersion=changed.policy.updatedAt;
+  }
+ }}),/RESTORE_REVIEW/);
+ const concurrent=(await ok(await guest.request('/api/shop/pricing/'))).policy;
+ assert.equal(concurrent.updatedAt,concurrentVersion);assert.equal(concurrent.feeBps,1111);
+ await ok(await client.post('/api/admin/settings/pricing/',{policy:editable(initial),expectedUpdatedAt:concurrentVersion}));
+ // A committed write with a lost response requires review, never a blind restore.
+ let dropped=false;
+ const uncertain={request:client.request.bind(client),post:async(path:string,body:unknown)=>{
+  const r=await client.post(path,body);if(!dropped){dropped=true;await r.text();throw new Error('Simulated lost response.');}return r;
+ }};
+ await assert.rejects(()=>runPricingAdminTest({admin:uncertain,guest,report:()=>{},checkpoint:()=>{}}),/RESTORE_REVIEW/);
+ const unknown=(await ok(await guest.request('/api/shop/pricing/'))).policy;
+ assert.equal(unknown.feeBps,750);
+ await ok(await client.post('/api/admin/settings/pricing/',{policy:editable(initial),expectedUpdatedAt:unknown.updatedAt}));
+ console.log('PRICING RESTORATION PASS: normal restoration, concurrent editor preserved and lost-response write not blindly overwritten.');
  for(const path of ['/api/shop/checkout/','/api/international/checkout/','/api/payment/crypto/webhook/','/api/customer/code/'])assert.equal((await ok(await guest.post(path,{}),503)).error,'STAGING_ONLY');
  assert.equal(await db.order.count(),orderCount);
  await ok(await client.auth('signout'));
