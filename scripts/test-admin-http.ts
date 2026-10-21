@@ -6,6 +6,9 @@ import {PrismaPg} from '@prisma/adapter-pg';
 import {hashPassword} from '../src/lib/admin/password';
 import {spawnSync} from 'node:child_process';
 import {editable,PrivateAdminClient,runPricingAdminTest,type PricingCheckpoint} from '../deploy/private-pricing-test';
+import {privateCatalogResponseSchema} from '../src/lib/catalog/snapshot';
+import {quoteDemo,makeDemoOrder,quoteNeedsReview} from '../src/lib/prototype';
+import {defaultPricingPolicy,pricingSnapshot,sampleMarketRates} from '../src/lib/pricing';
 
 async function main(){
 const url=process.env.ROYA_INTEGRATION_DATABASE_URL;
@@ -29,6 +32,7 @@ function recover(mode:'cancel'|'mismatch'|'recover',newPassword:string){
 }
 async function ok(r:Response,status=200){assert.equal(r.status,status,`HTTP ${r.status}: ${await r.clone().text()}`);return r.json();}
 async function productRow(id:string){return (await ok(await client.request('/api/admin/data/?section=products'))).products.find((p:{id:string})=>p.id===id);}
+async function storefront(){return privateCatalogResponseSchema.parse(await ok(await guest.request('/api/shop/catalog/'))).catalog;}
 try{
  const admin=await db.user.create({data:{name:'HTTP integration administrator',mobile,passwordHash:await hashPassword(password),role:'ADMIN'}});adminId=admin.id;
  const category=await db.category.create({data:{slug:'http-'+suffix,nameFa:'دستهٔ آزمایشی HTTP',nameEn:'HTTP integration category'}});categoryId=category.id;
@@ -58,10 +62,28 @@ try{
  assert.equal((await ok(await client.request('/api/auth/session/'))).adminId,admin.id);
  const input={nameFa:'محصول آزمایشی HTTP',nameEn:'HTTP test product',slug:'http-'+suffix,categoryId:category.id,descriptionFa:'این محصول فقط برای آزمون یکپارچه است.',descriptionEn:'This product exists only in an isolated integration database.',priceToman:123456,unit:'PACK',priceBasisQuantity:1,minOrderQuantity:1,orderStepQuantity:1,stockQuantity:12,dailyCapacity:8,preparationMinutes:60,active:false,featured:false};
  const saved=await ok(await client.post('/api/admin/products/',{product:input,media:[]}));products.push(saved.id);
+ assert.ok(!(await storefront()).products.some(p=>p.id===saved.id));
  const before=await productRow(saved.id);assert.equal(before.priceToman,123456);assert.equal(before.stockQuantity,12);assert.equal(before.dailyCapacity,8);
  const changed={...input,priceToman:175000,stockQuantity:24,dailyCapacity:18,active:true};
  await ok(await client.post('/api/admin/products/',{id:saved.id,expectedUpdatedAt:before.updatedAt,product:changed,media:[]}));
  const after=await productRow(saved.id);assert.equal(after.priceToman,175000);assert.equal(after.stockQuantity,24);assert.equal(after.active,true);
+ const visible=await storefront(),shown=visible.products.find(p=>p.id===saved.id)!;
+ assert.equal(shown.priceToman,175000);assert.equal(shown.stockQuantity,24);assert.equal(shown.dailyCapacity,18);
+ for(const [locale,name] of [['fa',input.nameFa],['en',input.nameEn]]){
+  const response=await guest.request(`/${locale}/products/${input.slug}/`);assert.equal(response.status,200);assert.ok((await response.text()).includes(name));
+ }
+ const time=new Date(),basket=[{productId:saved.id,quantity:1}],zone={id:'test',feeToman:50000};
+ const previewQuote=quoteDemo(visible,basket,zone,'','IR',time);
+ assert.equal(previewQuote.subtotalToman,175000);
+ const previewOrder=makeDemoOrder(visible,basket,{name:'Test recipient',mobile:'09120000000',buyerEmail:'',address:'Only a controlled test address',notes:'',country:'IR',zoneId:zone.id,deliveryAt:new Date(time.getTime()+3*86400000).toISOString(),deliverySlot:'14–18',method:'CASH'},previewQuote,time);
+ assert.equal(previewOrder.items[0].productId,saved.id);assert.equal(await db.order.count(),orderCount);
+ const overseas=pricingSnapshot('DE',sampleMarketRates(time),defaultPricingPolicy,time.getTime())!;
+ const overseasQuote=quoteDemo(visible,basket,zone,'','DE',time,overseas);
+ for(const method of ['USDC_BSC','BTC_LIGHTNING','PAYPAL'] as const){
+  const order=makeDemoOrder(visible,basket,{...previewOrder.details,country:'DE',buyerEmail:'test@example.com',method},overseasQuote,time);
+  assert.equal(order.paymentState,'PENDING');assert.ok(!('paymentUrl' in order));assert.ok(!('walletAddress' in order));
+ }
+ assert.equal(await db.order.count(),orderCount);
  const audits=await db.adminAudit.count({where:{adminId:admin.id}});
  await ok(await client.post('/api/admin/products/',{id:saved.id,expectedUpdatedAt:before.updatedAt,product:input,media:[]}),409);
  for(const invalid of [{stockQuantity:-1},{stockQuantity:1.5},{priceToman:1.5}])await ok(await client.post('/api/admin/products/',{id:saved.id,expectedUpdatedAt:after.updatedAt,product:{...changed,...invalid},media:[]}),400);
@@ -76,6 +98,9 @@ try{
  const empty=await productRow(weighted.id);assert.equal(empty.stockQuantity,0);assert.equal(empty.dailyCapacity,null);
  await ok(await client.post('/api/admin/products/archive/',{id:saved.id,expectedUpdatedAt:after.updatedAt}));
  assert.equal((await productRow(saved.id)).active,false);
+ assert.ok(!(await storefront()).products.some(p=>p.id===saved.id));
+ assert.throws(()=>quoteDemo({...visible,products:[]},basket,zone,'','IR',time),/QUANTITY/);
+ console.log('DATABASE STOREFRONT PASS: inactive hidden, active product/price/stock/capacity visible, FA/EN detail rendering, simulated guest order with no database order, archived product removed.');
  const initial=(await ok(await guest.request('/api/shop/pricing/'))).policy;
  const checkpoints:PricingCheckpoint[]=[];
  await runPricingAdminTest({admin:client,guest,checkpoint:value=>{checkpoints.push(structuredClone(value));}});

@@ -5,15 +5,16 @@ umask 077
 export PATH=/opt/roya/tools/node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 [ "$(id -u)" -ne 0 ] && [ -t 0 ] && [ -t 1 ] || { echo 'Run as amir in the interactive VPS SSH terminal.'; exit 1; }
 source_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+target="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["release_id"])' "$source_root/deploy/private-preview-manifest.json")"
 candidate="${1:?Pass the installed preview source directory}"
 sudo -v
-[ "$(sudo -n cat /opt/roya/preview-current/.roya-release)" = 3b7a85cf8bd17fc7e5bbc128971d4517f15f8f18 ] || { echo 'STOP: private preview release differs.'; exit 1; }
+[ "$(sudo -n cat /opt/roya/preview-current/.roya-release)" = "$target" ] || { echo 'STOP: private preview release differs.'; exit 1; }
 python3 - "$source_root" "$candidate" <<'VERIFY'
 import hashlib,json,sys
 from pathlib import Path
 root,candidate=map(Path,sys.argv[1:])
 m=json.loads((root/'deploy/private-preview-manifest.json').read_text())
-if m['release_id']!='3b7a85cf8bd17fc7e5bbc128971d4517f15f8f18' or not (candidate/'node_modules/tsx').is_dir():
+if len(m['release_id'])!=40 or not (candidate/'node_modules/tsx').is_dir():
     raise SystemExit('STOP: unexpected source or missing installed dependencies.')
 for name,digest in m['target_files'].items():
     if name=='next-env.d.ts': continue

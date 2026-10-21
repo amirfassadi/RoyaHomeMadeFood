@@ -10,10 +10,11 @@ if [ "$(id -u)" -eq 0 ] || [ ! -t 0 ] || [ ! -t 1 ]; then
   exit 1
 fi
 source_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+target="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["release_id"])' "$source_root/deploy/private-preview-manifest.json")"
 candidate="${1:?Pass the existing private preview source directory}"
 sudo -v
 current="$(sudo -n cat /opt/roya/preview-current/.roya-release)"
-[ "$current" = 3b7a85cf8bd17fc7e5bbc128971d4517f15f8f18 ] || {
+[ "$current" = "$target" ] || {
   echo 'STOP: the installed release differs; no password changed.'
   exit 1
 }
@@ -25,7 +26,7 @@ import hashlib, json, sys
 from pathlib import Path
 root, candidate = map(Path, sys.argv[1:])
 manifest = json.loads((root / 'deploy/private-preview-manifest.json').read_text())
-if manifest['release_id'] != '3b7a85cf8bd17fc7e5bbc128971d4517f15f8f18':
+if len(manifest['release_id']) != 40:
     raise SystemExit('STOP: unexpected recovery source release.')
 if not candidate.is_dir() or not (candidate / 'node_modules/tsx').is_dir():
     raise SystemExit('STOP: existing application dependencies not found.')
@@ -44,13 +45,13 @@ exec 9<>"$HOME/roya-setup/deploy.lock"
 flock -n 9 || { echo 'STOP: another Roya operation is running.'; exit 1; }
 
 # Bind authorization to the freshly verified backup and the exact runtime configuration.
-node --input-type=module <<'VERIFY_BACKUP'
+node --input-type=module - "$target" <<'VERIFY_BACKUP'
 import {execFileSync} from 'node:child_process';
 const read=(...args)=>execFileSync('sudo',['-n',...args],{encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();
 const r=JSON.parse(read('cat','/var/lib/roya/admin-backup-receipt.json'));
 const release=read('cat','/opt/roya/preview-current/.roya-release');
 const age=Date.now()-Date.parse(r.createdAt);
-if(r.database!=='roya_store'||r.restoreVerified!==true||r.release!==release||release!=='3b7a85cf8bd17fc7e5bbc128971d4517f15f8f18'||!Number.isFinite(age)||age< -60000||age>2*3600000||r.previewEnvSha256!==read('sha256sum','/etc/roya/preview.env').split(/\s/)[0]||r.databaseEnvSha256!==read('sha256sum','/etc/roya/database.env').split(/\s/)[0])throw new Error('STOP: backup or configuration no longer matches; no password changed.');
+if(r.database!=='roya_store'||r.restoreVerified!==true||r.release!==release||release!==process.argv[2]||!Number.isFinite(age)||age< -60000||age>2*3600000||r.previewEnvSha256!==read('sha256sum','/etc/roya/preview.env').split(/\s/)[0]||r.databaseEnvSha256!==read('sha256sum','/etc/roya/database.env').split(/\s/)[0])throw new Error('STOP: backup or configuration no longer matches; no password changed.');
 console.log('Fresh verified backup matches this private preview.');
 VERIFY_BACKUP
 

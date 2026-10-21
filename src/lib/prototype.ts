@@ -26,6 +26,9 @@ export const demoQuoteSchema = z.object({
   pricing:pricedTotalsSchema.optional(),amountUsdCents:z.number().int().positive(),expiresAt:z.iso.datetime(),fingerprint:z.string(),
 });
 export type DemoQuote = z.infer<typeof demoQuoteSchema>;
+export function quoteNeedsReview(previous:DemoQuote,next:DemoQuote){
+ return previous.fingerprint!==next.fingerprint||(['subtotalToman','discountToman','deliveryFeeToman','totalToman','amountUsdCents'] as const).some(key=>previous[key]!==next[key])||JSON.stringify(previous.pricing)!==JSON.stringify(next.pricing);
+}
 export const demoDetailsSchema = z.object({
   name:z.string().trim().min(2).max(100), mobile:mobileSchema,
   address:z.string().trim().min(10).max(1000),notes:z.string().trim().max(1000),

@@ -3,7 +3,7 @@ set -euo pipefail
 set +x
 umask 077
 export PATH=/opt/roya/tools/node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-unset DATABASE_URL DIRECT_URL NEXTAUTH_SECRET ROYA_BACKEND_URL SITES_STATIC_PREVIEW
+unset DATABASE_URL DIRECT_URL NEXTAUTH_SECRET ROYA_BACKEND_URL SITES_STATIC_PREVIEW ROYA_PRIVATE_DB_CATALOG
 [ "$(id -un)" = amir ] && [ "$(id -u)" -ne 0 ] || { echo 'Run as amir, without sudo before bash.'; exit 1; }
 payload_root="$(cd -- "$(dirname -- "$0")" && pwd -P)"
 mkdir -p "$HOME/roya-setup"
@@ -52,12 +52,12 @@ for name,digest in m['target_files'].items():
     target=destination/name;target.parent.mkdir(parents=True,exist_ok=True)
     shutil.copyfile(p,target);target.chmod(0o600)
 (destination/'.roya-unified.json').write_text(json.dumps(m,sort_keys=True))
-print('Verified FX update source prepared; running preview unchanged.')
+print('Verified database storefront source prepared; running preview unchanged.')
 PY_SOURCE
 cd "$candidate"
 npm ci --include=dev --no-audit --no-fund
 env -u DATABASE_URL -u DIRECT_URL -u NEXTAUTH_SECRET -u ROYA_BACKEND_URL -u SITES_STATIC_PREVIEW \
-  NEXT_TELEMETRY_DISABLED=1 ROYA_DEPLOYMENT_ROLE=standalone ROYA_DEMO_CATALOG=1 \
+  NEXT_TELEMETRY_DISABLED=1 ROYA_DEPLOYMENT_ROLE=standalone ROYA_DEMO_CATALOG=1 ROYA_PRIVATE_DB_CATALOG=1 \
   ROYA_INDEXABLE=0 ROYA_LIVE_PAYMENTS=0 ROYA_ACCEPT_ORDERS=0 ROYA_SEND_SMS=0 \
   NEXTAUTH_URL=http://localhost:3311 NEXT_PUBLIC_SITE_URL=http://localhost:3311 \
   NODE_OPTIONS=--max-old-space-size=1536 npm run build:app
@@ -104,6 +104,7 @@ expected={'HOSTNAME':'127.0.0.1','PORT':'3311','ROYA_DEPLOYMENT_ROLE':'standalon
  'NEXTAUTH_URL':'http://localhost:3311','NEXT_PUBLIC_SITE_URL':'http://localhost:3311',
  'ROYA_PREVIEW_RELEASE':sys.argv[1]}
 if any(v.get(k)!=value for k,value in expected.items()):raise SystemExit('STOP: private preview settings differ.')
+if v.get('ROYA_PRIVATE_DB_CATALOG','0')!='0':raise SystemExit('STOP: unexpected existing database catalog flag.')
 if not v.get('NEXTAUTH_SECRET'):raise SystemExit('STOP: administrator secret missing.')
 PY_ENV
 backup="$(mktemp -d /etc/roya/preview-rollback.XXXXXX)"
@@ -162,6 +163,9 @@ if text.count(needle)!=1:raise SystemExit('STOP: unexpected service cache path.'
 unit.write_text(text.replace(needle,'ReadWritePaths='+release+'/.next\n'));unit.chmod(0o644)
 p=Path('/etc/roya/preview.env');lines=p.read_text().splitlines()
 lines=[('ROYA_PREVIEW_RELEASE='+release_id) if x.startswith('ROYA_PREVIEW_RELEASE=') else x for x in lines]
+if any(x.startswith('ROYA_PRIVATE_DB_CATALOG=') for x in lines):
+    lines=[('ROYA_PRIVATE_DB_CATALOG=1') if x.startswith('ROYA_PRIVATE_DB_CATALOG=') else x for x in lines]
+else:lines.append('ROYA_PRIVATE_DB_CATALOG=1')
 p.write_text('\n'.join(lines)+'\n');p.chmod(0o600)
 link=Path('/opt/roya/preview-current');temp=link.with_name('.preview-update-'+uuid.uuid4().hex)
 temp.symlink_to(release);os.replace(temp,link)
@@ -188,6 +192,9 @@ def check(path,expected,method='GET'):
     print(f'{path}: HTTP {r.status}')
     return json.loads(body) if path.startswith('/api/') else None
 check('/fa/rates/',[200]);check('/en/rates/',[200]);check('/api/admin/data/?section=settings',[401])
+catalog=check('/api/shop/catalog/',[200])
+if catalog.get('scope')!='private-database' or catalog.get('catalog',{}).get('source')!='database' or catalog['catalog'].get('isDemo') is not True:raise SystemExit('STOP: unexpected storefront catalog mode.')
+check('/fa/catalog/',[200]);check('/en/catalog/',[200])
 policy=check('/api/shop/pricing/',[200])
 if policy.get('scope')!='store':raise SystemExit('STOP: pricing scope mismatch.')
 feed=check('/api/shop/rates/',[200,503])
@@ -207,7 +214,7 @@ printf '%s\n' "$unchanged" | sha256sum --check --status
 systemctl is-active --quiet roya-store.service
 systemctl is-active --quiet roya-preview.service
 trap - EXIT
-echo 'PRIVATE LIVE RATES FIX READY: http://localhost:3311/fa/rates/'
+echo 'PRIVATE DATABASE STOREFRONT READY: http://localhost:3311/fa/catalog/'
 echo 'No database migration, real order, payment, SMS or public listener.'
 printf 'Rollback: sudo bash %s/restore.sh\n' "$backup"
 ROOT

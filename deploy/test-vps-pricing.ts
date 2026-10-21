@@ -1,5 +1,5 @@
 import {execFileSync} from 'node:child_process';
-import {mkdtempSync,writeFileSync,renameSync} from 'node:fs';
+import {mkdtempSync,writeFileSync,renameSync,readFileSync} from 'node:fs';
 import {homedir} from 'node:os';
 import {join} from 'node:path';
 import {createInterface} from 'node:readline/promises';
@@ -10,9 +10,10 @@ async function main(){
  if(!process.stdin.isTTY||!process.stdout.isTTY)throw new PricingTestError('Run interactively in the VPS SSH terminal.');
  const read=(...args:string[])=>execFileSync('sudo',['-n',...args],{encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();
  const receipt=JSON.parse(read('cat','/var/lib/roya/admin-backup-receipt.json'));
+ const expected=JSON.parse(readFileSync('deploy/private-preview-manifest.json','utf8')).release_id;
  const release=read('cat','/opt/roya/preview-current/.roya-release');
  const age=Date.now()-Date.parse(receipt.createdAt);
- if(receipt.database!=='roya_store'||receipt.restoreVerified!==true||receipt.release!==release||release!=='3b7a85cf8bd17fc7e5bbc128971d4517f15f8f18'||receipt.previewEnvSha256!==read('sha256sum','/etc/roya/preview.env').split(/\s/)[0]||receipt.databaseEnvSha256!==read('sha256sum','/etc/roya/database.env').split(/\s/)[0]||!Number.isFinite(age)||age< -60000||age>2*3600000)throw new PricingTestError('A fresh verified backup matching this private preview is required.');
+ if(receipt.database!=='roya_store'||receipt.restoreVerified!==true||receipt.release!==release||release!==expected||receipt.previewEnvSha256!==read('sha256sum','/etc/roya/preview.env').split(/\s/)[0]||receipt.databaseEnvSha256!==read('sha256sum','/etc/roya/database.env').split(/\s/)[0]||!Number.isFinite(age)||age< -60000||age>2*3600000)throw new PricingTestError('A fresh verified backup matching this private preview is required.');
  const record=join(mkdtempSync(join(homedir(),'roya-setup/pricing-check.')),'policy-recovery.json');
  let muted=false,password:string|undefined,mobile='';
  const output=new Writable({write(chunk,_encoding,done){if(!muted)process.stdout.write(chunk);done();}});

@@ -7,6 +7,7 @@ import {createInterface} from 'node:readline/promises';
 import {Writable} from 'node:stream';
 
 const base='http://127.0.0.1:3311',origin='http://localhost:3311';
+const catalogTest=process.argv.includes('--catalog');
 if(!process.stdin.isTTY||!process.stdout.isTTY)throw new Error('Run interactively in your SSH terminal.');
 const receipt=JSON.parse(execFileSync('sudo',['-n','cat','/var/lib/roya/admin-backup-receipt.json'],{encoding:'utf8'}));
 const current=execFileSync('sudo',['-n','cat','/opt/roya/preview-current/.roya-release'],{encoding:'utf8'}).trim();
@@ -47,14 +48,16 @@ async function auth(action,values={}){
  stage=previous;
  return request('/api/auth/'+action+'/',{method:'POST',headers:{origin,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({...values,csrfToken:csrf.csrfToken,callbackUrl:origin+'/admin/',json:'true'})});
 }
-const slug='roya-admin-test-'+randomUUID(),name='محصول غیرفعال آزمایش مدیریت '+slug.slice(-8);
+const slug='roya-admin-test-'+randomUUID(),name=(catalogTest?'محصول آزمایشی ویترین ':'محصول غیرفعال آزمایش مدیریت ')+slug.slice(-8);
 let fixtureId,loggedIn=false,passed=false,cleanup=true;
 async function row(){const list=await data(await request('/api/admin/data/?'+new URLSearchParams({section:'products',q:name})));return list.products.find(p=>p.slug===slug);}
+async function storefront(){const value=await data(await request('/api/shop/catalog/'));assert.equal(value.scope,'private-database');assert.equal(value.catalog.isDemo,true);assert.equal(value.catalog.source,'database');return value.catalog;}
 try{
  stage='health';
  await data(await request('/api/health/'));
  stage='guest-guard';
  await data(await request('/api/admin/data/?section=products'),401);
+ if(catalogTest){stage='catalog-mode';await storefront();}
  stage='credentials';
  await data(await auth('callback/credentials',{mobile,password}));password=undefined;
  stage='session';
@@ -76,13 +79,22 @@ try{
  await data(await post('/api/admin/products/',{id:fixtureId,expectedUpdatedAt:updated.updatedAt,product:{...changed,stockQuantity:-1},media:[]}),400);
  stage='zero-stock';await data(await post('/api/admin/products/',{id:fixtureId,expectedUpdatedAt:updated.updatedAt,product:{...changed,stockQuantity:0,dailyCapacity:null},media:[]}));
  const empty=await row();assert.equal(empty.stockQuantity,0);assert.equal(empty.dailyCapacity,null);assert.equal(empty.active,false);
+ if(catalogTest){
+  stage='catalog-inactive';assert.ok(!(await storefront()).products.some(p=>p.id===fixtureId));
+  stage='catalog-activate';await data(await post('/api/admin/products/',{id:fixtureId,expectedUpdatedAt:empty.updatedAt,product:{...changed,active:true},media:[]}));
+  const active=await row(),shown=(await storefront()).products.find(p=>p.id===fixtureId);
+  assert.equal(shown.priceToman,175000);assert.equal(shown.stockQuantity,24);assert.equal(shown.dailyCapacity,18);
+  for(const [locale,label] of [['fa',name],['en',product.nameEn]]){stage='detail-'+locale;const page=await request('/'+locale+'/products/'+slug+'/');assert.equal(page.status,200);assert.ok((await page.text()).includes(label));}
+  stage='catalog-update';await data(await post('/api/admin/products/',{id:fixtureId,expectedUpdatedAt:active.updatedAt,product:{...changed,active:true,priceToman:220000,stockQuantity:3,dailyCapacity:4},media:[]}));
+  const updatedRow=(await storefront()).products.find(p=>p.id===fixtureId);assert.equal(updatedRow.priceToman,220000);assert.equal(updatedRow.stockQuantity,3);assert.equal(updatedRow.dailyCapacity,4);
+ }
  passed=true;
 }catch(error){console.error(`ADMIN TEST STOPPED [${stage}]: `+error.message);process.exitCode=1;}
 finally{
  password=undefined;
  if(loggedIn){
-  try{stage='cleanup';const fixture=await row();if(fixture){assert.equal(fixture.slug,slug);await data(await post('/api/admin/products/archive/',{id:fixture.id,expectedUpdatedAt:fixture.updatedAt}));fixtureId=fixture.id;}}
-  catch{cleanup=false;console.error('Test product needs review; it was created inactive. Slug: '+slug);process.exitCode=1;}
+  try{stage='cleanup';const fixture=await row();if(fixture){assert.equal(fixture.slug,slug);await data(await post('/api/admin/products/archive/',{id:fixture.id,expectedUpdatedAt:fixture.updatedAt}));fixtureId=fixture.id;}if(catalogTest)assert.ok(!(await storefront()).products.some(p=>p.id===fixtureId));}
+  catch{cleanup=false;console.error('Test product needs review; it may still be active. Slug: '+slug);process.exitCode=1;}
   try{stage='logout';await data(await auth('signout'));await data(await request('/api/admin/data/?section=products'),401);}
   catch{passed=false;console.error('Logout verification did not complete.');process.exitCode=1;}
  }
@@ -91,5 +103,6 @@ finally{
 if(passed&&cleanup){
  console.log('ADMIN VPS PASS: login/logout, product creation, price, inventory, daily capacity, zero stock, unlimited capacity, validation and stale-edit rejection.');
  console.log('Archived test product: '+fixtureId);
+ if(catalogTest)console.log('DATABASE CATALOG VPS PASS: activation, updated price/stock/capacity, FA/EN product pages and archive removal verified.');
  console.log('Existing products, shared pricing policy, orders, payments and messages were not changed.');
 }

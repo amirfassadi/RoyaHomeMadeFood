@@ -20,7 +20,7 @@ export function StoreHeader({isDemo}: {isDemo: boolean}) {
   const Arrow = locale === 'fa' ? ArrowUpLeft : ArrowUpRight;
   return <>
     <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-white focus:p-4">{t('skip')}</a>
-    {isDemo && <div className="bg-roya-green-dark px-5 py-2.5 text-center text-[11px] leading-5 text-white">{t('demo')}</div>}
+    {isDemo && <div className="bg-roya-green-dark px-5 py-2.5 text-center text-[11px] leading-5 text-white">{cart.catalog.source==='database'?(locale==='fa'?'محصولات از پنل مدیریت؛ سفارش و پرداخت فقط آزمایشی است.':'Products come from admin; checkout and payments are simulated.') :t('demo')}</div>}
     <PrototypeToolbar/>
     <header className="sticky top-0 z-30 border-b border-roya-line bg-roya-cream/95 backdrop-blur-md"><div className="section-shell flex min-h-22 items-center justify-between gap-3 py-4">
       <Link href={`/${locale}/`} onClick={() => setOpen(false)}><Logo/></Link>
