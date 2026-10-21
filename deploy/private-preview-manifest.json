@@ -225,11 +225,15 @@
     "deploy/update-private-preview.sh",
     "docs/FX-PRIVATE-PREVIEW.md",
     "next-env.d.ts",
+    "src/app/admin/(protected)/settings/page.tsx",
     "src/components/store/currency-rates.tsx",
     "src/components/store/pricing-provider.tsx"
   ],
-  "release_id": "db42c9d14deb85dffc22f8459ff9cc18c8fa1be8",
-  "source_commit": "9e1de53ca6b37b1831a379333668661abe927137",
+  "release_id": "adbed4ee86d054a08037ee5d7bb9a379ba264bcb",
+  "source_base_commit": "571220ea819f13d3a113d120d503cdadcdb783cf",
+  "source_changes": [
+    "src/app/admin/(protected)/settings/page.tsx"
+  ],
   "target_files": {
     ".gitignore": "16cfa81a58cbd73d9f1832331d53d0853bf1f619d6798f47a3ff46336489f93a",
     "README.md": "696158461010b1bf69a248effe5552206ae345f450c5455105a914176ac10ded",
@@ -293,7 +297,7 @@
     "src/app/admin/(protected)/orders/page.tsx": "c02fbcfaf4711af379d798a05d04ec675ee1f2f20270f447163f7a7aa12f2daf",
     "src/app/admin/(protected)/page.tsx": "8817419f7f30613f024aae645ea01088f16b4e3ff5eff123bf3d0d6b0ba9a699",
     "src/app/admin/(protected)/products/page.tsx": "cb0edde541b7b1dd708b25747d171205887af550f3c4c26420c481f25d25cab2",
-    "src/app/admin/(protected)/settings/page.tsx": "50c5553cecc15827165c0d9e6dd6e6ade12c61e4fb5e47f0c3e1ddb47e6d2523",
+    "src/app/admin/(protected)/settings/page.tsx": "6a52dce8912a18913bcbc51b03faa98bec33dc7af7496cb2a4e3b4e74bc6bc85",
     "src/app/admin/error.tsx": "5268bb382f4cadaf406cea39023593bff3864184eb4ea95b1034156c98d671f6",
     "src/app/admin/layout.tsx": "dd3b1409820115634886b8e6ec1f396952fc7b1380561b66f4177edd36cc3b54",
     "src/app/admin/login/page.tsx": "ba9ce6eaebbfa83099dba1a6c1a6535d7e0039c4b47f1f68752b4d39f1e4f2b5",

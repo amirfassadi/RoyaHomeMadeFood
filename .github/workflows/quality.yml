@@ -41,5 +41,16 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:integration
-      - run: npm run build
-      - run: npm run build:sites
+      - name: Build VPS application
+        run: npm run build:app
+        env:
+          ROYA_DEPLOYMENT_ROLE: standalone
+          ROYA_LIVE_PAYMENTS: '0'
+          ROYA_ACCEPT_ORDERS: '0'
+          ROYA_SEND_SMS: '0'
+      - name: Build static preview separately
+        run: |
+          mv .next "$RUNNER_TEMP/roya-app-build"
+          npm run build:sites
+        env:
+          ROYA_DEMO_CATALOG: '1'
