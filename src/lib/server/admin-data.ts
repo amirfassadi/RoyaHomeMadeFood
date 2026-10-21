@@ -1,6 +1,6 @@
 import 'server-only';
 import {connection} from 'next/server';
-import {isDemoCatalog} from './catalog';
+import {isDemoAdmin} from './admin-mode';
 import {requireAdmin} from './auth';
 import {getDb} from './db';
 import {ShopError} from './shop-http';
@@ -10,7 +10,7 @@ import {contactSettingsSchema} from '@/lib/validation/contact';
 import type {Prisma} from '@/generated/prisma/client';
 const summary={id:true,trackingCode:true,customerName:true,mobile:true,status:true,paymentMethod:true,paymentStatus:true,totalToman:true,createdAt:true,estimatedDeliveryAt:true,refundRequired:true} as const;
 export async function getAdminData(section:string,options:{page?:number;q?:string;status?:string;id?:string;mobile?:string}={}):Promise<AdminData>{
- if(isDemoCatalog())return demoAdminData();
+ if(isDemoAdmin())return demoAdminData();
  await connection();await requireAdmin();const db=getDb(),data=emptyData(),page=Math.max(1,Math.min(10000,options.page??1)),take=20,skip=(page-1)*take;data.page=page;
  const q=(options.q??'').slice(0,100);
  if(section==='dashboard'){

@@ -1,6 +1,6 @@
 import 'server-only';
 import {connection} from 'next/server';
-import {isDemoCatalog} from './catalog';
+import {isDemoAdmin} from './admin-mode';
 import {requireAdmin} from './auth';
 import {getDb} from './db';
 import {ShopError} from './shop-http';
@@ -9,7 +9,7 @@ import type {z} from 'zod';
 import type {communicationActionSchema} from '@/lib/validation/communications';
 import type {ContactInbox} from '@/lib/admin/communications';
 export async function getCommunications(page=1,filter='all'):Promise<ContactInbox>{
- if(isDemoCatalog())return {page:1,totalPages:1,unread:1,messages:[{id:'demo-message',name:'مشتری نمونه',mobile:'',message:'این پیام نمونه برای بررسی صندوق تماس است.',locale:'fa',readAt:null,createdAt:'2026-10-11T08:00:00.000Z'}],announcements:[]};
+ if(isDemoAdmin())return {page:1,totalPages:1,unread:1,messages:[{id:'demo-message',name:'مشتری نمونه',mobile:'',message:'این پیام نمونه برای بررسی صندوق تماس است.',locale:'fa',readAt:null,createdAt:'2026-10-11T08:00:00.000Z'}],announcements:[]};
  await connection();await requireAdmin();
  const db=getDb(),where=filter==='unread'?{readAt:null}:filter==='read'?{readAt:{not:null}}:{};
  const [messages,total,unread,announcements]=await Promise.all([db.contactMessage.findMany({where,take:20,skip:(page-1)*20,orderBy:{createdAt:'desc'}}),db.contactMessage.count({where}),db.contactMessage.count({where:{readAt:null}}),db.clubAnnouncement.findMany({take:50,orderBy:{createdAt:'desc'}})]);

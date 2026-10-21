@@ -7,6 +7,7 @@ const config: NextConfig = {
   trailingSlash: true,
   pageExtensions: staticPreview ? ['tsx'] : ['ts', 'tsx'],
   poweredByHeader: false,
+  experimental: {cpus: 1},
   ...(!staticPreview?{async headers(){return [{source:'/((?!_next/static).*)',headers:securityHeaders(process.env.NODE_ENV==='production')},{source:'/api/:path*',headers:[{key:'Cache-Control',value:'no-store'}]}];}}:{}),
   images: {
     unoptimized: staticPreview,

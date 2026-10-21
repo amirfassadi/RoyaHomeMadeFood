@@ -1,10 +1,11 @@
+import {withBackendTrust} from '@/lib/server/api-guard';
 import {createHash} from 'node:crypto';
 import {NextResponse} from 'next/server';
 import {contactSchema} from '@/lib/validation/contact';
 import {getDb} from '@/lib/server/db';
 import {consumeRateLimit} from '@/lib/server/rate-limit';
 export const runtime = 'nodejs';
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   // Static previews never receive this route. A demo server also never stores submissions.
   if (!process.env.DATABASE_URL || process.env.ROYA_DEMO_CATALOG === '1') return NextResponse.json({error: 'UNAVAILABLE'}, {status: 503});
   const origin = request.headers.get('origin');
@@ -37,3 +38,5 @@ export async function POST(request: Request) {
     return NextResponse.json({error: 'UNAVAILABLE'}, {status: 503});
   }
 }
+
+export const POST=withBackendTrust(handlePOST);
