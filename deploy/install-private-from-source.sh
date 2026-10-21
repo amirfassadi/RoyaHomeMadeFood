@@ -13,7 +13,7 @@ from pathlib import Path,PurePosixPath
 import hashlib,json,shutil,sys,tempfile
 root=Path(sys.argv[1]).resolve()
 m=json.loads((root/'deploy/private-preview-manifest.json').read_text())
-if m.get('format')!=1 or m.get('base_release')!='db42c9d14deb85dffc22f8459ff9cc18c8fa1be8':
+if m.get('format')!=2 or set(m.get('bases',{}))!={'db42c9d14deb85dffc22f8459ff9cc18c8fa1be8','0a93ac9c6cedfaa26a590c6bdcea2e4062c6f593'}:
     raise SystemExit('STOP: unexpected private preview manifest.')
 if hashlib.sha1(json.dumps(m['target_files'],sort_keys=True).encode()).hexdigest()!=m['release_id']:
     raise SystemExit('STOP: source release hash mismatch.')

@@ -4,6 +4,7 @@ import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {ArrowUpLeft, ArrowUpRight, Check, Leaf, Heart, Clock3} from 'lucide-react';
 import {PageShell} from '@/components/store/page-shell';
 import {ProductCard} from '@/components/store/product-card';
+import {InternationalBanner} from '@/components/store/international-banner';
 import {buttonClasses} from '@/components/ui/button';
 import {getCatalog} from '@/lib/server/catalog';
 import {formatNumber} from '@/lib/format';
@@ -15,6 +16,7 @@ export default async function Home({params}: {params: Promise<{locale: Locale}>}
   const catalog = await getCatalog(), featured = catalog.products.filter(p => p.featured).slice(0, 3);
   const Arrow = locale === 'fa' ? ArrowUpLeft : ArrowUpRight;
   return <PageShell>
+    <InternationalBanner/>
     <section className="section-shell grid items-center gap-12 py-12 md:py-20 lg:grid-cols-2">
       <div><p className="mb-5 flex items-center gap-2 text-xs font-semibold text-roya-brown"><span className="h-px w-8 bg-roya-brown/40"/>{t('eyebrow')}</p><h1 className="text-4xl font-extrabold leading-[1.55] md:text-5xl xl:text-6xl">{t('title1')}<br/><span className="text-roya-green">{t('title2')}</span></h1><p className="mt-4 text-lg font-medium leading-8">{brand('slogan')}</p><p className="mt-4 max-w-md text-sm leading-8 text-roya-muted">{t('intro')}</p><div className="mt-8 flex flex-wrap gap-3"><Link href={`/${locale}/catalog/`} className={buttonClasses()}>{nav('shop')}<Arrow size={17}/></Link><Link href={`/${locale}/checkout/`} className={buttonClasses('secondary')}>{nav('order')}</Link></div><div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-xs text-roya-muted">{(['fresh', 'noAdditives', 'care'] as const).map(key => <span key={key} className="flex items-center gap-1.5"><Check size={14} className="text-roya-green"/>{t(key)}</span>)}</div></div>
       <div className="relative"><div className="relative aspect-[5/5.3] overflow-hidden rounded-[2.5rem] bg-roya-leaf"><Image src="/images/roya-party-spread.webp" alt={t('photo')} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover"/><span className="absolute end-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-xs text-roya-brown">{locale === 'fa' ? 'تصویر نمونه' : 'Illustrative photo'}</span></div><div className="absolute -bottom-5 start-5 flex items-center gap-3 rounded-2xl border border-roya-line bg-white px-5 py-4 shadow-card"><span className="flex size-10 items-center justify-center rounded-full bg-roya-leaf text-roya-green"><Leaf size={21}/></span><div><p className="text-sm font-bold">{brand('short')}</p><p className="mt-1 text-xs text-roya-muted">{t('fresh')}</p></div></div></div>

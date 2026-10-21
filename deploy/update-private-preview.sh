@@ -10,22 +10,32 @@ mkdir -p "$HOME/roya-setup"
 exec 9>"$HOME/roya-setup/deploy.lock"
 flock -n 9 || { echo 'STOP: another Roya deployment is running.'; exit 1; }
 sudo -v
-expected=db42c9d14deb85dffc22f8459ff9cc18c8fa1be8
 actual="$(sudo -n cat /opt/roya/preview-current/.roya-release)"
-if [ "$actual" != "$expected" ]; then
-  printf 'STOP: expected preview %s; found %s. No running files changed.\n' "$expected" "$actual"
-  exit 1
+target="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["release_id"])' "$payload_root/manifest.json")"
+if [ "$actual" = "$target" ]; then
+  sudo -n systemctl is-active --quiet roya-preview.service
+  echo "PRIVATE PREVIEW ALREADY INSTALLED: $target"
+  exit 0
 fi
+expected="$(python3 - "$payload_root/manifest.json" "$actual" <<'PY_BASE'
+from pathlib import Path
+import json,sys
+m=json.loads(Path(sys.argv[1]).read_text());actual=sys.argv[2]
+if actual not in m['bases']:
+    raise SystemExit('STOP: supported preview bases: '+', '.join(m['bases'])+'; found '+actual+'. No running files changed.')
+print(actual)
+PY_BASE
+)"
 sudo -n systemctl is-active --quiet roya-preview.service
 candidate="$(mktemp -d "$HOME/roya-setup/rates-source.XXXXXX")"
-python3 - "$payload_root" "$candidate" <<'PY_SOURCE'
+python3 - "$payload_root" "$candidate" "$expected" <<'PY_SOURCE'
 from pathlib import Path,PurePosixPath
 import hashlib,json,shutil,sys
-root,destination=map(Path,sys.argv[1:])
+root,destination=map(Path,sys.argv[1:3]);expected=sys.argv[3]
 m=json.loads((root/'manifest.json').read_text())
 def matches(folder):
     if folder.is_symlink() or not folder.is_dir():return False
-    for name,digest in m['base_files'].items():
+    for name,digest in m['bases'][expected]['files'].items():
         if name=='next-env.d.ts':continue # Next rewrites this generated declaration during build.
         p=folder/name
         if p.is_symlink() or not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=digest:return False
@@ -81,8 +91,9 @@ old_target="$(readlink -f "$link")"
 [ "$old_target" = "/opt/roya/preview-releases/$expected" ]
 old_backend="$(readlink -f /opt/roya/current)"
 unchanged="$(sha256sum /etc/roya/database.env /etc/roya/backend.env /etc/systemd/system/roya-store.service /etc/nginx/conf.d/roya-api.conf)"
-python3 <<'PY_ENV'
+python3 - "$expected" <<'PY_ENV'
 from pathlib import Path
+import sys
 p=Path('/etc/roya/preview.env');v={}
 for line in p.read_text().splitlines():
     if '=' in line and not line.startswith('#'):
@@ -91,7 +102,7 @@ expected={'HOSTNAME':'127.0.0.1','PORT':'3311','ROYA_DEPLOYMENT_ROLE':'standalon
  'ROYA_LIVE_PAYMENTS':'0','ROYA_ACCEPT_ORDERS':'0','ROYA_SEND_SMS':'0','ROYA_INDEXABLE':'0',
  'ROYA_INTERNATIONAL_ENABLED':'0','CUSTOMER_ACCOUNTS_ENABLED':'0','ROYA_TRUST_GEO_HEADER':'0',
  'NEXTAUTH_URL':'http://localhost:3311','NEXT_PUBLIC_SITE_URL':'http://localhost:3311',
- 'ROYA_PREVIEW_RELEASE':'db42c9d14deb85dffc22f8459ff9cc18c8fa1be8'}
+ 'ROYA_PREVIEW_RELEASE':sys.argv[1]}
 if any(v.get(k)!=value for k,value in expected.items()):raise SystemExit('STOP: private preview settings differ.')
 if not v.get('NEXTAUTH_SECRET'):raise SystemExit('STOP: administrator secret missing.')
 PY_ENV
