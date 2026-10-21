@@ -10,8 +10,12 @@ mkdir -p "$HOME/roya-setup"
 exec 9>"$HOME/roya-setup/deploy.lock"
 flock -n 9 || { echo 'STOP: another Roya deployment is running.'; exit 1; }
 sudo -v
-expected=b59e016234310422096ee167c37a12d8aa1aa746
-[ "$(sudo -n cat /opt/roya/preview-current/.roya-release)" = "$expected" ] || { echo 'STOP: preview release differs; no running files changed.'; exit 1; }
+expected=db42c9d14deb85dffc22f8459ff9cc18c8fa1be8
+actual="$(sudo -n cat /opt/roya/preview-current/.roya-release)"
+if [ "$actual" != "$expected" ]; then
+  printf 'STOP: expected preview %s; found %s. No running files changed.\n' "$expected" "$actual"
+  exit 1
+fi
 sudo -n systemctl is-active --quiet roya-preview.service
 candidate="$(mktemp -d "$HOME/roya-setup/rates-source.XXXXXX")"
 python3 - "$payload_root" "$candidate" <<'PY_SOURCE'
@@ -87,7 +91,7 @@ expected={'HOSTNAME':'127.0.0.1','PORT':'3311','ROYA_DEPLOYMENT_ROLE':'standalon
  'ROYA_LIVE_PAYMENTS':'0','ROYA_ACCEPT_ORDERS':'0','ROYA_SEND_SMS':'0','ROYA_INDEXABLE':'0',
  'ROYA_INTERNATIONAL_ENABLED':'0','CUSTOMER_ACCOUNTS_ENABLED':'0','ROYA_TRUST_GEO_HEADER':'0',
  'NEXTAUTH_URL':'http://localhost:3311','NEXT_PUBLIC_SITE_URL':'http://localhost:3311',
- 'ROYA_PREVIEW_RELEASE':'b59e016234310422096ee167c37a12d8aa1aa746'}
+ 'ROYA_PREVIEW_RELEASE':'db42c9d14deb85dffc22f8459ff9cc18c8fa1be8'}
 if any(v.get(k)!=value for k,value in expected.items()):raise SystemExit('STOP: private preview settings differ.')
 if not v.get('NEXTAUTH_SECRET'):raise SystemExit('STOP: administrator secret missing.')
 PY_ENV
