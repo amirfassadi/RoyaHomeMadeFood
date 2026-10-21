@@ -5,7 +5,7 @@ import {Prisma,PrismaClient} from '../src/generated/prisma/client';
 import {PrismaPg} from '@prisma/adapter-pg';
 import {hashPassword} from '../src/lib/admin/password';
 import {spawnSync} from 'node:child_process';
-import {editable,runPricingAdminTest,type PricingCheckpoint} from '../deploy/private-pricing-test';
+import {editable,PrivateAdminClient,runPricingAdminTest,type PricingCheckpoint} from '../deploy/private-pricing-test';
 
 async function main(){
 const url=process.env.ROYA_INTEGRATION_DATABASE_URL;
@@ -17,23 +17,9 @@ const suffix=randomUUID(),mobile=`09${String(randomBytes(4).readUInt32BE()%1e9).
 const products:string[]=[];let adminId:string|undefined,categoryId:string|undefined;
 const oldPolicy=await db.setting.findUnique({where:{key:'international-pricing'}});
 const orderCount=await db.order.count();
-class Client{
- cookies=new Map<string,string>();
- async request(path:string,init:RequestInit={}){
-  const headers=new Headers(init.headers);
-  if(this.cookies.size)headers.set('cookie',[...this.cookies].map(([k,v])=>`${k}=${v}`).join('; '));
-  const r=await fetch(base+path,{...init,headers,redirect:'manual'});
-  for(const cookie of r.headers.getSetCookie()){
-   const pair=cookie.split(';',1)[0],index=pair.indexOf('='),key=pair.slice(0,index),value=pair.slice(index+1);
-   if(value)this.cookies.set(key,value);else this.cookies.delete(key);
-  }
-  return r;
- }
+class Client extends PrivateAdminClient{
+ constructor(){super(base,origin);}
  post(path:string,body:unknown,requestOrigin=origin){return this.request(path,{method:'POST',headers:{origin:requestOrigin,'content-type':'application/json'},body:JSON.stringify(body)});}
- async auth(action:string,data:Record<string,string>={}){
-  const csrf=await (await this.request('/api/auth/csrf/')).json();
-  return this.request(`/api/auth/${action}/`,{method:'POST',headers:{origin,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({...data,csrfToken:csrf.csrfToken,callbackUrl:origin+'/admin/',json:'true'})});
- }
 }
 const client=new Client(),guest=new Client();
 function recover(mode:'cancel'|'mismatch'|'recover',newPassword:string){
