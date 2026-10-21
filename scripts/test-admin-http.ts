@@ -9,6 +9,7 @@ async function main(){
 const url=process.env.ROYA_INTEGRATION_DATABASE_URL;
 if(!url||!['/roya_test','/roya_integration_test'].includes(new URL(url).pathname))throw new Error('Use an isolated integration database.');
 const base='http://127.0.0.1:4313';
+const origin='http://localhost:4313';
 const db=new PrismaClient({adapter:new PrismaPg({connectionString:url})});
 const suffix=randomUUID(),mobile=`09${String(randomBytes(4).readUInt32BE()%1e9).padStart(9,'0')}`,password=randomBytes(24).toString('base64url');
 const products:string[]=[];let adminId:string|undefined,categoryId:string|undefined;
@@ -26,10 +27,10 @@ class Client{
   }
   return r;
  }
- post(path:string,body:unknown,origin=base){return this.request(path,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)});}
+ post(path:string,body:unknown,requestOrigin=origin){return this.request(path,{method:'POST',headers:{origin:requestOrigin,'content-type':'application/json'},body:JSON.stringify(body)});}
  async auth(action:string,data:Record<string,string>={}){
   const csrf=await (await this.request('/api/auth/csrf/')).json();
-  return this.request(`/api/auth/${action}/`,{method:'POST',headers:{origin:base,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({...data,csrfToken:csrf.csrfToken,callbackUrl:base+'/admin/',json:'true'})});
+  return this.request(`/api/auth/${action}/`,{method:'POST',headers:{origin,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({...data,csrfToken:csrf.csrfToken,callbackUrl:origin+'/admin/',json:'true'})});
  }
 }
 const client=new Client(),guest=new Client();

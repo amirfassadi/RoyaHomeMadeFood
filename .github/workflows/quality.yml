@@ -40,6 +40,8 @@ jobs:
       - run: npm run db:seed
       - run: npm run typecheck
       - run: npm test
+      - name: Verify administrator diagnostic boundaries and secret redaction
+        run: node --test scripts/test-admin-diagnostics.mjs
       - run: npm run test:integration
       - name: Build VPS application
         run: npm run build:app

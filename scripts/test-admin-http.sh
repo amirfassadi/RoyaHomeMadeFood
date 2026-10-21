@@ -2,8 +2,9 @@
 set -euo pipefail
 set +x
 export DATABASE_URL="${ROYA_INTEGRATION_DATABASE_URL:?Isolated integration database required}"
-export NEXTAUTH_URL=http://127.0.0.1:4313
-export NEXT_PUBLIC_SITE_URL=http://127.0.0.1:4313
+# Match the VPS: localhost is the cookie/callback Origin, 127.0.0.1 the transport.
+export NEXTAUTH_URL=http://localhost:4313
+export NEXT_PUBLIC_SITE_URL=http://localhost:4313
 export NEXTAUTH_SECRET=test-only-http-integration-session-secret
 export ROYA_DEPLOYMENT_ROLE=standalone ROYA_DEMO_CATALOG=1
 export ROYA_LIVE_PAYMENTS=0 ROYA_ACCEPT_ORDERS=0 ROYA_SEND_SMS=0 ROYA_INDEXABLE=0
