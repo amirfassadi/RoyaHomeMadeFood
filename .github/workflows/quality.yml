@@ -41,6 +41,12 @@ jobs:
       - run: npm test
       - name: Verify administrator diagnostic boundaries and secret redaction
         run: node --test scripts/test-admin-diagnostics.mjs
+      - name: Verify domain rollback and native DNS/web configuration
+        run: |
+          sudo python3 scripts/test-domain-preparation.py
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends nginx-light bind9-utils
+          sudo python3 scripts/test-domain-native.py
       - run: npm run test:integration
       - name: Build VPS application
         run: npm run build:app
