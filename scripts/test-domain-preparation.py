@@ -139,4 +139,40 @@ class Preparation(unittest.TestCase):
         self.assertTrue(Path(self.m.NGINX).exists());self.assertTrue(Path(self.m.ZONE).exists())
 
 
+class ReloadReadiness(unittest.TestCase):
+    def setUp(self):
+        spec=importlib.util.spec_from_file_location('domain_reload', SOURCE)
+        self.m=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.m)
+
+    def test_waits_for_new_workers_for_both_hosts(self):
+        replies=[(200,b'old',None),(404,b'old',None),
+                 (404,b'',self.m.WEB_MARKER),(404,b'',self.m.WEB_MARKER)]
+        with patch.object(self.m,'web',side_effect=replies) as request, patch.object(self.m.time,'sleep') as pause:
+            self.m.wait_web_ready()
+        self.assertEqual(request.call_count,4);pause.assert_called_once()
+        self.assertEqual([call.args[0] for call in request.call_args_list],
+                         [self.m.DOMAIN,'www.'+self.m.DOMAIN]*2)
+
+    def test_old_default_404_is_not_readiness(self):
+        with patch.object(self.m,'web',return_value=(404,b'',None)):
+            with self.assertRaisesRegex(RuntimeError,'HTTP 404; new configuration marker absent'):
+                self.m.wait_web_ready(timeout_seconds=0)
+
+    def test_new_gate_must_reject_access(self):
+        with patch.object(self.m,'web',return_value=(200,b'',self.m.WEB_MARKER)):
+            with self.assertRaisesRegex(RuntimeError,'Domain gate failed: GET.*HTTP 200'):
+                self.m.wait_web_ready()
+
+    def test_wrong_route_reports_method_host_path_status_without_body(self):
+        with TemporaryDirectory() as temporary, patch.object(self.m,'ACME',temporary), \
+             patch.object(self.m,'wait_web_ready'), patch.object(self.m,'web',side_effect=[
+                 (404,b'',self.m.WEB_MARKER),(404,b'',self.m.WEB_MARKER),
+                 (200,b'PRIVATE RESPONSE BODY',self.m.WEB_MARKER)]):
+            Path(temporary,'.well-known/acme-challenge').mkdir(parents=True)
+            with self.assertRaisesRegex(RuntimeError,'GET royahealthyfood.ir/fa/catalog/ HTTP 200') as failure:
+                self.m.verify_web()
+            self.assertNotIn('PRIVATE RESPONSE',str(failure.exception))
+            self.assertEqual(list(Path(temporary,'.well-known/acme-challenge').iterdir()),[])
+
+
 if __name__=='__main__':unittest.main()

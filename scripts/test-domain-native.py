@@ -18,18 +18,23 @@ with TemporaryDirectory(prefix='roya-domain-native.') as temporary:
  body=m.nginx_text().replace('listen 80;','listen 127.0.0.1:18080;').replace('listen 443 ssl;','listen 127.0.0.1:18443 ssl;')
  body=body.replace('    listen [::]:80;\n','').replace('    listen [::]:443 ssl;\n','')
  config=root/'nginx.conf'
- config.write_text(f'pid {root}/nginx.pid;\nerror_log {root}/error.log;\nevents {{ worker_connections 64; }}\nhttp {{ access_log off;\n'+body+'\n}\n')
+ prefix=f'pid {root}/nginx.pid;\nerror_log {root}/error.log;\nevents {{ worker_connections 64; }}\nhttp {{ access_log off;\n'
+ # Start with an old default site, then exercise a real asynchronous reload.
+ config.write_text(prefix+'server { listen 127.0.0.1:18080; return 200 "old site"; }\n}\n')
  subprocess.run(['nginx','-t','-p',str(root)+'/', '-c',str(config)],check=True,capture_output=True)
  process=subprocess.Popen(['nginx','-p',str(root)+'/', '-c',str(config),'-g','daemon off;'],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
  try:
   for attempt in range(60):
    try:
-    if m.web(m.DOMAIN,'/',port=18080)[0]==404:break
+    if m.web(m.DOMAIN,'/',port=18080)[0]==200:break
    except OSError:pass
    if process.poll() is not None:raise RuntimeError('Isolated Nginx failed to start.')
    time.sleep(0.1)
   else:raise RuntimeError('Isolated Nginx did not become ready.')
+  config.write_text(prefix+body+'\n}\n')
+  subprocess.run(['nginx','-t','-p',str(root)+'/', '-c',str(config)],check=True,capture_output=True)
+  subprocess.run(['nginx','-p',str(root)+'/', '-c',str(config),'-s','reload'],check=True,capture_output=True)
   m.verify_web(http_port=18080,https_port=18443)
-  print('NATIVE DOMAIN PASS: real BIND zone validation, HTTP GET/POST denial, isolated ACME probe, explicit TLS rejection for apex and www.')
+  print('NATIVE DOMAIN PASS: real reload from an old default site, BIND zone validation, HTTP GET/POST denial, isolated ACME probe, explicit TLS rejection for apex and www.')
  finally:
   process.terminate();process.wait(timeout=10)

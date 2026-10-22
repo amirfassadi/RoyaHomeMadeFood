@@ -31,6 +31,7 @@ NGINX = '/etc/nginx/conf.d/roya-domain.conf'
 ACME = '/var/lib/roya/domain-acme'
 EXPECTED_ZONES = {'roghayemahdipour.ir', '244.54.107.87.in-addr.arpa'}
 SERVICES = ('roya-preview.service', 'roya-store.service', 'nginx.service')
+WEB_MARKER = 'closed-v1'
 
 
 def command(args, timeout=15):
@@ -108,12 +109,37 @@ def web(host, path, method='GET', port=80):
     try:
         connection.request(method, path, headers={'Host': host})
         response = connection.getresponse()
-        return response.status, response.read(65536)
+        return response.status, response.read(65536), response.getheader('X-Roya-Domain-Stage')
     finally:
         connection.close()
 
 
+def wait_web_ready(port=80, timeout_seconds=10):
+    # Reload signals the master; it does not wait for new workers to serve traffic.
+    deadline = time.monotonic() + timeout_seconds
+    last = 'no response'
+    while True:
+        ready = True
+        for host in (DOMAIN, 'www.' + DOMAIN):
+            try:
+                status, _, marker = web(host, '/', port=port)
+                if marker == WEB_MARKER and status != 404:
+                    raise RuntimeError(f'Domain gate failed: GET {host}/ HTTP {status}.')
+                if marker != WEB_MARKER:
+                    ready = False
+                    last = f'GET {host}/ HTTP {status}; new configuration marker absent'
+            except (OSError, http.client.HTTPException):
+                ready = False
+                last = f'GET {host}/ connection unavailable'
+        if ready:
+            return
+        if time.monotonic() >= deadline:
+            raise RuntimeError('Domain configuration did not become ready: ' + last + '.')
+        time.sleep(0.25)
+
+
 def verify_web(http_port=80, https_port=443):
+    wait_web_ready(http_port)
     token = 'roya-readiness-' + uuid.uuid4().hex
     probe = Path(ACME, '.well-known/acme-challenge', token)
     probe.write_text(token)
@@ -122,11 +148,13 @@ def verify_web(http_port=80, https_port=443):
         for host in (DOMAIN, 'www.' + DOMAIN):
             for path in ('/', '/fa/catalog/', '/admin/login/', '/api/health/', '/_next/test.js'):
                 for method in ('GET', 'POST'):
-                    if web(host, path, method, http_port)[0] != 404:
-                        raise RuntimeError('Domain web entry is not closed.')
-            status, body = web(host, '/.well-known/acme-challenge/' + token, port=http_port)
-            if status != 200 or body.decode() != token:
-                raise RuntimeError('ACME challenge path failed.')
+                    status, _, marker = web(host, path, method, http_port)
+                    if status != 404 or marker != WEB_MARKER:
+                        raise RuntimeError(f'Domain gate failed: {method} {host}{path} HTTP {status}; '
+                                           f'new configuration marker {"present" if marker == WEB_MARKER else "absent"}.')
+            status, body, marker = web(host, '/.well-known/acme-challenge/' + token, port=http_port)
+            if status != 200 or body.decode() != token or marker != WEB_MARKER:
+                raise RuntimeError(f'ACME challenge path failed: {host} HTTP {status}.')
             # Require an explicit rejection alert, not merely a connection failure.
             context = ssl.create_default_context()
             try:
@@ -161,6 +189,7 @@ server {{
     listen [::]:80;
     server_name {DOMAIN} www.{DOMAIN};
     add_header X-Robots-Tag "noindex, nofollow" always;
+    add_header X-Roya-Domain-Stage "{WEB_MARKER}" always;
     location ^~ /.well-known/acme-challenge/ {{ root {ACME}; try_files $uri =404; }}
     location / {{ return 404; }}
 }}
