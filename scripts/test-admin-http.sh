@@ -24,7 +24,11 @@ http_pid=$!
 trap 'kill -TERM "$http_pid" 2>/dev/null || true' EXIT
 for attempt in $(seq 1 40); do
   if curl --noproxy '*' --silent --fail --max-time 2 http://127.0.0.1:4313/api/health/ >/dev/null; then
-    node --conditions=react-server --import tsx scripts/test-admin-http.ts
+    if ! node --conditions=react-server --import tsx scripts/test-admin-http.ts; then
+      echo 'Isolated application log (test credentials only):'
+      tail -n 60 "$http_log"
+      exit 1
+    fi
     exit 0
   fi
   sleep 0.5
