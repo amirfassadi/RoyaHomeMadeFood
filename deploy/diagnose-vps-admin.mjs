@@ -20,13 +20,13 @@ SELECT json_build_object(
 COMMIT;`;
 }
 const knownErrors=new Set(['CredentialsSignin','AccessDenied','Configuration','Verification','OAuthSignin','OAuthCallback','SessionRequired']);
-export async function probeLogin({base,origin,mobile,password,emit=console.log}){
+export async function probeLogin({base,origin,mobile,password,emit=console.log,send=fetch,settings=false}){
  const cookies=new Map();let authenticated=false,stage='health';
  async function request(path,init={}){
   const headers=new Headers(init.headers);
   if(cookies.size)headers.set('cookie',[...cookies].map(([k,v])=>`${k}=${v}`).join('; '));
   let response;
-  try{response=await fetch(base+path,{...init,headers,redirect:'manual',signal:AbortSignal.timeout(15000)});}
+  try{response=await send(base+path,{...init,headers,redirect:'manual',signal:AbortSignal.timeout(15000)});}
   catch{throw new ProbeError(`${stage}: request failed or timed out.`);}
   for(const cookie of response.headers.getSetCookie()){
    const pair=cookie.split(';',1)[0],index=pair.indexOf('=');
@@ -68,6 +68,7 @@ export async function probeLogin({base,origin,mobile,password,emit=console.log})
   authenticated=true;
   stage='admin-page';await expect(await request('/admin/products/'));
   stage='admin-api';await expect(await request('/api/admin/data/?section=products'));
+  if(settings){stage='admin-settings';await expect(await request('/api/admin/data/?section=settings'));}
  }finally{
   password=undefined;
   const hasSession=[...cookies.keys()].some(key=>key.includes('next-auth.session-token'));

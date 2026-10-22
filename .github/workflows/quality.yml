@@ -40,7 +40,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - name: Verify administrator diagnostic boundaries and secret redaction
-        run: node --test scripts/test-admin-diagnostics.mjs
+        run: node --test scripts/test-admin-diagnostics.mjs scripts/test-domain-admin-diagnostics.mjs
       - name: Verify domain rollback and native DNS/web configuration
         run: |
           sudo python3 scripts/test-domain-preparation.py
