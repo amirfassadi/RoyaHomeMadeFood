@@ -3,6 +3,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import importlib.util
+import grp
 import os
 import pwd
 import ssl
@@ -38,11 +39,16 @@ with TemporaryDirectory(prefix='roya-tls-native.') as temporary:
         else:raise RuntimeError('Incorrect certificate SAN was accepted.')
     finally:m.DOMAIN=original_domain
     config=root/'nginx.conf'
-    prefix=f'user nobody;\npid {root}/nginx.pid;\nerror_log {root}/error.log;\nevents {{ worker_connections 64; }}\nhttp {{ access_log off;\n'
+    # A shared host may allow loopback via "satisfy any". The private server
+    # must require its password even when such an inherited IP rule matches.
+    group=grp.getgrgid(account.pw_gid).gr_name
+    prefix=f'user nobody {group};\npid {root}/nginx.pid;\nerror_log {root}/error.log;\nevents {{ worker_connections 64; }}\nhttp {{ access_log off; satisfy any; allow 127.0.0.1; deny all;\n'
     def render(body):
         return body.replace('listen 80;','listen 127.0.0.1:19280;').replace('listen 443 ssl;','listen 127.0.0.1:19443 ssl;').replace('    listen [::]:80;\n','').replace('    listen [::]:443 ssl;\n','').replace('/var/log/nginx/roya-private-domain-error.log',str(root/'private-error.log'))
     def write(body):config.write_text(prefix+render(body)+'\n}\n')
-    def check():subprocess.run(['nginx','-t','-p',str(root)+'/', '-c',str(config)],check=True,capture_output=True)
+    def check():
+        result=subprocess.run(['nginx','-t','-p',str(root)+'/', '-c',str(config)],capture_output=True,text=True)
+        if result.returncode:raise RuntimeError('Isolated Nginx syntax: '+result.stderr.strip())
     def reload():
         check();subprocess.run(['nginx','-p',str(root)+'/', '-c',str(config),'-s','reload'],check=True,capture_output=True)
     write(m.base.nginx_text());check()

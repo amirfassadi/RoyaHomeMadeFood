@@ -9,6 +9,7 @@ import io
 import json
 import os
 import unittest
+from types import SimpleNamespace
 
 SOURCE=Path(__file__).resolve().parents[1]/'deploy/enable-private-domain-tls.py'
 PASSWORD='PrivateRoya123!'
@@ -195,6 +196,12 @@ class Policy(unittest.TestCase):
         value=self.m.password_hash(PASSWORD);self.assertTrue(value.startswith('$6$'));self.assertNotIn(PASSWORD,value)
         for invalid in ('short', 'has spaces in password', 'رمزعبوربلندبرایآزمایش'):
             with self.assertRaisesRegex(RuntimeError,'ASCII'):self.m.password_hash(invalid)
+
+    def test_omitted_worker_group_uses_nginx_username_not_primary_gid(self):
+        with patch.object(self.m.pwd,'getpwnam',return_value=SimpleNamespace(pw_gid=999)), \
+             patch.object(self.m.grp,'getgrnam',return_value=SimpleNamespace(gr_gid=23)) as group:
+            self.assertEqual(self.m.worker_gid('user worker;'),23)
+            group.assert_called_once_with('worker')
 
 
 if __name__=='__main__':unittest.main()

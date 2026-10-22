@@ -107,6 +107,7 @@ server {{
     error_log /var/log/nginx/roya-private-domain-error.log warn;
     auth_basic "Roya private preview";
     auth_basic_user_file {AUTH_FILE};
+    satisfy all;
     add_header X-Robots-Tag "noindex, nofollow" always;
     add_header Cache-Control "no-store" always;
     add_header X-Roya-Domain-Stage "{MARKER}" always;
@@ -180,7 +181,7 @@ def worker_gid(config):
         raise RuntimeError('Exactly one explicit Nginx worker user is required.')
     user, group = users[0]
     account = pwd.getpwnam(user)
-    return grp.getgrnam(group).gr_gid if group else account.pw_gid
+    return grp.getgrnam(group or user).gr_gid
 
 
 def certificate_valid():
