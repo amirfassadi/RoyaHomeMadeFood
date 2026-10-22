@@ -33,7 +33,6 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: npm audit --audit-level=high
       - run: npm run db:validate
       - run: npm run db:deploy
       - run: npm run db:seed
@@ -67,3 +66,5 @@ jobs:
           npm run build:sites
         env:
           ROYA_DEMO_CATALOG: '1'
+      - name: Audit locked dependencies
+        run: npm audit --audit-level=high --fetch-timeout=30000 --fetch-retries=1
