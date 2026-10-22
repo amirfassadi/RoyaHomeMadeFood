@@ -48,6 +48,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends nginx-light bind9-utils bind9-dnsutils
           sudo python3 scripts/test-domain-native.py
           sudo python3 scripts/test-domain-tls.py
+          sudo python3 scripts/test-domain-origin.py
           python3 scripts/test-domain-dns-native.py
           sudo python3 scripts/test-domain-tls-native.py
       - run: npm run test:integration
@@ -60,11 +61,15 @@ jobs:
           ROYA_LIVE_PAYMENTS: '0'
           ROYA_ACCEPT_ORDERS: '0'
           ROYA_SEND_SMS: '0'
+          NEXTAUTH_URL: https://royahealthyfood.ir
+          NEXT_PUBLIC_SITE_URL: https://royahealthyfood.ir
       - name: Verify administrator HTTP flow against isolated PostgreSQL
         run: |
           bash -n deploy/recover-vps-admin.sh
           bash -n deploy/test-vps-pricing.sh
           bash scripts/test-admin-http.sh
+      - name: Verify private HTTPS domain application and secure administrator session
+        run: sudo env PATH="$PATH" ROYA_INTEGRATION_DATABASE_URL="$ROYA_INTEGRATION_DATABASE_URL" python3 scripts/test-domain-origin-native.py
       - name: Verify backup and isolated restore
         run: python3 scripts/test-backup-restore.py
         env:
