@@ -161,10 +161,23 @@ with TemporaryDirectory(prefix='roya-domain-origin-native.') as temporary:
 import {readFileSync} from 'node:fs';
 import {domainTransport,ORIGIN} from './deploy/diagnose-domain-admin.mjs';
 import {probeLogin} from './deploy/diagnose-vps-admin.mjs';
+import {probeProducts} from './deploy/private-product-probe.mjs';
 const chunks=[];for await(const chunk of process.stdin)chunks.push(chunk);
 const value=JSON.parse(Buffer.concat(chunks).toString());
 const send=domainTransport({password:value.privatePassword,port:19445,ca:readFileSync(value.certificate)});
 await probeLogin({base:ORIGIN,origin:ORIGIN,mobile:value.mobile,password:value.password,send,settings:true});
+const product=await probeProducts({base:ORIGIN,origin:ORIGIN,mobile:value.mobile,password:value.password,send,catalogTest:true});
+if(!product.passed||!product.cleanupComplete)throw new Error('HTTPS product verification or cleanup failed.');
+let interrupted=false;
+const failOneUpdate=(url,init={})=>{
+ if(!interrupted&&url===ORIGIN+'/api/admin/products/'&&init.method==='POST'&&JSON.parse(init.body).id){
+  interrupted=true;return Promise.resolve(new Response('{}',{status:503}));
+ }
+ return send(url,init);
+};
+const failed=await probeProducts({base:ORIGIN,origin:ORIGIN,mobile:value.mobile,password:value.password,send:failOneUpdate,catalogTest:true});
+if(!interrupted||failed.passed||!failed.cleanupComplete||!failed.logoutVerified||!failed.fixtureId)throw new Error('HTTPS interrupted product cleanup failed.');
+console.log('NATIVE PRODUCT FAILURE CLEANUP PASS');
 '''
         diagnostic = subprocess.run(['node', '--input-type=module', '-e', diagnostic_code],
                                     input=json.dumps({'privatePassword': private_password,
@@ -174,6 +187,12 @@ await probeLogin({base:ORIGIN,origin:ORIGIN,mobile:value.mobile,password:value.p
         if diagnostic.returncode or 'ADMIN LOGIN PASS:' not in diagnostic.stdout:
             raise RuntimeError('Native HTTPS operator diagnostic failed; private output omitted.')
         print('NATIVE DOMAIN ADMIN DIAGNOSTIC PASS: operator transport, real secure NextAuth cookies, settings read and logout.')
+        if 'DATABASE CATALOG VPS PASS:' not in diagnostic.stdout:
+            raise RuntimeError('Native HTTPS product test did not complete; private output omitted.')
+        print('NATIVE DOMAIN PRODUCT PASS: exact operator product probe, price, stock, capacity, FA/EN pages and archive removal.')
+        if 'NATIVE PRODUCT FAILURE CLEANUP PASS' not in diagnostic.stdout:
+            raise RuntimeError('Interrupted native product cleanup did not complete; private output omitted.')
+        print('NATIVE PRODUCT FAILURE CLEANUP PASS: interrupted update archived only its fixture and verified logout.')
         write_config(tls.tls_config())
         subprocess.run(['nginx', '-p', str(root) + '/', '-c', str(config), '-s', 'reload'], check=True, capture_output=True)
         tls.verify_gate(private_password, port=19445, cafile=tls.CERT)

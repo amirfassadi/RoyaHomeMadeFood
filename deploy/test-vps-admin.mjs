@@ -1,108 +1,41 @@
 #!/usr/bin/env node
-// Interactive, loopback-only test. Never accept a password through arguments or env.
-import assert from 'node:assert/strict';
+// Interactive operator test. Passwords are accepted only through the terminal.
 import {execFileSync} from 'node:child_process';
-import {randomUUID} from 'node:crypto';
 import {createInterface} from 'node:readline/promises';
 import {Writable} from 'node:stream';
+import {probeProducts} from './private-product-probe.mjs';
+import {ORIGIN,domainTransport,inspectRuntime} from './diagnose-domain-admin.mjs';
 
-const base='http://127.0.0.1:3311',origin='http://localhost:3311';
-const catalogTest=process.argv.includes('--catalog');
+const args=process.argv.slice(2);
+if(args.some(arg=>!['--catalog','--domain'].includes(arg)))throw new Error('Only --catalog and --domain are supported.');
+const domain=args.includes('--domain'),catalogTest=args.includes('--catalog');
+const base=domain?ORIGIN:'http://127.0.0.1:3311',origin=domain?ORIGIN:'http://localhost:3311';
 if(!process.stdin.isTTY||!process.stdout.isTTY)throw new Error('Run interactively in your SSH terminal.');
+if(domain)inspectRuntime();
 const receipt=JSON.parse(execFileSync('sudo',['-n','cat','/var/lib/roya/admin-backup-receipt.json'],{encoding:'utf8'}));
 const current=execFileSync('sudo',['-n','cat','/opt/roya/preview-current/.roya-release'],{encoding:'utf8'}).trim();
 const envDigest=execFileSync('sudo',['-n','sha256sum','/etc/roya/preview.env'],{encoding:'utf8'}).split(/\s/)[0];
 const databaseDigest=execFileSync('sudo',['-n','sha256sum','/etc/roya/database.env'],{encoding:'utf8'}).split(/\s/)[0];
 const age=Date.now()-Date.parse(receipt.createdAt);
 if(receipt.database!=='roya_store'||receipt.restoreVerified!==true||receipt.release!==current||receipt.previewEnvSha256!==envDigest||receipt.databaseEnvSha256!==databaseDigest||!Number.isFinite(age)||age< -60000||age>2*3600000)throw new Error('A fresh verified backup for this exact private preview is required.');
-let muted=false;
+let muted=false,password,send=fetch;
 const output=new Writable({write(chunk,_encoding,callback){if(!muted)process.stdout.write(chunk);callback();}});
 const terminal=createInterface({input:process.stdin,output,terminal:true});
-let mobile,password;
+async function secret(prompt){process.stdout.write(prompt);muted=true;try{return await terminal.question('');}finally{muted=false;process.stdout.write('\n');}}
 try{
- mobile=(await terminal.question('موبایل مدیر: ')).trim().replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-0x6f0));
- process.stdout.write('رمز عبور مدیر (پنهان): ');muted=true;
- password=await terminal.question('');
-}finally{muted=false;terminal.close();process.stdout.write('\n');}
-if(!/^09\d{9}$/.test(mobile)||!password)throw new Error('Administrator credentials were not entered correctly.');
-const cookies=new Map();
-let stage='preflight';
-async function request(path,init={}){
- const headers=new Headers(init.headers);
- if(cookies.size)headers.set('cookie',[...cookies].map(([k,v])=>`${k}=${v}`).join('; '));
- const r=await fetch(base+path,{...init,headers,redirect:'manual',signal:AbortSignal.timeout(15000)});
- for(const text of r.headers.getSetCookie()){
-  const pair=text.split(';',1)[0],index=pair.indexOf('='),key=pair.slice(0,index),value=pair.slice(index+1);
-  if(value)cookies.set(key,value);else cookies.delete(key);
+ if(domain){
+  const anonymous=await domainTransport()(ORIGIN+'/api/health/',{signal:AbortSignal.timeout(15000)});
+  if(anonymous.status!==401)throw new Error('Private gate did not deny anonymous access; no product writes attempted.');
+  password=await secret('Existing private-preview password (hidden; not administrator): ');
+  if(!/^[!-~]{12,128}$/.test(password))throw new Error('Private password format invalid; no product writes attempted.');
+  send=domainTransport({password});password=undefined;
+  const health=await send(ORIGIN+'/api/health/',{signal:AbortSignal.timeout(15000)});
+  if(health.status!==200)throw new Error('Private gate rejected access; no administrator login attempted.');
  }
- return r;
-}
-function post(path,body){return request(path,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)});}
-async function data(r,status=200){
- if(r.status!==status)throw new Error(`${stage}: expected HTTP ${status}, received ${r.status}; operation stopped.`);
- return r.json();
-}
-async function auth(action,values={}){
- const previous=stage;stage=action==='signout'?'logout-csrf':'csrf';
- const csrf=await data(await request('/api/auth/csrf/'));
- stage=previous;
- return request('/api/auth/'+action+'/',{method:'POST',headers:{origin,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({...values,csrfToken:csrf.csrfToken,callbackUrl:origin+'/admin/',json:'true'})});
-}
-const slug='roya-admin-test-'+randomUUID(),name=(catalogTest?'محصول آزمایشی ویترین ':'محصول غیرفعال آزمایش مدیریت ')+slug.slice(-8);
-let fixtureId,loggedIn=false,passed=false,cleanup=true;
-async function row(){const list=await data(await request('/api/admin/data/?'+new URLSearchParams({section:'products',q:name})));return list.products.find(p=>p.slug===slug);}
-async function storefront(){const value=await data(await request('/api/shop/catalog/'));assert.equal(value.scope,'private-database');assert.equal(value.catalog.isDemo,true);assert.equal(value.catalog.source,'database');return value.catalog;}
-try{
- stage='health';
- await data(await request('/api/health/'));
- stage='guest-guard';
- await data(await request('/api/admin/data/?section=products'),401);
- if(catalogTest){stage='catalog-mode';await storefront();}
- stage='credentials';
- await data(await auth('callback/credentials',{mobile,password}));password=undefined;
- stage='session';
- const session=await data(await request('/api/auth/session/'));assert.ok(session.adminId,'An administrator session is required.');loggedIn=true;
- stage='admin-page';
- assert.equal((await request('/admin/products/')).status,200);
- stage='admin-api';
- const catalog=await data(await request('/api/admin/data/?section=products'));
- assert.ok(catalog.categories[0],'An active product category is required.');
- const product={nameFa:name,nameEn:'Inactive administrator verification product',slug,categoryId:catalog.categories[0].id,descriptionFa:'فقط برای آزمون مدیریت؛ این محصول غیرفعال می‌ماند.',descriptionEn:'Inactive product created only to verify administrator functionality.',priceToman:123456,unit:'PACK',priceBasisQuantity:1,minOrderQuantity:1,orderStepQuantity:1,stockQuantity:12,dailyCapacity:8,preparationMinutes:60,active:false,featured:false};
- stage='product-create';fixtureId=(await data(await post('/api/admin/products/',{product,media:[]}))).id;
- stage='product-read';
- const before=await row();assert.equal(before.id,fixtureId);assert.equal(before.stockQuantity,12);
- const changed={...product,priceToman:175000,stockQuantity:24,dailyCapacity:18};
- stage='product-update';await data(await post('/api/admin/products/',{id:fixtureId,expectedUpdatedAt:before.updatedAt,product:changed,media:[]}));
- const updated=await row();assert.equal(updated.priceToman,175000);assert.equal(updated.stockQuantity,24);assert.equal(updated.dailyCapacity,18);assert.equal(updated.active,false);
- stage='stale-edit';await data(await post('/api/admin/products/',{id:fixtureId,expectedUpdatedAt:before.updatedAt,product,media:[]}),409);
- stage='invalid-stock';
- await data(await post('/api/admin/products/',{id:fixtureId,expectedUpdatedAt:updated.updatedAt,product:{...changed,stockQuantity:-1},media:[]}),400);
- stage='zero-stock';await data(await post('/api/admin/products/',{id:fixtureId,expectedUpdatedAt:updated.updatedAt,product:{...changed,stockQuantity:0,dailyCapacity:null},media:[]}));
- const empty=await row();assert.equal(empty.stockQuantity,0);assert.equal(empty.dailyCapacity,null);assert.equal(empty.active,false);
- if(catalogTest){
-  stage='catalog-inactive';assert.ok(!(await storefront()).products.some(p=>p.id===fixtureId));
-  stage='catalog-activate';await data(await post('/api/admin/products/',{id:fixtureId,expectedUpdatedAt:empty.updatedAt,product:{...changed,active:true},media:[]}));
-  const active=await row(),shown=(await storefront()).products.find(p=>p.id===fixtureId);
-  assert.equal(shown.priceToman,175000);assert.equal(shown.stockQuantity,24);assert.equal(shown.dailyCapacity,18);
-  for(const [locale,label] of [['fa',name],['en',product.nameEn]]){stage='detail-'+locale;const page=await request('/'+locale+'/products/'+slug+'/');assert.equal(page.status,200);assert.ok((await page.text()).includes(label));}
-  stage='catalog-update';await data(await post('/api/admin/products/',{id:fixtureId,expectedUpdatedAt:active.updatedAt,product:{...changed,active:true,priceToman:220000,stockQuantity:3,dailyCapacity:4},media:[]}));
-  const updatedRow=(await storefront()).products.find(p=>p.id===fixtureId);assert.equal(updatedRow.priceToman,220000);assert.equal(updatedRow.stockQuantity,3);assert.equal(updatedRow.dailyCapacity,4);
- }
- passed=true;
-}catch(error){console.error(`ADMIN TEST STOPPED [${stage}]: `+error.message);process.exitCode=1;}
-finally{
- password=undefined;
- if(loggedIn){
-  try{stage='cleanup';const fixture=await row();if(fixture){assert.equal(fixture.slug,slug);await data(await post('/api/admin/products/archive/',{id:fixture.id,expectedUpdatedAt:fixture.updatedAt}));fixtureId=fixture.id;}if(catalogTest)assert.ok(!(await storefront()).products.some(p=>p.id===fixtureId));}
-  catch{cleanup=false;console.error('Test product needs review; it may still be active. Slug: '+slug);process.exitCode=1;}
-  try{stage='logout';await data(await auth('signout'));await data(await request('/api/admin/data/?section=products'),401);}
-  catch{passed=false;console.error('Logout verification did not complete.');process.exitCode=1;}
- }
- cookies.clear();
-}
-if(passed&&cleanup){
- console.log('ADMIN VPS PASS: login/logout, product creation, price, inventory, daily capacity, zero stock, unlimited capacity, validation and stale-edit rejection.');
- console.log('Archived test product: '+fixtureId);
- if(catalogTest)console.log('DATABASE CATALOG VPS PASS: activation, updated price/stock/capacity, FA/EN product pages and archive removal verified.');
- console.log('Existing products, shared pricing policy, orders, payments and messages were not changed.');
-}
+ const mobile=(await terminal.question('موبایل مدیر: ')).trim().replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-0x6f0));
+ password=await secret('رمز عبور مدیر (پنهان): ');
+ if(!/^09\d{9}$/.test(mobile)||!password||password.length>128)throw new Error('Administrator credentials were not entered correctly.');
+ const result=await probeProducts({base,origin,mobile,password,catalogTest,send});
+ if(!result.passed)process.exitCode=1;
+ else if(domain)console.log('DOMAIN PRODUCT PASS: actual HTTPS product, price, stock, capacity and archive verified; no order, payment or SMS.');
+}finally{password=undefined;send=undefined;muted=false;terminal.close();}

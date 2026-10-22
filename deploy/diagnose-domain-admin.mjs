@@ -54,7 +54,7 @@ function privileged(args,input){
  try{return execFileSync('sudo',['-n',...args],{encoding:'utf8',input,stdio:['pipe','pipe','pipe'],timeout:15000,maxBuffer:2*1024*1024});}
  catch{throw new ProbeError('Local inspection failed. Run sudo -v, then retry. Private command details omitted.');}
 }
-function inspectRuntime(){
+export function inspectRuntime(){
  for(const unit of ['roya-preview.service','nginx.service']){
   privileged(['systemctl','is-active','--quiet',unit]);
   privileged(['systemctl','is-enabled','--quiet',unit]);
