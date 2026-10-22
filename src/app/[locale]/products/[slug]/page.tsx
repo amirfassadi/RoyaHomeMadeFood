@@ -14,12 +14,12 @@ import {Badge} from '@/components/ui/badge';
 import {formatNumber, formatToman} from '@/lib/format';
 import type {Locale} from '@/i18n/routing';
 export const revalidate = 60;
-// Runtime slugs remain available in Next.js; the static preview includes only explicit demo slugs.
-export async function generateStaticParams() {
-  if (privateDatabaseCatalogEnabled()||!isDemoCatalog()) return [];
+// An empty generator would classify new database slugs as static ISR pages.
+// Request-time catalog reads require a dynamic route; only samples are generated.
+export const generateStaticParams = isDemoCatalog() && !privateDatabaseCatalogEnabled() ? async () => {
   const catalog = await getCatalog();
   return catalog.products.map(p => ({slug: p.slug}));
-}
+} : undefined;
 export default async function Product({params}: {params: Promise<{locale: Locale; slug: string}>}) {
   const {locale, slug} = await params; setRequestLocale(locale);
   const catalog = await getCatalog(), p = catalog.products.find(p => p.slug === slug);

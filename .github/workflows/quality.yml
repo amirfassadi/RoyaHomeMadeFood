@@ -32,7 +32,7 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
       - run: npm run db:validate
       - run: npm run db:deploy
       - run: npm run db:seed

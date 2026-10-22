@@ -447,7 +447,7 @@
     "tests/validation.test.ts",
     "tsconfig.json"
   ],
-  "release_id": "97d3ef397cead7325abf31a893ca0fe9d7a8e091",
+  "release_id": "4497131e733c07627316685e3b91e7a62af75627",
   "source_base_commit": "5d6a2c89a1dc6b043398ed70676574afef9edead",
   "target_files": {
     ".gitignore": "8d341f5c128c2dde1c62b67be2cba7a0b3cd2589d75e04f341fc1efde3b18f7e",
@@ -502,7 +502,7 @@
     "src/app/[locale]/layout.tsx": "cfd635b8793bd3bd2724ab96e91265276122a773452da4a3f8bd484eaa4bb016",
     "src/app/[locale]/page.tsx": "44e3756b556cd4fcd20647855a954c671d7b10a44cb18bf12a0bcf52029b4b7d",
     "src/app/[locale]/payment-result/page.tsx": "c428d3079f7f70e3109f42fede47073350b8e5f259871618b35ea60979dd0091",
-    "src/app/[locale]/products/[slug]/page.tsx": "bc7c849c1a8fd769a79ba31f6f8297844dc67979dda9a15231312c703ada660c",
+    "src/app/[locale]/products/[slug]/page.tsx": "e3a2d3dee38a214a887cf9eee9de36c64e67016770c6cd45c1dafbe99535f0a1",
     "src/app/[locale]/rates/page.tsx": "95ef5354bea0f1345d7a6f31d876ff28b3394a2da6ec8043899578d65bbfd2c4",
     "src/app/[locale]/tracking/page.tsx": "1f847cfba0f998d5dca8d8dbcddce699c6d1c569e835c61256f8da6bcbff3091",
     "src/app/admin/(protected)/communications/page.tsx": "5ceb1e180e4d00105a89e15556d14722fe7348457e3913e86fb00d40b0c7d3a0",
