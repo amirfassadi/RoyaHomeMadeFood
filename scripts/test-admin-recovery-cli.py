@@ -7,6 +7,7 @@ import pty
 import select
 import subprocess
 import sys
+import termios
 import time
 
 data = json.load(sys.stdin)
@@ -24,6 +25,7 @@ child = subprocess.Popen(['node', '--import', 'tsx', 'scripts/recover-admin.ts']
 os.close(slave)
 received = b''
 position = 0
+terminal_closed = False
 deadline = time.monotonic() + 25
 try:
     while time.monotonic() < deadline:
@@ -33,16 +35,28 @@ try:
                 part = os.read(master, 8192)
             except OSError as error:
                 if error.errno == errno.EIO:
+                    terminal_closed = True
                     break
                 raise
             if not part:
+                terminal_closed = True
                 break
             received += part
         if position < len(answers) and answers[position][0].encode() in received:
+            # The label may arrive before Node switches the PTY to raw mode.
+            # Never send a simulated secret while the terminal can echo it.
+            if position >= 2 and termios.tcgetattr(master)[3] & termios.ECHO:
+                continue
             os.write(master, (answers[position][1] + '\n').encode())
             position += 1
         if child.poll() is not None and not ready:
             break
+    # PTY EOF can precede waitpid observing the child's completed exit.
+    if terminal_closed and child.poll() is None:
+        try:
+            child.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            pass
     if child.poll() is None:
         child.kill()
         raise RuntimeError('Recovery CLI did not complete within the test deadline.')
