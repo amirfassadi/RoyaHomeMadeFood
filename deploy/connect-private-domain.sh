@@ -15,17 +15,17 @@ python3 - "$source_root" "$candidate" <<'PREPARE'
 from pathlib import Path, PurePosixPath
 import hashlib,json,shutil,sys
 root,destination=map(Path,sys.argv[1:])
-m=json.loads((root/'deploy/private-preview-manifest.json').read_text())
-if m['release_id']!='4497131e733c07627316685e3b91e7a62af75627' or hashlib.sha1(json.dumps(m['target_files'],sort_keys=True).encode()).hexdigest()!=m['release_id']:
+m=json.loads((root/'deploy/private-domain-app-manifest.json').read_text())
+if m['format']!=1 or m['baseRelease']!='4497131e733c07627316685e3b91e7a62af75627' or m['origin']!='https://royahealthyfood.ir' or hashlib.sha1(json.dumps(m['files'],sort_keys=True).encode()).hexdigest()!=m['sourceRelease']:
     raise SystemExit('STOP: unexpected private source manifest.')
-for name,digest in m['target_files'].items():
+for name,digest in m['files'].items():
     path=PurePosixPath(name);p=root/name
     if path.is_absolute() or '..' in path.parts or p.is_symlink() or not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=digest:
         raise SystemExit('STOP: private application source differs: '+name)
     target=destination/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,target)
 origin='https://royahealthyfood.ir'
-release=hashlib.sha1(('roya-private-domain-v1\n'+m['release_id']+'\n'+origin).encode()).hexdigest()
-(destination/'.roya-origin.json').write_text(json.dumps({'release':release,'sourceRelease':m['release_id'],'origin':origin},sort_keys=True))
+release=hashlib.sha1(('roya-private-domain-v1\n'+m['sourceRelease']+'\n'+origin).encode()).hexdigest()
+(destination/'.roya-origin.json').write_text(json.dumps({'release':release,'sourceRelease':m['sourceRelease'],'origin':origin},sort_keys=True))
 print('Verified HTTPS candidate source; running application and private gate are unchanged.')
 PREPARE
 cd "$candidate"

@@ -30,6 +30,7 @@ tls = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(tls)
 base = tls.base
 ORIGIN = 'https://' + base.DOMAIN
+SOURCE_RELEASE = '2e91933fed5e98ade0ca4b252546bad8e4d7c291'
 MARKER = 'private-app-v1'
 ENV = '/etc/roya/preview.env'
 UNIT = '/etc/systemd/system/roya-preview.service'
@@ -40,7 +41,7 @@ CANDIDATE_ENV = '/etc/roya/domain-candidate.env'
 
 
 def release_id():
-    return hashlib.sha1(('roya-private-domain-v1\n' + base.RELEASE + '\n' + ORIGIN).encode()).hexdigest()
+    return hashlib.sha1(('roya-private-domain-v1\n' + SOURCE_RELEASE + '\n' + ORIGIN).encode()).hexdigest()
 
 
 def previous_target():
@@ -374,7 +375,7 @@ def install(stage):
     if not stage.is_relative_to(Path('/home/amir/roya-setup')) or not (stage / 'server.js').is_file():
         raise RuntimeError('Unexpected standalone candidate stage.')
     descriptor = json.loads((stage / '.roya-origin.json').read_text())
-    if descriptor != {'release': release_id(), 'sourceRelease': base.RELEASE, 'origin': ORIGIN}:
+    if descriptor != {'release': release_id(), 'sourceRelease': SOURCE_RELEASE, 'origin': ORIGIN}:
         raise RuntimeError('Candidate origin descriptor differs.')
     release = Path(RELEASE_ROOT, release_id())
     if os.path.lexists(release):

@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import importlib.util
 import io
 import json
+import hashlib
 import os
 import unittest
 
@@ -31,6 +32,22 @@ def unit(m):
 class Policy(unittest.TestCase):
     def setUp(self):
         self.m = module()
+
+    def test_security_patch_manifest_changes_only_locked_framework_dependencies(self):
+        root = SOURCE.parents[1]
+        old = json.loads((root / 'deploy/private-preview-manifest.json').read_text())
+        new = json.loads((root / 'deploy/private-domain-app-manifest.json').read_text())
+        self.assertEqual(new['baseRelease'], old['release_id'])
+        self.assertEqual(new['sourceRelease'], self.m.SOURCE_RELEASE)
+        self.assertEqual(hashlib.sha1(json.dumps(new['files'], sort_keys=True).encode()).hexdigest(), self.m.SOURCE_RELEASE)
+        self.assertEqual(set(new['files']), set(old['target_files']))
+        self.assertEqual({name for name, digest in new['files'].items() if old['target_files'][name] != digest}, {'package.json', 'package-lock.json'})
+        for name in ('package.json', 'package-lock.json'):
+            self.assertEqual(hashlib.sha256((root / name).read_bytes()).hexdigest(), new['files'][name])
+        package = json.loads((root / 'package.json').read_text())
+        lock = json.loads((root / 'package-lock.json').read_text())
+        self.assertEqual(package['dependencies']['next'], '16.4.2')
+        self.assertEqual(lock['packages']['node_modules/next']['version'], '16.4.2')
 
     def test_origin_updates_preserve_secrets_and_disabled_effects(self):
         text = 'NEXTAUTH_URL=http://localhost:3311\nNEXT_PUBLIC_SITE_URL=http://localhost:3311\nPORT=3311\nROYA_PREVIEW_RELEASE=old\nNEXTAUTH_SECRET=PRIVATE-UNCHANGED\nROYA_LIVE_PAYMENTS=0\n'
@@ -98,7 +115,7 @@ class Transaction(unittest.TestCase):
         self.stage = self.map('/home/amir/roya-setup/candidate/stage')
         self.stage.mkdir(parents=True)
         (self.stage / 'server.js').write_text('new candidate server')
-        (self.stage / '.roya-origin.json').write_text(json.dumps({'release': self.m.release_id(), 'sourceRelease': self.m.base.RELEASE, 'origin': self.m.ORIGIN}))
+        (self.stage / '.roya-origin.json').write_text(json.dumps({'release': self.m.release_id(), 'sourceRelease': self.m.SOURCE_RELEASE, 'origin': self.m.ORIGIN}))
         self.other = self.map('/etc/nginx/other-site.conf')
         self.other.parent.mkdir(parents=True, exist_ok=True)
         self.other.write_text('UNCHANGED OTHER SITE')
