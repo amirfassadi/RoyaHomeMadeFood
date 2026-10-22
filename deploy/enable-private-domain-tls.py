@@ -237,6 +237,20 @@ def assert_protected(fingerprints):
         raise RuntimeError('An existing protected configuration or certificate changed.')
 
 
+def verify_closed(**ports):
+    # HTTP is identical in both stages, so its marker alone cannot prove that
+    # a rollback has finished replacing the TLS workers.
+    deadline = time.monotonic() + 10
+    while True:
+        try:
+            base.verify_web(**ports)
+            return
+        except (RuntimeError, OSError):
+            if time.monotonic() >= deadline:
+                raise
+        time.sleep(0.25)
+
+
 def rollback(backup):
     backup = Path(backup)
     if (backup.is_symlink() or backup.parent != Path('/var/backups/roya')
@@ -258,7 +272,7 @@ def rollback(backup):
             base.atomic(name, (backup / entry['copy']).read_bytes(), entry)
     base.command(['nginx', '-t'])
     base.command(['systemctl', 'reload', 'nginx.service'])
-    base.verify_web()
+    verify_closed()
     base.preview_health()
     print('Closed domain entry restored. Roya certificate retained; application and DNS unchanged.')
 

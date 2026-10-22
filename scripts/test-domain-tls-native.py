@@ -73,7 +73,7 @@ with TemporaryDirectory(prefix='roya-tls-native.') as temporary:
         token='public-acme-test';probe=challenge/token;probe.write_text(token);probe.chmod(0o644)
         if m.base.web(m.DOMAIN,'/.well-known/acme-challenge/'+token,port=19280)[:2]!=(200,token.encode()):
             raise RuntimeError('ACME challenge was blocked by the private gate.')
-        write(m.base.nginx_text());reload();m.base.verify_web(http_port=19280,https_port=19443)
+        write(m.base.nginx_text());reload();m.verify_closed(http_port=19280,https_port=19443)
         print('NATIVE PRIVATE TLS PASS: closed-to-private-to-closed reload, anonymous/wrong-password denial for all tested paths, correct private login, real worker file permissions, strict TLS trust/SNI, exact certificate SAN, public ACME and no application proxy.')
     finally:
         process.terminate();process.wait(timeout=10)
