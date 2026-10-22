@@ -155,6 +155,25 @@ with TemporaryDirectory(prefix='roya-domain-origin-native.') as temporary:
         form = urlencode({'csrfToken': csrf, 'callbackUrl': m.ORIGIN + '/admin/login/', 'json': 'true'}).encode()
         m.expect(client('/api/auth/signout/', 'POST', {'Origin': m.ORIGIN, 'Content-Type': 'application/x-www-form-urlencoded'}, form), 200, 'HTTPS administrator logout')
         m.expect(client('/api/admin/data/?section=settings'), 401, 'Logged-out HTTPS administrator')
+        # Exercise the exact operator transport/probe against real NextAuth,
+        # not only the synthetic HTTPS fixture. Secrets travel through stdin.
+        diagnostic_code = '''
+import {readFileSync} from 'node:fs';
+import {domainTransport,ORIGIN} from './deploy/diagnose-domain-admin.mjs';
+import {probeLogin} from './deploy/diagnose-vps-admin.mjs';
+const chunks=[];for await(const chunk of process.stdin)chunks.push(chunk);
+const value=JSON.parse(Buffer.concat(chunks).toString());
+const send=domainTransport({password:value.privatePassword,port:19445,ca:readFileSync(value.certificate)});
+await probeLogin({base:ORIGIN,origin:ORIGIN,mobile:value.mobile,password:value.password,send,settings:true});
+'''
+        diagnostic = subprocess.run(['node', '--input-type=module', '-e', diagnostic_code],
+                                    input=json.dumps({'privatePassword': private_password,
+                                                      'mobile': mobile, 'password': administrator_password,
+                                                      'certificate': tls.CERT}),
+                                    text=True, capture_output=True, timeout=60, check=False)
+        if diagnostic.returncode or 'ADMIN LOGIN PASS:' not in diagnostic.stdout:
+            raise RuntimeError('Native HTTPS operator diagnostic failed; private output omitted.')
+        print('NATIVE DOMAIN ADMIN DIAGNOSTIC PASS: operator transport, real secure NextAuth cookies, settings read and logout.')
         write_config(tls.tls_config())
         subprocess.run(['nginx', '-p', str(root) + '/', '-c', str(config), '-s', 'reload'], check=True, capture_output=True)
         tls.verify_gate(private_password, port=19445, cafile=tls.CERT)
