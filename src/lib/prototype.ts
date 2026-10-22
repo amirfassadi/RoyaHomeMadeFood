@@ -4,6 +4,7 @@ import type {CatalogView} from './catalog/types';
 import {calculateLineTotal, validateQuantity} from './domain/order';
 import {usdCents} from './international';
 import {mobileSchema} from './validation/checkout';
+import {demoPreparationMinutes,earliestDemoDelivery} from './prototype-delivery';
 
 // Browser-only prototype. No wallet, gateway URL, payment API or live-order adapter.
 export const SAMPLE_TOMAN_PER_USD = 100000;
@@ -86,7 +87,7 @@ export function makeDemoOrder(catalog:CatalogView,items:DemoItem[],details:DemoD
   const verified=quoteDemo(catalog,items,{id:d.zoneId,feeToman:quote.deliveryFeeToman},JSON.parse(quote.fingerprint).discountCode,d.country,now,quote.pricing?.snapshot);
   for(const key of ['subtotalToman','discountToman','deliveryFeeToman','totalToman','amountUsdCents'] as const){if(verified[key]!==quote[key])throw new Error('QUOTE_CHANGED');}
   if(JSON.stringify(verified.pricing)!==JSON.stringify(quote.pricing))throw new Error('QUOTE_CHANGED');
-  if(new Date(d.deliveryAt).getTime()<now.getTime()+24*60*60*1000)throw new Error('DELIVERY');
+  if(new Date(d.deliveryAt).getTime()<earliestDemoDelivery(now,demoPreparationMinutes(catalog,items)).getTime())throw new Error('DELIVERY');
   const order:DemoOrder={id,trackingCode:`DEMO-${id.replace(/-/g,'').slice(0,12).toUpperCase()}`,createdAt:now.toISOString(),details:d,quote,
     items:items.map(i=>{const p=catalog.products.find(p=>p.id===i.productId)!;return {...i,nameFa:p.nameFa,nameEn:p.nameEn,unit:p.unit,lineTotalToman:calculateLineTotal(p.priceToman,i.quantity,p.priceBasisQuantity)};}),
     paymentState:d.method==='CASH'?'CASH_DUE':'PENDING',status:'PENDING',history:[{event:'CREATED',at:now.toISOString()}]};
