@@ -173,6 +173,8 @@ class Policy(unittest.TestCase):
         for name,kind in self.m.dns_questions():
             values=['ns1.'+self.m.DOMAIN+'.','ns2.'+self.m.DOMAIN+'.'] if kind=='NS' else [self.m.IP] if kind=='A' else []
             result.append({'Status':0,'Answer':[{'type':{'NS':2,'A':1,'AAAA':28}[kind],'data':value} for value in values]})
+            if name=='www.'+self.m.DOMAIN and kind=='A':
+                result[-1]['Answer'].append({'type':5,'data':self.m.DOMAIN+'.'})
         return result
 
     def test_public_dns_must_be_complete_and_ipv4_only(self):
@@ -183,6 +185,77 @@ class Policy(unittest.TestCase):
         self.assertFalse(self.m.valid_dns(invalid))
         invalid=self.replies();invalid[1]['Answer']=[{'type':1,'data':'127.0.0.1'}]
         self.assertFalse(self.m.valid_dns(invalid))
+
+    def test_alias_and_malformed_responses_are_not_accepted(self):
+        invalid=self.replies();invalid[2]['Answer']=[{'type':1,'data':self.m.IP}]
+        self.assertFalse(self.m.valid_dns(invalid))
+        for bad in (None, [], {'Status':0,'Answer':['bad']}, {'Status':0,'TC':True}):
+            invalid=self.replies();invalid[-1]=bad;self.assertFalse(self.m.valid_dns(invalid))
+
+    def tcp_output(self,status='NOERROR',answer='',flags='qr rd ra'):
+        return ';; ->>HEADER<<- opcode: QUERY, status: '+status+', id: 2\n;; flags: '+flags+'; QUERY: 1, ANSWER: 2\n\n'+answer
+
+    def test_tcp_parser_preserves_dns_status_alias_and_ipv6(self):
+        raw=self.tcp_output(answer='www.'+self.m.DOMAIN+'. 300 IN CNAME '+self.m.DOMAIN+'.\n'+self.m.DOMAIN+'. 300 IN A '+self.m.IP+'\n')
+        self.assertTrue(self.m.valid_dns_reply('www.'+self.m.DOMAIN,'A',self.m.parse_tcp_dns(raw)))
+        for status,code in (('NXDOMAIN',3),('SERVFAIL',2),('REFUSED',5)):
+            reply=self.m.parse_tcp_dns(self.tcp_output(status));self.assertEqual(reply['Status'],code)
+            self.assertFalse(self.m.valid_dns_reply(self.m.DOMAIN,'AAAA',reply))
+        reply=self.m.parse_tcp_dns(self.tcp_output(answer=self.m.DOMAIN+'. 300 IN AAAA 2001:db8::1\n'))
+        self.assertFalse(self.m.valid_dns_reply(self.m.DOMAIN,'AAAA',reply))
+        for bad in ('',raw+raw,self.tcp_output(flags='rd ra'),raw+'unparsed answer\n'):
+            self.assertIn('_error',self.m.parse_tcp_dns(bad))
+        self.assertFalse(self.m.valid_dns_reply(self.m.DOMAIN,'AAAA',self.m.parse_tcp_dns(self.tcp_output(flags='qr tc rd ra'))))
+
+    def test_tcp_targets_only_explicit_public_resolver_with_bounded_query(self):
+        with patch.object(self.m.shutil,'which',return_value='/usr/bin/dig'), \
+             patch.object(self.m.subprocess,'run',return_value=SimpleNamespace(returncode=0,stdout=self.tcp_output())) as run:
+            self.assertEqual(self.m.query_tcp(('1.1.1.1',self.m.DOMAIN,'AAAA'))['Status'],0)
+        args=run.call_args.args[0]
+        self.assertEqual(args[:5],['/usr/bin/dig','-r','@1.1.1.1',self.m.DOMAIN+'.','AAAA'])
+        self.assertIn('+tcp',args);self.assertIn('+time=3',args);self.assertEqual(run.call_args.kwargs['timeout'],5)
+
+    def test_doh_failure_falls_back_to_one_complete_public_tcp_set(self):
+        def tcp(item):
+            resolver,name,kind=item
+            return self.replies()[self.m.dns_questions().index((name,kind))] if resolver=='1.1.1.1' else {'Status':3}
+        with patch.object(self.m,'query_doh',return_value={'_error':'connection timeout'}), \
+             patch.object(self.m,'query_tcp',side_effect=tcp) as query,redirect_stdout(io.StringIO()) as out:
+            self.assertTrue(self.m.public_dns_ready())
+        self.assertEqual(query.call_count,14);self.assertIn('Cloudflare TCP: verified',out.getvalue())
+        self.assertIn('connection timeout',out.getvalue());self.assertIn('NXDOMAIN',out.getvalue())
+
+    def test_doh_success_skips_tcp_and_partial_resolvers_cannot_be_combined(self):
+        def doh(item):return self.replies()[self.m.dns_questions().index(item[1:])]
+        with patch.object(self.m,'query_doh',side_effect=doh),patch.object(self.m,'query_tcp') as tcp,redirect_stdout(io.StringIO()):
+            self.assertTrue(self.m.public_dns_ready());tcp.assert_not_called()
+        def partial(item):
+            resolver,name,kind=item;index=self.m.dns_questions().index((name,kind))
+            if (resolver=='1.1.1.1' and index==0) or (resolver=='8.8.8.8' and index==1):return {'Status':3}
+            return self.replies()[index]
+        with patch.object(self.m,'query_doh',return_value={'_error':'connection failed'}), \
+             patch.object(self.m,'query_tcp',side_effect=partial),redirect_stdout(io.StringIO()):
+            self.assertFalse(self.m.public_dns_ready())
+
+    def test_transport_errors_are_not_reported_as_nxdomain_or_printed_raw(self):
+        cases=[(self.m.urllib.error.URLError(TimeoutError('private-proxy')), 'connection timeout'),
+               (self.m.urllib.error.URLError('private-proxy'), 'connection failed'),
+               (self.m.urllib.error.HTTPError('private-proxy',403,'private',{},None), 'HTTP 403')]
+        for error,reason in cases:
+            with patch.object(self.m.urllib.request,'urlopen',side_effect=error):
+                result=self.m.query_doh(('https://dns.google/resolve',self.m.DOMAIN,'A'))
+            self.assertEqual(result,{'_error':reason});self.assertNotIn('private',str(result))
+
+    def test_dns_only_never_opens_lock_or_reads_private_config(self):
+        for ready in (True,False):
+            with patch.object(self.m.sys,'argv',['tls','--dns-only']), \
+                 patch.object(self.m,'public_dns_ready',return_value=ready), \
+                 patch.object(self.m.os,'open',side_effect=AssertionError('must not open lock')), \
+                 patch.object(self.m,'enable',side_effect=AssertionError('must not enable')),redirect_stdout(io.StringIO()):
+                if ready:self.m.main()
+                else:
+                    with self.assertRaises(SystemExit) as error:self.m.main()
+                    self.assertEqual(error.exception.code,2)
 
     def test_certificate_commands_scope_renewal_and_never_modify_nginx(self):
         with patch.object(self.m.shutil,'which',lambda n:'/usr/sbin/'+n):

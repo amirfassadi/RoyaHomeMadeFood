@@ -23,6 +23,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
 import urllib.request
 import uuid
 
@@ -49,46 +50,135 @@ def dns_questions():
             (DOMAIN, 'AAAA'), ('www.' + DOMAIN, 'AAAA')]
 
 
-def valid_dns(replies):
-    if len(replies) != len(dns_questions()):
+def valid_dns_reply(name, kind, reply):
+    if (not isinstance(reply, dict) or reply.get('_error') or reply.get('Status') != 0
+            or reply.get('TC') or not isinstance(reply.get('Answer', []), list)
+            or any(not isinstance(row, dict) for row in reply.get('Answer', []))):
         return False
-    for (name, kind), reply in zip(dns_questions(), replies):
-        if reply.get('Status') != 0 or not isinstance(reply.get('Answer', []), list):
-            return False
-        kind_id = {'NS': 2, 'A': 1, 'AAAA': 28}[kind]
-        values = {str(row.get('data', '')).lower().rstrip('.') for row in reply.get('Answer', [])
-                  if row.get('type') == kind_id}
-        expected = {'ns1.' + DOMAIN, 'ns2.' + DOMAIN} if kind == 'NS' else {IP} if kind == 'A' else set()
-        if values != expected:
+    answer = reply.get('Answer', [])
+    kind_id = {'NS': 2, 'A': 1, 'AAAA': 28}[kind]
+    values = {str(row.get('data', '')).lower().rstrip('.') for row in answer if row.get('type') == kind_id}
+    expected = {'ns1.' + DOMAIN, 'ns2.' + DOMAIN} if kind == 'NS' else {IP} if kind == 'A' else set()
+    if values != expected:
+        return False
+    if name == 'www.' + DOMAIN and kind == 'A':
+        aliases = {str(row.get('data', '')).lower().rstrip('.') for row in answer if row.get('type') == 5}
+        if aliases != {DOMAIN}:
             return False
     return True
 
 
-def public_dns_ready():
-    providers = ('https://dns.google/resolve', 'https://cloudflare-dns.com/dns-query')
-    def query(item):
-        provider, name, kind = item
-        try:
-            request = urllib.request.Request(provider + '?name=' + name + '&type=' + kind,
-                                             headers={'Accept': 'application/dns-json'})
-            with urllib.request.urlopen(request, timeout=10) as response:
-                raw = response.read(65537)
-            if len(raw) > 65536:
-                return {}
-            data = json.loads(raw)
-            return data if isinstance(data, dict) else {}
-        except (OSError, ValueError):
-            return {}
-    tasks = [(provider, name, kind) for provider in providers for name, kind in dns_questions()]
+def valid_dns(replies):
+    return (len(replies) == len(dns_questions())
+            and all(valid_dns_reply(name, kind, reply) for (name, kind), reply in zip(dns_questions(), replies)))
+
+
+DNS_STATUS = {0: 'NOERROR', 1: 'FORMERR', 2: 'SERVFAIL', 3: 'NXDOMAIN',
+              4: 'NOTIMP', 5: 'REFUSED', 9: 'NOTAUTH'}
+
+
+def query_doh(item):
+    provider, name, kind = item
+    try:
+        request = urllib.request.Request(provider + '?name=' + name + '&type=' + kind,
+                                         headers={'Accept': 'application/dns-json'})
+        with urllib.request.urlopen(request, timeout=10) as response:
+            raw = response.read(65537)
+        if len(raw) > 65536:
+            return {'_error': 'oversized response'}
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else {'_error': 'invalid JSON object'}
+    except urllib.error.HTTPError as error:
+        return {'_error': 'HTTP ' + str(error.code)}
+    except urllib.error.URLError as error:
+        # Never print exception text: proxy URLs and credentials can appear there.
+        reason = error.reason
+        kind = ('TLS verification failed' if isinstance(reason, ssl.SSLCertVerificationError)
+                else 'connection timeout' if isinstance(reason, (TimeoutError, socket.timeout))
+                else 'connection failed')
+        return {'_error': kind}
+    except (TimeoutError, socket.timeout):
+        return {'_error': 'connection timeout'}
+    except OSError:
+        return {'_error': 'connection failed'}
+    except (ValueError, UnicodeError):
+        return {'_error': 'invalid JSON response'}
+
+
+def parse_tcp_dns(output):
+    headers = re.findall(r'^;; ->>HEADER<<-.*?status: ([A-Z]+),', output, re.M)
+    flags = re.findall(r'^;; flags: ([^;]*);', output, re.M)
+    statuses = {value: key for key, value in DNS_STATUS.items()}
+    if len(headers) != 1 or headers[0] not in statuses or len(flags) != 1 or 'qr' not in flags[0].split():
+        return {'_error': 'invalid TCP DNS response'}
+    answer = []
+    types = {'A': 1, 'NS': 2, 'CNAME': 5, 'AAAA': 28}
+    for line in output.splitlines():
+        if not line.strip() or line.startswith(';'):
+            continue
+        match = re.fullmatch(r'(\S+)\s+\d+\s+IN\s+(A|NS|CNAME|AAAA)\s+(\S+)\s*', line)
+        if not match:
+            return {'_error': 'invalid TCP DNS answer'}
+        name, kind, data = match.groups()
+        answer.append({'name': name, 'type': types[kind], 'data': data})
+    return {'Status': statuses[headers[0]], 'TC': 'tc' in flags[0].split(), 'Answer': answer}
+
+
+def query_tcp(item):
+    resolver, name, kind = item
+    executable = shutil.which('dig')
+    if not executable:
+        return {'_error': 'dig unavailable'}
+    try:
+        result = subprocess.run([executable, '-r', '@' + resolver, name + '.', kind, '+tcp',
+                                 '+time=3', '+tries=1', '+noall', '+comments', '+answer'],
+                                capture_output=True, text=True, timeout=5, check=False)
+        if result.returncode:
+            return {'_error': 'TCP connection/query failed'}
+        return parse_tcp_dns(result.stdout)
+    except subprocess.TimeoutExpired:
+        return {'_error': 'TCP connection timeout'}
+    except (OSError, UnicodeError):
+        return {'_error': 'TCP connection failed'}
+
+
+def report_dns(label, replies):
+    ready = valid_dns(replies)
+    print('Public DNS ' + label + ': ' + ('verified' if ready else 'not verified'))
+    if not ready:
+        for index, (name, kind) in enumerate(dns_questions()):
+            reply = replies[index] if index < len(replies) else {}
+            reason = reply.get('_error') if isinstance(reply, dict) else 'invalid response'
+            if not reason:
+                status = reply.get('Status')
+                if status != 0:
+                    reason = DNS_STATUS.get(status, 'missing/unknown DNS status')
+                elif valid_dns_reply(name, kind, reply):
+                    continue
+                else:
+                    reason = 'record set differs, incomplete or truncated'
+            print('  ' + name + ' ' + kind + ': ' + reason)
+    return ready
+
+
+def resolver_group(providers, query):
+    tasks = [(address, name, kind) for _, address in providers for name, kind in dns_questions()]
     with ThreadPoolExecutor(max_workers=8) as pool:
         results = list(pool.map(query, tasks))
     count = len(dns_questions())
-    states = [valid_dns(results[index * count:(index + 1) * count]) for index in range(len(providers))]
-    for label, ready in zip(('Google', 'Cloudflare'), states):
-        print('Public DNS ' + label + ': ' + ('verified' if ready else 'not ready or unavailable'))
+    states = [report_dns(label, results[index * count:(index + 1) * count])
+              for index, (label, _) in enumerate(providers)]
+    return any(states)
+
+
+def public_dns_ready():
+    if resolver_group((('Google HTTPS', 'https://dns.google/resolve'),
+                       ('Cloudflare HTTPS', 'https://cloudflare-dns.com/dns-query')), query_doh):
+        return True
+    print('Checking public resolvers over TCP/53; local DNS is not used as public proof.')
     # One fully consistent resolver is sufficient; a CA validation failure still
     # leaves the closed entry in place and never exposes the application.
-    return any(states)
+    return resolver_group((('Google TCP', '8.8.8.8'), ('Cloudflare TCP', '1.1.1.1')), query_tcp)
 
 
 def tls_config():
@@ -398,8 +488,16 @@ def enable():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--rollback')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--rollback')
+    mode.add_argument('--dns-only', action='store_true', help='Read public DNS only; no sudo, CA, password or configuration access.')
     args = parser.parse_args()
+    if args.dns_only:
+        if not public_dns_ready():
+            print('DNS WAIT: public records are not verified. No changes made.')
+            sys.exit(2)
+        print('PUBLIC DNS VERIFIED: read-only check; no changes made.')
+        return
     if os.geteuid() != 0:
         raise RuntimeError('Run with sudo python3 in the Roya VPS terminal.')
     os.environ['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'

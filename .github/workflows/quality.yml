@@ -45,9 +45,10 @@ jobs:
         run: |
           sudo python3 scripts/test-domain-preparation.py
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends nginx-light bind9-utils
+          sudo apt-get install -y --no-install-recommends nginx-light bind9-utils bind9-dnsutils
           sudo python3 scripts/test-domain-native.py
           sudo python3 scripts/test-domain-tls.py
+          python3 scripts/test-domain-dns-native.py
           sudo python3 scripts/test-domain-tls-native.py
       - run: npm run test:integration
       - name: Build VPS application
