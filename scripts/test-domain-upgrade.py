@@ -30,7 +30,7 @@ class Sources(unittest.TestCase):
         manifest = json.loads((ROOT / 'deploy/private-domain-upgrade-manifest.json').read_text())
         previous = json.loads((ROOT / 'deploy/private-domain-upgrade-base-manifest.json').read_text())
         self.assertEqual(manifest['baseRelease'], '26b04f0f882a811604b720aa069660e7c58201ed')
-        self.assertEqual(m.release_id(), '10b49d3c2c4c6203211b81d3d0300e9c4ac4ebc5')
+        self.assertEqual(m.release_id(), '3f6a74cef79ac602d6b9f34f57eca7ed0989a54d')
         changed = {n for n, digest in manifest['files'].items() if previous['files'].get(n) != digest}
         self.assertEqual(changed, {'docs/ADMIN-PREPARATION-TIME.md', 'src/components/admin/preparation-time-input.tsx', 'src/components/admin/product-editor.tsx', 'src/components/admin/shared.tsx', 'scripts/test-admin-duration.mjs', 'tests/browser/product-duration-fixture.tsx'})
         for name, digest in manifest['files'].items():

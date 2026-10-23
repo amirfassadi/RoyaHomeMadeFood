@@ -50,6 +50,7 @@ try{
  for(const [minutes,value,kind] of [[2880,'2','day'],[90,'90','minute'],[0,'0','minute']]){
   await open(minutes);assert.equal(await amount.inputValue(),value);assert.equal(await unit.inputValue(),kind);await saved(minutes);
  }
+ await open(240);await amount.fill('4.1');await saved(246);
  await open(240);await amount.fill('');await save.click();assert.equal(received.length,0);assert.equal(await amount.evaluate(e=>e.validity.valueMissing),true);
  await unit.selectOption('minute');await amount.fill('0.5');await save.click();await page.getByRole('alert').waitFor();assert.equal(received.length,0);
  await unit.selectOption('day');await amount.fill('366');await save.click();assert.equal(received.length,0);assert.equal(await amount.evaluate(e=>e.validity.rangeOverflow),true);
@@ -60,7 +61,7 @@ try{
  const overflowing=await page.evaluate(()=>Array.from(document.querySelectorAll('main *')).filter(e=>{const r=e.getBoundingClientRect();return r.right>innerWidth+1||r.left< -1;}).slice(0,12).map(e=>({tag:e.tagName,type:e.getAttribute('type'),className:e.className,left:e.getBoundingClientRect().left,right:e.getBoundingClientRect().right})));
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Product form overflows the mobile viewport: '+JSON.stringify(overflowing));
  assert.deepEqual(errors,[]);
- console.log('ADMIN DURATION BROWSER PASS: 4-hour display, 2 days -> 2880-minute product payload, unchanged duration on unit switch, legacy/zero preservation, invalid-input rejection and mobile form.');
+ console.log('ADMIN DURATION BROWSER PASS: 4-hour display, 2 days -> 2880-minute product payload, unchanged duration on unit switch, exact fractional-hour conversion, legacy/zero preservation, invalid-input rejection and mobile form.');
 }finally{
  if(browser)await browser.close();
  await new Promise(resolve=>server.close(resolve));

@@ -9,7 +9,7 @@ import {pathToFileURL} from 'node:url';
 import {inspectionSql,probeLogin,ProbeError} from './diagnose-vps-admin.mjs';
 
 export const ORIGIN='https://royahealthyfood.ir';
-const RELEASES=['bd69388bdfea903b892ad2a5430be8382c0fe012','26b04f0f882a811604b720aa069660e7c58201ed','10b49d3c2c4c6203211b81d3d0300e9c4ac4ebc5'];
+const RELEASES=['bd69388bdfea903b892ad2a5430be8382c0fe012','26b04f0f882a811604b720aa069660e7c58201ed','3f6a74cef79ac602d6b9f34f57eca7ed0989a54d'];
 
 export function secureCookies(headers){
  for(const text of headers.getSetCookie()){

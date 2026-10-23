@@ -16,7 +16,7 @@ from pathlib import Path, PurePosixPath
 import hashlib,json,shutil,sys
 root,destination=map(Path,sys.argv[1:])
 m=json.loads((root/'deploy/private-domain-upgrade-manifest.json').read_text())
-if m['format']!=1 or m['baseRelease']!='26b04f0f882a811604b720aa069660e7c58201ed' or m['sourceRelease']!='b160057bbb7c40ed60684614b7bc8f10c6c33900' or m['origin']!='https://royahealthyfood.ir' or hashlib.sha1(json.dumps(m['files'],sort_keys=True).encode()).hexdigest()!=m['sourceRelease']:
+if m['format']!=1 or m['baseRelease']!='26b04f0f882a811604b720aa069660e7c58201ed' or m['sourceRelease']!='2ce213315171f1bba64211e27a8b46797d71bf96' or m['origin']!='https://royahealthyfood.ir' or hashlib.sha1(json.dumps(m['files'],sort_keys=True).encode()).hexdigest()!=m['sourceRelease']:
     raise SystemExit('STOP: unexpected private source manifest.')
 for name,digest in m['files'].items():
     path=PurePosixPath(name);p=root/name

@@ -16,7 +16,11 @@ export function PreparationTimeInput({minutes,onChange}:{minutes:number;onChange
  return <div className="grid gap-2 text-sm sm:col-span-2">
   <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
    <Field label="زمان آماده‌سازی" type="number" min={0} max={525600/factor} step="any" required
-    value={amount} aria-describedby={id} onChange={e=>onChange(e.target.valueAsNumber*factor)}/>
+    value={amount} aria-describedby={id} onChange={e=>{
+     const converted=e.target.valueAsNumber*factor,whole=Math.round(converted);
+     // Remove floating-point noise (4.1 hours -> 246 minutes), not partial minutes.
+     onChange(Math.abs(converted-whole)<1e-7?whole:converted);
+    }}/>
    <label className="grid gap-2">واحد زمان آماده‌سازی
     <select className={fieldClass} value={unit} onChange={e=>setUnit(e.target.value as Unit)}>
      {Object.entries(units).map(([value,item])=><option key={value} value={value}>{item.label}</option>)}

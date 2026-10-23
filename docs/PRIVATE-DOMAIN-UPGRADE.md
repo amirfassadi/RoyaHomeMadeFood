@@ -2,12 +2,12 @@
 
 `deploy/upgrade-private-domain.sh` upgrades the existing private HTTPS storefront
 from `26b04f0f882a811604b720aa069660e7c58201ed` to
-`10b49d3c2c4c6203211b81d3d0300e9c4ac4ebc5`. It uses the explicit `--upgrade`
+`3f6a74cef79ac602d6b9f34f57eca7ed0989a54d`. It uses the explicit `--upgrade`
 profile of the existing guarded domain transaction; the original domain
 connection entrypoint and its historical source manifest remain available.
 
 The source manifest verifies all 228 selected application files. Its source
-release is `b160057bbb7c40ed60684614b7bc8f10c6c33900`. Only the product editor, shared field sizing, duration input and their browser
+release is `2ce213315171f1bba64211e27a8b46797d71bf96`. Only the product editor, shared field sizing, duration input and their browser
 fixture/test/documentation differ from the previous HTTPS application source.
 The previous upgrade manifest is retained as private-domain-upgrade-base-manifest.json;
 older pinned archives and rollback backups retain their matching operator code. Next.js remains pinned to 16.4.2.
