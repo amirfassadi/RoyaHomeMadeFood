@@ -28,7 +28,7 @@ async function fixture(action,wrongName=false,publicPreview=false){
    if(publicPreview)assert.equal(req.headers.authorization,undefined);
    assert.equal(req.headers.host,'royahealthyfood.ir');
    const path=req.url.split('?')[0];
-   if(path==='/api/health/')return reply(200,{ok:true});
+   if(path==='/api/health/')return reply(200,{status:'ok'});
    if(path==='/fa/catalog/')return reply(200,{});
    if(path==='/redirect/') {res.setHeader('location','https://wrong.invalid/');return reply(302,{});}
    if(path==='/unsafe-cookie/') {res.setHeader('set-cookie','__Secure-next-auth.session-token=hidden; Path=/; HttpOnly; SameSite=Lax');return reply(200,{});}
@@ -106,6 +106,7 @@ test('access detection recognizes the existing gate and explicit anonymous previ
 });
 test('access detection refuses unknown successful responses and missing guest protection',async()=>{
  const publicHeaders={'x-roya-domain-stage':'public-preview-v1','x-robots-tag':'noindex, nofollow'};
- await assert.rejects(domainAccessMode(async()=>new Response('{"ok":true}',{status:200})),/Unrecognized/);
- await assert.rejects(domainAccessMode(async url=>new Response('{"ok":true}',{status:200,headers:publicHeaders})),/guest guard/);
+ await assert.rejects(domainAccessMode(async()=>new Response('{"status":"ok"}',{status:200})),/Unrecognized/);
+ await assert.rejects(domainAccessMode(async()=>new Response('{"ok":true}',{status:200,headers:publicHeaders})),/health response/);
+ await assert.rejects(domainAccessMode(async url=>new Response('{"status":"ok"}',{status:200,headers:publicHeaders})),/guest guard/);
 });

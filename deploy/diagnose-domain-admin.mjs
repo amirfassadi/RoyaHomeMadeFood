@@ -56,7 +56,7 @@ export async function domainAccessMode(send=domainTransport()){
  let mode;
  if(health.status===401&&marker==='private-app-v1'&&health.headers.get('www-authenticate')==='Basic realm="Roya private preview"')mode='private';
  else if(health.status===200&&marker==='public-preview-v1'&&!health.headers.get('www-authenticate')&&health.headers.get('x-robots-tag')?.includes('noindex')){
-  try{if((await health.json()).ok!==true)throw new Error();}catch{throw new ProbeError('Unexpected test-preview health response; no login attempted.');}
+  try{if((await health.json()).status!=='ok')throw new Error();}catch{throw new ProbeError('Unexpected test-preview health response; no login attempted.');}
   mode='public-preview';
  }else throw new ProbeError('Unrecognized domain access mode; no login attempted.');
  const catalog=await send(ORIGIN+'/fa/catalog/',{signal:AbortSignal.timeout(15000)});
