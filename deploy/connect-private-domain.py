@@ -23,7 +23,7 @@ import sys
 import tempfile
 import time
 import uuid
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 spec = importlib.util.spec_from_file_location('roya_origin_tls', Path(__file__).with_name('enable-private-domain-tls.py'))
 tls = importlib.util.module_from_spec(spec)
@@ -38,6 +38,19 @@ LINK = '/opt/roya/preview-current'
 RELEASE_ROOT = '/opt/roya/preview-releases'
 CANDIDATE_UNIT = '/etc/systemd/system/roya-domain-candidate.service'
 CANDIDATE_ENV = '/etc/roya/domain-candidate.env'
+UPGRADING = False
+
+def configure_upgrade():
+    global UPGRADING, SOURCE_RELEASE
+    m = json.loads(Path(__file__).with_name('private-domain-upgrade-manifest.json').read_text())
+    source = 'ebe901411a2b15eab341d8d691e4c065a2d4573d'
+    previous = 'bd69388bdfea903b892ad2a5430be8382c0fe012'
+    if (m.get('format') != 1 or m.get('origin') != ORIGIN or m.get('baseRelease') != previous
+            or m.get('sourceRelease') != source
+            or hashlib.sha1(json.dumps(m['files'], sort_keys=True).encode()).hexdigest() != source):
+        raise RuntimeError('Unexpected private upgrade manifest.')
+    UPGRADING, SOURCE_RELEASE, base.RELEASE = True, source, previous
+
 
 
 def release_id():
@@ -246,8 +259,8 @@ def verify_proxy(password, port=443, cafile=None):
 
 
 def preflight():
-    if Path(base.NGINX).is_symlink() or Path(base.NGINX).read_text() != tls.tls_config():
-        raise RuntimeError('Expected the verified private TLS-only gate; nothing overwritten.')
+    if Path(base.NGINX).is_symlink() or Path(base.NGINX).read_text() != (nginx_config() if UPGRADING else tls.tls_config()):
+        raise RuntimeError('Expected the verified private domain gate; nothing overwritten.')
     if not Path(LINK).is_symlink() or str(Path(LINK).resolve()) != previous_target():
         raise RuntimeError('Installed private preview target differs.')
     if Path(LINK, '.roya-release').read_text().strip() != base.RELEASE:
@@ -259,6 +272,16 @@ def preflight():
                 'ROYA_LIVE_PAYMENTS': '0', 'ROYA_ACCEPT_ORDERS': '0', 'ROYA_SEND_SMS': '0',
                 'ROYA_INTERNATIONAL_ENABLED': '0', 'CUSTOMER_ACCOUNTS_ENABLED': '0', 'ROYA_TRUST_GEO_HEADER': '0',
                 'ROYA_PREVIEW_RELEASE': base.RELEASE}
+    if UPGRADING:
+        expected.update({'NEXTAUTH_URL': ORIGIN, 'NEXT_PUBLIC_SITE_URL': ORIGIN})
+        entries = [line.split('=', 1)[0] for line in Path(ENV).read_text().splitlines() if '=' in line and not line.startswith('#')]
+        if len(entries) != len(set(entries)):
+            raise RuntimeError('Duplicate private environment values.')
+        database = dict(line.split('=', 1) for line in Path('/etc/roya/database.env').read_text().splitlines() if '=' in line and not line.startswith('#'))
+        for key in ('DATABASE_URL', 'DIRECT_URL'):
+            u = urlparse(values.get(key, database.get(key, '')))
+            if (u.scheme, u.hostname, u.port, u.path, u.username) != ('postgresql', '127.0.0.1', 5432, '/roya_store', 'roya_app') or not u.password:
+                raise RuntimeError('Unexpected local Roya database target.')
     if any(values.get(key) != value for key, value in expected.items()) or len(values.get('NEXTAUTH_SECRET', '')) < 32:
         raise RuntimeError('Private preview flags, origin or secret differ.')
     if any(values.get(key) for key in ('SITES_STATIC_PREVIEW', 'NEXTAUTH_URL_INTERNAL', 'ROYA_BACKEND_URL')):
@@ -272,7 +295,7 @@ def preflight():
     base.preview_health()
     tls.certificate_valid()
     for host in (base.DOMAIN, 'www.' + base.DOMAIN):
-        if tls.https(host, '/')[::2] != (401, tls.MARKER):
+        if tls.https(host, '/')[::2] != (401, MARKER if UPGRADING else tls.MARKER):
             raise RuntimeError('Expected the protected HTTPS gate before application connection.')
     listeners = base.command(['ss', '-lntH', '( sport = :3311 )']).splitlines()
     if not listeners or any(line.split()[3] != '127.0.0.1:3311' for line in listeners):
@@ -283,7 +306,7 @@ def preflight():
     protected = tls.protected_files(config)
     protected = {name: digest for name, digest in protected.items()
                  if name not in {ENV, UNIT, LINK + '/.roya-release'}}
-    for name in (tls.AUTH_FILE, tls.READY_FILE, tls.RENEWAL):
+    for name in ((base.NGINX,) if UPGRADING else ()) + (tls.AUTH_FILE, tls.READY_FILE, tls.RENEWAL):
         protected[name] = base.sha(name)
     if shutil.disk_usage('/opt/roya').free < 2500 * 1024 * 1024:
         raise RuntimeError('At least 2500 MiB free disk is required; nothing removed.')
@@ -311,7 +334,7 @@ def wait_static_gate():
     deadline = time.monotonic() + 10
     while True:
         try:
-            if all(tls.https(host, '/')[::2] == (401, tls.MARKER)
+            if all(tls.https(host, '/')[::2] == (401, MARKER if UPGRADING else tls.MARKER)
                    for host in (base.DOMAIN, 'www.' + base.DOMAIN)):
                 return
         except OSError:
@@ -321,11 +344,15 @@ def wait_static_gate():
         time.sleep(0.25)
 
 
-def candidate_cleanup(state):
+def verify_candidate_files(state):
     for name, digest in state.get('candidate', {}).items():
         path = Path(name)
         if path.is_symlink() or (path.exists() and base.sha(path) != digest):
             raise RuntimeError('Another edit changed the candidate service; cleanup refused.')
+
+
+def candidate_cleanup(state):
+    verify_candidate_files(state)
     if Path(CANDIDATE_UNIT).exists():
         base.command(['systemctl', 'stop', 'roya-domain-candidate.service'])
     for name in state.get('candidate', {}):
@@ -349,7 +376,9 @@ def rollback(directory):
             raise RuntimeError('Another edit changed an origin target; rollback refused.')
         if not re.fullmatch(r'original-[0-2]', row['copy']) or base.sha(directory / row['copy']) != row['before']:
             raise RuntimeError('Origin backup checksum differs; rollback refused.')
-    # Restore the static password gate before switching the application back.
+    tls.assert_protected(state['protected'])
+    verify_candidate_files(state)
+    # Restore the previous password gate before switching the application back.
     row = state['files'][base.NGINX]
     base.atomic(base.NGINX, (directory / row['copy']).read_bytes(), row)
     base.command(['nginx', '-t'])
@@ -366,7 +395,7 @@ def rollback(directory):
     wait_app(3311)
     candidate_cleanup(state)
     tls.assert_protected(state['protected'])
-    print('PRIVATE DOMAIN ORIGIN ROLLED BACK: static TLS password gate and previous loopback application restored.')
+    print('PRIVATE DOMAIN UPGRADE ROLLED BACK: previous HTTPS application and private gate restored.' if UPGRADING else 'PRIVATE DOMAIN ORIGIN ROLLED BACK: static TLS password gate and previous loopback application restored.')
 
 
 def install(stage):
@@ -384,7 +413,9 @@ def install(stage):
         if path.is_symlink() and not path.resolve().is_relative_to(stage):
             raise RuntimeError('Candidate contains an external symbolic link.')
     password = getpass.getpass('Existing private-preview password (hidden; not the administrator password): ')
-    tls.verify_gate(password)
+    if not re.fullmatch(r'[!-~]{12,128}', password):
+        raise RuntimeError('Private password format invalid; no application changed.')
+    (verify_proxy if UPGRADING else tls.verify_gate)(password)
     original_env, original_unit = Path(ENV).read_text(), Path(UNIT).read_text()
     new_env = environment(original_env, 3311).encode()
     new_unit = service(original_unit, str(release)).encode()
@@ -408,8 +439,10 @@ def install(stage):
         shutil.copyfile(path, directory / ('original-' + str(index)))
     for name in ('connect-private-domain.py', 'enable-private-domain-tls.py', 'prepare-private-domain.py'):
         shutil.copyfile(Path(__file__).with_name(name), directory / name)
+    if UPGRADING:
+        shutil.copyfile(Path(__file__).with_name('private-domain-upgrade-manifest.json'), directory / 'private-domain-upgrade-manifest.json')
     (directory / 'state.json').write_text(json.dumps(state, sort_keys=True))
-    (directory / 'restore.sh').write_text('#!/bin/sh\nexec /usr/bin/python3 "$(dirname "$0")/connect-private-domain.py" --rollback "$(dirname "$0")"\n')
+    (directory / 'restore.sh').write_text('#!/bin/sh\nexec /usr/bin/python3 "$(dirname "$0")/connect-private-domain.py" ' + ('--upgrade ' if UPGRADING else '') + '--rollback "$(dirname "$0")"\n')
     (directory / 'restore.sh').chmod(0o700)
     print('Origin configuration backup: ' + str(directory), flush=True)
     changed = False
@@ -464,7 +497,7 @@ def install(stage):
         except BaseException:
             print('ORIGIN ROLLBACK NEEDS REVIEW: sudo bash ' + str(directory / 'restore.sh'), file=sys.stderr)
         raise
-    print('PRIVATE DOMAIN STOREFRONT READY: ' + ORIGIN + '/fa/catalog/')
+    print(('PRIVATE CHECKOUT UPGRADE READY: ' if UPGRADING else 'PRIVATE DOMAIN STOREFRONT READY: ') + ORIGIN + '/fa/catalog/')
     print('HTTPS origin, secure cookies and Origin guards verified. Private username remains ' + tls.USERNAME + '.')
     print('Administrator, catalog/pricing, database schema, DNS, certificates and live-effect blocks preserved.')
     print('Rollback: sudo bash ' + str(directory / 'restore.sh'))
@@ -472,11 +505,14 @@ def install(stage):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--upgrade', action='store_true')
     modes = parser.add_mutually_exclusive_group(required=True)
     modes.add_argument('--preflight', action='store_true')
     modes.add_argument('--install')
     modes.add_argument('--rollback')
     args = parser.parse_args()
+    if args.upgrade:
+        configure_upgrade()
     if os.geteuid() != 0:
         raise RuntimeError('Run with sudo python3 in the Roya VPS terminal.')
     os.environ['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'

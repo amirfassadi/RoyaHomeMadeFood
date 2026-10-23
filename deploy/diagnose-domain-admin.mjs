@@ -9,7 +9,7 @@ import {pathToFileURL} from 'node:url';
 import {inspectionSql,probeLogin,ProbeError} from './diagnose-vps-admin.mjs';
 
 export const ORIGIN='https://royahealthyfood.ir';
-const RELEASE='bd69388bdfea903b892ad2a5430be8382c0fe012';
+const RELEASES=['bd69388bdfea903b892ad2a5430be8382c0fe012','26b04f0f882a811604b720aa069660e7c58201ed'];
 
 export function secureCookies(headers){
  for(const text of headers.getSetCookie()){
@@ -62,12 +62,12 @@ export function inspectRuntime(){
  }
  privileged(['nginx','-t']);console.log('NGINX syntax: PASS');
  const release=privileged(['cat','/opt/roya/preview-current/.roya-release']).trim();
- if(release!==RELEASE)throw new ProbeError('Unexpected installed release; no login attempted.');
+ if(!RELEASES.includes(release))throw new ProbeError('Unexpected installed release; no login attempted.');
  console.log('Preview release: '+release);
  const pid=privileged(['systemctl','show','--property=MainPID','--value','roya-preview.service']).trim();
  if(!/^[1-9]\d*$/.test(pid))throw new ProbeError('Preview process not found.');
  const env=Object.fromEntries(privileged(['cat',`/proc/${pid}/environ`]).split('\0').filter(Boolean).map(pair=>{const i=pair.indexOf('=');return [pair.slice(0,i),pair.slice(i+1)];}));
- const expected={HOSTNAME:'127.0.0.1',PORT:'3311',ROYA_DEPLOYMENT_ROLE:'standalone',ROYA_PRIVATE_DB_CATALOG:'1',ROYA_DEMO_CATALOG:'1',NEXTAUTH_URL:ORIGIN,NEXT_PUBLIC_SITE_URL:ORIGIN,ROYA_INDEXABLE:'0',ROYA_LIVE_PAYMENTS:'0',ROYA_ACCEPT_ORDERS:'0',ROYA_SEND_SMS:'0',ROYA_INTERNATIONAL_ENABLED:'0',CUSTOMER_ACCOUNTS_ENABLED:'0',ROYA_TRUST_GEO_HEADER:'0',ROYA_PREVIEW_RELEASE:RELEASE};
+ const expected={HOSTNAME:'127.0.0.1',PORT:'3311',ROYA_DEPLOYMENT_ROLE:'standalone',ROYA_PRIVATE_DB_CATALOG:'1',ROYA_DEMO_CATALOG:'1',NEXTAUTH_URL:ORIGIN,NEXT_PUBLIC_SITE_URL:ORIGIN,ROYA_INDEXABLE:'0',ROYA_LIVE_PAYMENTS:'0',ROYA_ACCEPT_ORDERS:'0',ROYA_SEND_SMS:'0',ROYA_INTERNATIONAL_ENABLED:'0',CUSTOMER_ACCOUNTS_ENABLED:'0',ROYA_TRUST_GEO_HEADER:'0',ROYA_PREVIEW_RELEASE:release};
  let valid=Object.entries(expected).every(([key,value])=>env[key]===value)&&env.NEXTAUTH_SECRET?.length>=32;
  try{const u=new URL(env.DATABASE_URL);valid&&=u.protocol==='postgresql:'&&u.hostname==='127.0.0.1'&&u.port==='5432'&&u.pathname==='/roya_store'&&u.username==='roya_app'&&!!u.password;}catch{valid=false;}
  valid&&=!['SITES_STATIC_PREVIEW','NEXTAUTH_URL_INTERNAL','ROYA_BACKEND_URL'].some(key=>env[key]);

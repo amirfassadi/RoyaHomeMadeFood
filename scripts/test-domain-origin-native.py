@@ -193,6 +193,9 @@ console.log('NATIVE PRODUCT FAILURE CLEANUP PASS');
         if 'NATIVE PRODUCT FAILURE CLEANUP PASS' not in diagnostic.stdout:
             raise RuntimeError('Interrupted native product cleanup did not complete; private output omitted.')
         print('NATIVE PRODUCT FAILURE CLEANUP PASS: interrupted update archived only its fixture and verified logout.')
+        m.configure_upgrade()
+        m.verify_proxy(private_password, port=19445, cafile=tls.CERT)
+        print('NATIVE HTTPS UPGRADE CHECK PASS: exact upgrade HTTPS verifier preserves authentication, secure cookies, origins and disabled live effects.')
         write_config(tls.tls_config())
         subprocess.run(['nginx', '-p', str(root) + '/', '-c', str(config), '-s', 'reload'], check=True, capture_output=True)
         tls.verify_gate(private_password, port=19445, cafile=tls.CERT)

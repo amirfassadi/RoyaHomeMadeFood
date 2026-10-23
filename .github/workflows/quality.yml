@@ -49,6 +49,7 @@ jobs:
           sudo python3 scripts/test-domain-native.py
           sudo python3 scripts/test-domain-tls.py
           sudo python3 scripts/test-domain-origin.py
+          sudo python3 scripts/test-domain-upgrade.py
           python3 scripts/test-domain-dns-native.py
           sudo python3 scripts/test-domain-tls-native.py
       - run: npm run test:integration
