@@ -54,8 +54,8 @@ export function ContentEditor({initial,isDemo}:{initial:ContentDocument;isDemo:b
         {([['home','صفحهٔ اصلی'],['about','دربارهٔ ما'],['footer','پایین صفحه']] as const).map(([group,title])=><Panel key={group} title={title}>
           <div className="grid min-w-0 gap-5 sm:grid-cols-2">
             {contentFields.filter(field=>field.group===group).map(field=><label key={field.key} className={`grid min-w-0 grid-cols-1 gap-2 text-sm ${field.rows?'sm:col-span-2':''}`}>
-              <span>{field.label}</span>
-              {field.rows?<textarea className={fieldClass} dir={locale==='fa'?'rtl':'ltr'} lang={locale} required maxLength={field.max} rows={field.rows} value={copy[field.key]} onChange={event=>update(field.key,event.target.value)}/>:<input className={fieldClass} dir={locale==='fa'?'rtl':'ltr'} lang={locale} required maxLength={field.max} value={copy[field.key]} onChange={event=>update(field.key,event.target.value)}/>}
+              <span id={`content-label-${field.key}`}>{field.label}</span>
+              {field.rows?<textarea aria-labelledby={`content-label-${field.key}`} className={fieldClass} dir={locale==='fa'?'rtl':'ltr'} lang={locale} required maxLength={field.max} rows={field.rows} value={copy[field.key]} onChange={event=>update(field.key,event.target.value)}/>:<input aria-labelledby={`content-label-${field.key}`} className={fieldClass} dir={locale==='fa'?'rtl':'ltr'} lang={locale} required maxLength={field.max} value={copy[field.key]} onChange={event=>update(field.key,event.target.value)}/>}
             </label>)}
           </div>
         </Panel>)}

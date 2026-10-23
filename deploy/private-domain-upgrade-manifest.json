@@ -107,7 +107,7 @@
     "src/app/robots.ts": "d623f542eef5348795bdfc1d6bed9deac0667da11aef9d241868272be58d7206",
     "src/app/sitemap.ts": "2cf9cf97b359fd3a2486d9e496dfec354f32aed57bc31bb02dd0ae28cecdb573",
     "src/components/admin/communications-panel.tsx": "3cd490e82d27af63b0d7ca418f221eb08fea5bd5a461c58fbceaeee704acaf88",
-    "src/components/admin/content-editor.tsx": "f8b4347ef24adad704528d3539db7b151c6f43482df9d5c89229ab026cc803ca",
+    "src/components/admin/content-editor.tsx": "4092a1cf23b15c60d3dd9c2f8594270ce5d9d56383064c08305e1c26379b5728",
     "src/components/admin/login-form.tsx": "9162b87e7b066628279ea5313f08e5ace53b50caf2bb93790a433a7bc115ee2e",
     "src/components/admin/order-detail.tsx": "81e55f7b451cece5670cab62e2838c046b12cbe016179d846f31001c4925bdbc",
     "src/components/admin/password-settings.tsx": "4abbc65f6508473c301baf43758824c964e46b25c4f6a7139ec27793cf72358c",
@@ -243,5 +243,5 @@
   },
   "format": 1,
   "origin": "https://royahealthyfood.ir",
-  "sourceRelease": "52a02096588486e1a5e0ed9224d82b8d2ab1e9ba"
+  "sourceRelease": "583f588889cc2ee81d19e98130d16705aa164403"
 }

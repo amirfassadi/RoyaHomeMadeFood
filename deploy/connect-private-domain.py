@@ -43,7 +43,7 @@ UPGRADING = False
 def configure_upgrade():
     global UPGRADING, SOURCE_RELEASE
     m = json.loads(Path(__file__).with_name('private-domain-upgrade-manifest.json').read_text())
-    source = '52a02096588486e1a5e0ed9224d82b8d2ab1e9ba'
+    source = '583f588889cc2ee81d19e98130d16705aa164403'
     previous = '3f6a74cef79ac602d6b9f34f57eca7ed0989a54d'
     if (m.get('format') != 1 or m.get('origin') != ORIGIN or m.get('baseRelease') != previous
             or m.get('sourceRelease') != source
