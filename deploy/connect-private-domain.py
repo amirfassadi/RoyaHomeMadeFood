@@ -43,8 +43,8 @@ UPGRADING = False
 def configure_upgrade():
     global UPGRADING, SOURCE_RELEASE
     m = json.loads(Path(__file__).with_name('private-domain-upgrade-manifest.json').read_text())
-    source = '2ce213315171f1bba64211e27a8b46797d71bf96'
-    previous = '26b04f0f882a811604b720aa069660e7c58201ed'
+    source = '52a02096588486e1a5e0ed9224d82b8d2ab1e9ba'
+    previous = '3f6a74cef79ac602d6b9f34f57eca7ed0989a54d'
     if (m.get('format') != 1 or m.get('origin') != ORIGIN or m.get('baseRelease') != previous
             or m.get('sourceRelease') != source
             or hashlib.sha1(json.dumps(m['files'], sort_keys=True).encode()).hexdigest() != source):
@@ -497,7 +497,7 @@ def install(stage):
         except BaseException:
             print('ORIGIN ROLLBACK NEEDS REVIEW: sudo bash ' + str(directory / 'restore.sh'), file=sys.stderr)
         raise
-    print(('PRIVATE CHECKOUT UPGRADE READY: ' if UPGRADING else 'PRIVATE DOMAIN STOREFRONT READY: ') + ORIGIN + '/fa/catalog/')
+    print(('PRIVATE CONTENT UPGRADE READY: ' if UPGRADING else 'PRIVATE DOMAIN STOREFRONT READY: ') + ORIGIN + '/fa/catalog/')
     print('HTTPS origin, secure cookies and Origin guards verified. Private username remains ' + tls.USERNAME + '.')
     print('Administrator, catalog/pricing, database schema, DNS, certificates and live-effect blocks preserved.')
     print('Rollback: sudo bash ' + str(directory / 'restore.sh'))

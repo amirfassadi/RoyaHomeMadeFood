@@ -43,6 +43,7 @@ jobs:
         run: node --test scripts/test-admin-diagnostics.mjs scripts/test-domain-admin-diagnostics.mjs
       - name: Verify domain rollback and native DNS/web configuration
         run: |
+          python3 scripts/test-domain-build-cleanup.py
           sudo python3 scripts/test-domain-preparation.py
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends nginx-light bind9-utils bind9-dnsutils
@@ -67,6 +68,7 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/roya-browser-test" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.62.1
           "$RUNNER_TEMP/roya-browser-test/node_modules/.bin/playwright" install --with-deps chromium
           ROYA_TEST_BROWSER_MODULE="$RUNNER_TEMP/roya-browser-test/node_modules/playwright" node scripts/test-admin-duration.mjs
+          ROYA_TEST_BROWSER_MODULE="$RUNNER_TEMP/roya-browser-test/node_modules/playwright" node --import tsx scripts/test-admin-content.mjs
       - name: Verify administrator HTTP flow against isolated PostgreSQL
         run: |
           bash -n deploy/recover-vps-admin.sh

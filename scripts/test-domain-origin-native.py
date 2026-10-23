@@ -145,9 +145,14 @@ with TemporaryDirectory(prefix='roya-domain-origin-native.') as temporary:
         if not secure_session or client('/api/auth/session/').data().get('adminId') != fixture_id:
             raise RuntimeError('HTTPS secure administrator session failed.')
         m.expect(client('/admin/products/'), 200, 'Authenticated HTTPS administrator page')
+        m.expect(send('/api/admin/settings/content/'), 401, 'Content API without administrator session')
+        m.expect(client('/admin/content/'), 200, 'Authenticated HTTPS content editor')
+        m.expect(client('/api/admin/settings/content/'), 200, 'Authenticated HTTPS content read')
         for origin in ('https://untrusted.invalid', 'http://localhost:3311'):
             m.expect(client('/api/admin/settings/pricing/', 'POST', {'Origin': origin, 'Content-Type': 'application/json'}, b'{}'), 403, 'Administrator wrong Origin')
         m.expect(client('/api/admin/settings/pricing/', 'POST', {'Origin': m.ORIGIN, 'Content-Type': 'application/json'}, b'{}'), 400, 'Administrator same-origin validation')
+        m.expect(client('/api/admin/settings/content/', 'POST', {'Origin': 'https://untrusted.invalid', 'Content-Type': 'application/json'}, b'{}'), 403, 'Content wrong Origin')
+        m.expect(client('/api/admin/settings/content/', 'POST', {'Origin': m.ORIGIN, 'Content-Type': 'application/json'}, b'{}'), 400, 'Content same-origin validation')
         forged = send('/api/auth/providers/', headers={'X-Forwarded-Host': 'attacker.invalid', 'X-Forwarded-Proto': 'http', 'Forwarded': 'host=attacker.invalid;proto=http'})
         if any(not row['callbackUrl'].startswith(m.ORIGIN + '/') for row in forged.data().values()):
             raise RuntimeError('Forwarded headers changed the canonical authentication origin.')
@@ -155,6 +160,7 @@ with TemporaryDirectory(prefix='roya-domain-origin-native.') as temporary:
         form = urlencode({'csrfToken': csrf, 'callbackUrl': m.ORIGIN + '/admin/login/', 'json': 'true'}).encode()
         m.expect(client('/api/auth/signout/', 'POST', {'Origin': m.ORIGIN, 'Content-Type': 'application/x-www-form-urlencoded'}, form), 200, 'HTTPS administrator logout')
         m.expect(client('/api/admin/data/?section=settings'), 401, 'Logged-out HTTPS administrator')
+        m.expect(client('/api/admin/settings/content/'), 401, 'Logged-out HTTPS content API')
         # Exercise the exact operator transport/probe against real NextAuth,
         # not only the synthetic HTTPS fixture. Secrets travel through stdin.
         diagnostic_code = '''

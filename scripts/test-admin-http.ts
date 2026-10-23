@@ -9,6 +9,7 @@ import {editable,PrivateAdminClient,runPricingAdminTest,type PricingCheckpoint} 
 import {privateCatalogResponseSchema} from '../src/lib/catalog/snapshot';
 import {quoteDemo,makeDemoOrder,quoteNeedsReview} from '../src/lib/prototype';
 import {defaultPricingPolicy,pricingSnapshot,sampleMarketRates} from '../src/lib/pricing';
+import {contentDocumentSchema} from '../src/lib/storefront-content';
 
 async function main(){
 const url=process.env.ROYA_INTEGRATION_DATABASE_URL;
@@ -19,6 +20,8 @@ const db=new PrismaClient({adapter:new PrismaPg({connectionString:url})});
 const suffix=randomUUID(),mobile=`09${String(randomBytes(4).readUInt32BE()%1e9).padStart(9,'0')}`,password=randomBytes(24).toString('base64url');
 const products:string[]=[];let adminId:string|undefined,categoryId:string|undefined;
 const oldPolicy=await db.setting.findUnique({where:{key:'international-pricing'}});
+const oldContent=await db.setting.findUnique({where:{key:'storefront-content'}});
+const oldContact=await db.setting.findUnique({where:{key:'contact'}});
 const orderCount=await db.order.count();
 class Client extends PrivateAdminClient{
  constructor(){super(base,origin);}
@@ -39,6 +42,8 @@ try{
  assert.equal((await guest.request('/admin/products/')).status,307);
  await ok(await guest.request('/api/admin/data/?section=products'),401);
  await ok(await guest.post('/api/admin/products/',{}),401);
+ await ok(await guest.request('/api/admin/settings/content/'),401);
+ await ok(await guest.post('/api/admin/settings/content/',{}),401);
  await ok(await client.auth('callback/credentials',{mobile,password:'deliberately-wrong-test-password'}),401);
  await ok(await client.auth('callback/credentials',{mobile,password}));
  assert.equal((await ok(await client.request('/api/auth/session/'))).adminId,admin.id);
@@ -128,10 +133,46 @@ try{
  assert.equal(unknown.feeBps,750);
  await ok(await client.post('/api/admin/settings/pricing/',{policy:editable(initial),expectedUpdatedAt:unknown.updatedAt}));
  console.log('PRICING RESTORATION PASS: normal restoration, concurrent editor preserved and lost-response write not blindly overwritten.');
+ // Read the current public cache before editing, then verify immediate invalidation.
+ for(const path of ['/fa/','/en/','/fa/about/','/en/about/'])assert.equal((await guest.request(path)).status,200);
+ const contactBefore=(await ok(await client.request('/api/admin/data/?section=settings'))).contact;
+ const contactFixture={phone:'+982112345678',email:'fixture@example.com',addressFa:'نشانی آزمایشی '+suffix,addressEn:'Test address '+suffix,hoursFa:'ساعات آزمایشی '+suffix,hoursEn:'Test hours '+suffix};
+ await ok(await client.post('/api/admin/settings/contact/',contactFixture));
+ for(const locale of ['fa','en'] as const){
+  const page=await guest.request('/'+locale+'/contact/');assert.equal(page.status,200);const html=await page.text();
+  assert(html.includes(locale==='fa'?contactFixture.addressFa:contactFixture.addressEn));
+  assert(html.includes(locale==='fa'?contactFixture.hoursFa:contactFixture.hoursEn));assert(html.includes('tel:'+contactFixture.phone));
+ }
+ await ok(await client.post('/api/admin/settings/contact/',contactBefore));
+ console.log('CONTACT HTTP PASS: private database preview displays saved FA/EN contact details and response hours, then restores original values.');
+ const contentBefore=contentDocumentSchema.parse((await ok(await client.request('/api/admin/settings/content/'))).document);
+ assert.equal((await client.request('/admin/content/')).status,200);
+ const contentChange=structuredClone(contentBefore.content);
+ Object.assign(contentChange.fa,{homeTitle1:'عنوان آزمون '+suffix,aboutTitle:'دربارهٔ آزمون '+suffix,aboutStory:'داستان {رویا} <b>متن ساده</b>',footerText:'پایین صفحهٔ آزمون '+suffix});
+ Object.assign(contentChange.en,{homeTitle1:'Test headline '+suffix,aboutTitle:'Test about '+suffix,footerText:'Test footer '+suffix});
+ const contentSaved=contentDocumentSchema.parse((await ok(await client.post('/api/admin/settings/content/',{content:contentChange,expectedUpdatedAt:contentBefore.updatedAt}))).document);
+ assert.notEqual(contentSaved.updatedAt,contentBefore.updatedAt);
+ assert.deepEqual((await db.setting.findUniqueOrThrow({where:{key:'storefront-content'}})).value,contentChange);
+ for(const locale of ['fa','en'] as const){
+  const home=await guest.request('/'+locale+'/');assert.equal(home.status,200);const homeHtml=await home.text();
+  assert(homeHtml.includes(contentChange[locale].homeTitle1));assert(homeHtml.includes(contentChange[locale].footerText));
+  const about=await guest.request('/'+locale+'/about/');assert.equal(about.status,200);const aboutHtml=await about.text();
+  assert(aboutHtml.includes(contentChange[locale].aboutTitle));
+  if(locale==='fa'){assert(aboutHtml.includes('&lt;b&gt;متن ساده&lt;/b&gt;'));assert(!aboutHtml.includes('<b>متن ساده</b>'));}
+ }
+ const contentAudits=await db.adminAudit.count({where:{adminId:admin.id,action:'STOREFRONT_CONTENT'}});
+ assert.equal(contentAudits,1);
+ await ok(await client.post('/api/admin/settings/content/',{content:contentBefore.content,expectedUpdatedAt:contentBefore.updatedAt}),409);
+ await ok(await client.post('/api/admin/settings/content/',{content:{...contentChange,en:{...contentChange.en,aboutTitle:''}},expectedUpdatedAt:contentSaved.updatedAt}),400);
+ await ok(await client.post('/api/admin/settings/content/',{content:contentChange,expectedUpdatedAt:contentSaved.updatedAt},'https://untrusted.example'),403);
+ assert.equal(await db.adminAudit.count({where:{adminId:admin.id,action:'STOREFRONT_CONTENT'}}),contentAudits);
+ await ok(await client.post('/api/admin/settings/content/',{content:contentBefore.content,expectedUpdatedAt:contentSaved.updatedAt}));
+ console.log('CONTENT HTTP PASS: authenticated bilingual persistence, public FA/EN home/about/footer rendering, cache invalidation, escaped literal markup, audit, stale/invalid/Origin rejection and restoration.');
  for(const path of ['/api/shop/checkout/','/api/international/checkout/','/api/payment/crypto/webhook/','/api/customer/code/'])assert.equal((await ok(await guest.post(path,{}),503)).error,'STAGING_ONLY');
  assert.equal(await db.order.count(),orderCount);
  await ok(await client.auth('signout'));
  await ok(await client.request('/api/admin/data/?section=products'),401);
+ await ok(await client.request('/api/admin/settings/content/'),401);
  console.log('ADMIN HTTP PASS: real login/logout, hidden-password recovery CLI, cancelled/mismatched recovery, old-session revocation, old-password rejection, new-password login, guest access controls, create/read/edit/archive, prices, stock, capacity, weighted units, zero stock, unlimited capacity, stale edits, invalid input, origin protection, shared pricing and live-effect guards.');
 }finally{
  await db.productMedia.deleteMany({where:{productId:{in:products}}});
@@ -142,6 +183,10 @@ try{
  await db.rateLimitBucket.deleteMany({where:{key:'admin-login:'+createHash('sha256').update(mobile).digest('hex')}});
  if(oldPolicy){const value=oldPolicy.value===null?Prisma.JsonNull:oldPolicy.value;await db.setting.upsert({where:{key:oldPolicy.key},create:{key:oldPolicy.key,value,updatedAt:oldPolicy.updatedAt},update:{value,updatedAt:oldPolicy.updatedAt}});}
  else await db.setting.deleteMany({where:{key:'international-pricing'}});
+ if(oldContent){const value=oldContent.value===null?Prisma.JsonNull:oldContent.value;await db.setting.upsert({where:{key:oldContent.key},create:{key:oldContent.key,value,updatedAt:oldContent.updatedAt},update:{value,updatedAt:oldContent.updatedAt}});}
+ else await db.setting.deleteMany({where:{key:'storefront-content'}});
+ if(oldContact){const value=oldContact.value===null?Prisma.JsonNull:oldContact.value;await db.setting.upsert({where:{key:oldContact.key},create:{key:oldContact.key,value,updatedAt:oldContact.updatedAt},update:{value,updatedAt:oldContact.updatedAt}});}
+ else await db.setting.deleteMany({where:{key:'contact'}});
  await db.$disconnect();
 }
 

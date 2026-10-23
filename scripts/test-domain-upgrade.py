@@ -25,14 +25,14 @@ def module():
 
 
 class Sources(unittest.TestCase):
-    def test_upgrade_manifest_matches_complete_sources_and_changes_only_product_form(self):
+    def test_upgrade_manifest_matches_complete_sources_and_covers_bilingual_content_and_preserves_existing_business_rules(self):
         m = module()
         manifest = json.loads((ROOT / 'deploy/private-domain-upgrade-manifest.json').read_text())
         previous = json.loads((ROOT / 'deploy/private-domain-upgrade-base-manifest.json').read_text())
-        self.assertEqual(manifest['baseRelease'], '26b04f0f882a811604b720aa069660e7c58201ed')
-        self.assertEqual(m.release_id(), '3f6a74cef79ac602d6b9f34f57eca7ed0989a54d')
+        self.assertEqual(manifest['baseRelease'], '3f6a74cef79ac602d6b9f34f57eca7ed0989a54d')
+        self.assertEqual(m.release_id(), '3f0344fe47989c80bb8ee9da7b2f1f64442c16f6')
         changed = {n for n, digest in manifest['files'].items() if previous['files'].get(n) != digest}
-        self.assertEqual(changed, {'docs/ADMIN-PREPARATION-TIME.md', 'src/components/admin/preparation-time-input.tsx', 'src/components/admin/product-editor.tsx', 'src/components/admin/shared.tsx', 'scripts/test-admin-duration.mjs', 'tests/browser/product-duration-fixture.tsx'})
+        self.assertEqual(changed, {'src/app/api/admin/settings/content/route.ts', 'scripts/test-admin-content.mjs', 'tests/integration/content.test.ts', 'src/app/[locale]/about/page.tsx', 'src/components/admin/shell.tsx', 'src/lib/server/contact-settings.ts', 'src/components/store/page-shell.tsx', 'tests/server/storefront-content.test.ts', 'src/lib/storefront-content.ts', 'src/lib/server/storefront-content.ts', 'src/app/admin/(protected)/content/page.tsx', 'src/components/admin/content-editor.tsx', 'tests/storefront-content.test.ts', 'src/components/store/footer.tsx', 'tests/browser/content-editor-fixture.tsx', 'src/app/[locale]/page.tsx', 'docs/ADMIN-CONTENT.md'})
         for name, digest in manifest['files'].items():
             self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(), digest, name)
 
@@ -99,7 +99,7 @@ class UpgradeTransaction(old.Transaction):
             raise RuntimeError('Injected proxy verification failure')
 
     def test_success_then_guarded_rollback(self):
-        self.assertIn('PRIVATE CHECKOUT UPGRADE READY', self.install())
+        self.assertIn('PRIVATE CONTENT UPGRADE READY', self.install())
         self.assertEqual(Path(self.m.base.NGINX).read_text(), self.original[self.m.base.NGINX])
         directory = self.backup()
         self.assertIn('--upgrade --rollback', (directory / 'restore.sh').read_text())

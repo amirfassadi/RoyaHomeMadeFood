@@ -1,5 +1,5 @@
 {
-  "baseRelease": "bd69388bdfea903b892ad2a5430be8382c0fe012",
+  "baseRelease": "26b04f0f882a811604b720aa069660e7c58201ed",
   "files": {
     ".gitignore": "8d341f5c128c2dde1c62b67be2cba7a0b3cd2589d75e04f341fc1efde3b18f7e",
     "README.md": "696158461010b1bf69a248effe5552206ae345f450c5455105a914176ac10ded",
@@ -7,6 +7,7 @@
     "deploy/Caddyfile": "0929f9d2db2624ec777d939bce44a8afe28f90b661c159747f2a3b5668ee6cac",
     "deploy/roya.service": "fd0d60e85846a2da79562c1fa98b93a7636aaaff88e3fee40bbb37d903ee0abf",
     "deploy/update-private-preview.sh": "a9146c203f3964fc1d907111e9d5a02c17d18b2f250f6696233fc89aaa36560c",
+    "docs/ADMIN-PREPARATION-TIME.md": "15a29a3ca8477bd40629af898f05c2fa665e3141374da0738e592d573bac9e7d",
     "docs/CHECKOUT-REGRESSION.md": "c8cc6c6163a38cfb1af9b31f4280118c134713e55aa86fc17a8c0ce62a48dfcb",
     "docs/DEPLOYMENT.md": "ccaf5f1daefd15da99fca8fd052067824eb4985f2a2b6675928f159029d3bb14",
     "docs/FX-PRIVATE-PREVIEW.md": "f10246f6c48579ef133a6c1df75f1b72880fb495b4eafdd6797dc16f9dadb5d1",
@@ -39,6 +40,7 @@
     "scripts/preflight.ts": "2cef76bc3957b416a4981f025a3e5372e5fefb06ca587ac1b9e827475321811f",
     "scripts/recover-admin.ts": "7c5622ff3cac9bf14c098aa89c3a273cf71be32ee68ec287ec64cc6b14dbf1a0",
     "scripts/secret-prompt.ts": "5318db722750e78402592b0a90cccbb32d50c148d58a935cd687d2f057e688b3",
+    "scripts/test-admin-duration.mjs": "f45e60ebae5418a2affccae458617a725121d696224fe19b651a1cdd9c6d16b5",
     "src/app/(entry)/layout.tsx": "04d06be849ab4260bd2f975b69c30c3b8d02c4b768422ddaa2d0bc2492659f52",
     "src/app/(entry)/page.tsx": "0af667da11e7da0c7f552493ec3945002414838ed31cd6bb25dc0780e64f12cb",
     "src/app/[locale]/about/page.tsx": "4fda86630120467424a8e619b784730c5c8700d4ed1df039f2fdefd89b5e1786",
@@ -104,11 +106,12 @@
     "src/components/admin/login-form.tsx": "9162b87e7b066628279ea5313f08e5ace53b50caf2bb93790a433a7bc115ee2e",
     "src/components/admin/order-detail.tsx": "81e55f7b451cece5670cab62e2838c046b12cbe016179d846f31001c4925bdbc",
     "src/components/admin/password-settings.tsx": "4abbc65f6508473c301baf43758824c964e46b25c4f6a7139ec27793cf72358c",
+    "src/components/admin/preparation-time-input.tsx": "a1cc25f2f91d613ca463dbb832b8f1d9784ae651e6358ff9d71fcda2379ec40f",
     "src/components/admin/pricing-settings.tsx": "47ec2371a231e54d12bb0b9b08e5272a452e69a353dcdcea226ea462c4e8d5ad",
-    "src/components/admin/product-editor.tsx": "fcdd5c509f4269c679a0b01cbcb5075c82feef9a8eedd2e5ad5f97a37f3011e9",
+    "src/components/admin/product-editor.tsx": "6b937025f7c10d5312fcd57c4caf49a0c10c2e1b8c08497fb02982fe936066d5",
     "src/components/admin/prototype-orders.tsx": "418d29d6b9d66aec6096f63cd995c020f92d61c02ba8d2dc523828918825590f",
     "src/components/admin/settings-editor.tsx": "1a018408c945e20b7bc90738097986d827edcc778a1982f40ad4d77ba1f6a391",
-    "src/components/admin/shared.tsx": "402e78371503c81611b4101ac703455d2bee343e468d4d34c8278829863e8d0c",
+    "src/components/admin/shared.tsx": "84f8532034652967e8dd1585bd07f89326a6848033e1e4b385e886fb40f48928",
     "src/components/admin/shell.tsx": "1d87b3b52b25ed0f1d5b7b9d15f61b295a5efce098040a7f3e352d1ddcb7f5eb",
     "src/components/admin/workspace.tsx": "9edd74087e61a7196380f325864bbe1960271beacd92d8ba03c809f86429ea5f",
     "src/components/brand/logo.tsx": "3fb33d852eba29300cb205717e84d7715fcc92717f8a5a9ba24203d46199a62f",
@@ -204,6 +207,7 @@
     "src/proxy.ts": "ac1efedbaca3493750e22eda726bf4250dcebb9caa03c41978bb3c2692122486",
     "src/types/next-auth.d.ts": "51250c1c46288fb474a225036d6805561d9924bda80c1dab2d62f0edb550f834",
     "tests/admin.test.ts": "839259c451133a41616f8d062e86ba57b661b5a86926357a6bb06af59cf7bc9b",
+    "tests/browser/product-duration-fixture.tsx": "1975c1f7ec82ae79891516bc39be436cf86f7cd532791d959bc6bc01b36904db",
     "tests/catalog.test.ts": "82daa7196f97859bb26b346a1ec692e8745783eb88cceee0c7776283148fada6",
     "tests/checkout.test.ts": "431ececa7c39cd469120cea3db2ee0952a0d79ce5b57cdb17ebabdcf0c163e0d",
     "tests/communications.test.ts": "bc8d108af81e9c806488a98450bd57c2987f66388989bcfde66dac3a68e43e8b",
@@ -228,5 +232,5 @@
   },
   "format": 1,
   "origin": "https://royahealthyfood.ir",
-  "sourceRelease": "ebe901411a2b15eab341d8d691e4c065a2d4573d"
+  "sourceRelease": "2ce213315171f1bba64211e27a8b46797d71bf96"
 }

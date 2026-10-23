@@ -11,12 +11,13 @@ sudo -n python3 "$source_root/deploy/connect-private-domain.py" --upgrade --pref
 exec 9>"$HOME/roya-setup/deploy.lock"
 flock -n 9 || { echo 'STOP: another Roya deployment is running.'; exit 1; }
 candidate="$(mktemp -d "$HOME/roya-setup/domain-source.XXXXXX")"
+printf 'HTTPS candidate source: %s\n' "$candidate"
 python3 - "$source_root" "$candidate" <<'PREPARE'
 from pathlib import Path, PurePosixPath
 import hashlib,json,shutil,sys
 root,destination=map(Path,sys.argv[1:])
 m=json.loads((root/'deploy/private-domain-upgrade-manifest.json').read_text())
-if m['format']!=1 or m['baseRelease']!='26b04f0f882a811604b720aa069660e7c58201ed' or m['sourceRelease']!='2ce213315171f1bba64211e27a8b46797d71bf96' or m['origin']!='https://royahealthyfood.ir' or hashlib.sha1(json.dumps(m['files'],sort_keys=True).encode()).hexdigest()!=m['sourceRelease']:
+if m['format']!=1 or m['baseRelease']!='3f6a74cef79ac602d6b9f34f57eca7ed0989a54d' or m['sourceRelease']!='52a02096588486e1a5e0ed9224d82b8d2ab1e9ba' or m['origin']!='https://royahealthyfood.ir' or hashlib.sha1(json.dumps(m['files'],sort_keys=True).encode()).hexdigest()!=m['sourceRelease']:
     raise SystemExit('STOP: unexpected private source manifest.')
 for name,digest in m['files'].items():
     path=PurePosixPath(name);p=root/name
@@ -26,7 +27,7 @@ for name,digest in m['files'].items():
 origin='https://royahealthyfood.ir'
 release=hashlib.sha1(('roya-private-domain-v1\n'+m['sourceRelease']+'\n'+origin).encode()).hexdigest()
 (destination/'.roya-origin.json').write_text(json.dumps({'release':release,'sourceRelease':m['sourceRelease'],'origin':origin},sort_keys=True))
-print('Verified private checkout upgrade source; running application and private gate are unchanged.')
+print('Verified private content upgrade source; running application and private gate are unchanged.')
 PREPARE
 cd "$candidate"
 unset DATABASE_URL DIRECT_URL NEXTAUTH_SECRET NEXTAUTH_URL_INTERNAL ROYA_BACKEND_URL SITES_STATIC_PREVIEW
@@ -42,8 +43,10 @@ cp -a public "$stage/public"
 mkdir -p "$stage/.next"
 cp -a .next/static "$stage/.next/static"
 cp .roya-origin.json "$stage/.roya-origin.json"
-sudo -v
+printf 'Prepared standalone stage: %s\n' "$stage"
 flock -u 9
+python3 "$source_root/deploy/compact-domain-build.py" "$candidate"
+sudo -v
 # Activation obtains its own lock and repeats the full preflight after the build.
 sudo -n python3 "$source_root/deploy/connect-private-domain.py" --upgrade --install "$stage" </dev/tty
-printf 'HTTPS candidate source: %s\n' "$candidate"
+printf 'Activated candidate source: %s\n' "$candidate"
