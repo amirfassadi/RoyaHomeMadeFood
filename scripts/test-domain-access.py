@@ -189,6 +189,17 @@ class Access(unittest.TestCase):
             self.a.rollback(directory)
         self.assertEqual(Path(self.m.base.NGINX).read_text(), 'LATER NGINX EDIT')
 
+    def test_edit_during_application_preflight_is_not_adopted_or_overwritten(self):
+        for name in (self.m.base.NGINX, self.m.ENV):
+            def edit(_send):
+                Path(name).write_text('CONCURRENT OPERATOR EDIT')
+            with self.subTest(path=name), patch.object(self.m, 'verify_application', edit):
+                with self.assertRaisesRegex(RuntimeError, 'protected configuration'):
+                    self.change(True)
+            self.assertEqual(Path(name).read_text(), 'CONCURRENT OPERATOR EDIT')
+            self.assertFalse(self.backups())
+            Path(name).write_text(self.original[name])
+
     def test_actual_preflight_refuses_enabled_live_orders_in_both_modes(self):
         # Exercise the real preflight before service commands, not the transaction stub.
         self.a.installed()

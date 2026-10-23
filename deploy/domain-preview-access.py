@@ -96,21 +96,25 @@ def rollback(directory):
 
 def change(public):
     release = installed()
+    guarded = {name: m.base.sha(name) for name in (m.ENV, m.UNIT, m.LINK + '/.roya-release', m.base.NGINX)}
     protected = m.preflight(resource_check=False)
     # Check the real loopback application before changing who can reach it.
     m.verify_application(lambda path, **options: m.request(path, port=3311, **options))
+    m.tls.assert_protected(guarded)
     if m.PUBLIC_PREVIEW == public:
         verify_surface()
+        m.tls.assert_protected({**protected, **guarded})
         print(('PUBLIC TEST PREVIEW READY: ' if public else 'PRIVATE PREVIEW GATE READY: ') + m.ORIGIN + '/fa/catalog/')
         print('Access mode already matches; no configuration changed.')
         return
     path = Path(m.base.NGINX)
     original = path.read_bytes()
     previous_public = m.PUBLIC_PREVIEW
+    if original != m.nginx_config(public_preview=previous_public).encode():
+        raise RuntimeError('Domain configuration changed during preflight; nothing overwritten.')
     target = m.nginx_config(public_preview=public).encode()
     protected.pop(m.base.NGINX, None)
-    for name in (m.ENV, m.UNIT, m.LINK + '/.roya-release'):
-        protected[name] = m.base.sha(name)
+    protected.update({name: digest for name, digest in guarded.items() if name != m.base.NGINX})
     root = Path(BACKUPS)
     if root.is_symlink() or not root.is_dir() or root.stat().st_uid != 0:
         raise RuntimeError('Unexpected Roya backup root.')
