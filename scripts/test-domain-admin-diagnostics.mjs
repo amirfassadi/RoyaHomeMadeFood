@@ -5,10 +5,10 @@ import {execFileSync} from 'node:child_process';
 import {mkdtempSync,readFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {ORIGIN,domainTransport,secureCookies} from '../deploy/diagnose-domain-admin.mjs';
+import {ORIGIN,domainTransport,domainAccessMode,secureCookies} from '../deploy/diagnose-domain-admin.mjs';
 import {probeLogin} from '../deploy/diagnose-vps-admin.mjs';
 
-async function fixture(action,wrongName=false){
+async function fixture(action,wrongName=false,publicPreview=false){
  const root=mkdtempSync(join(tmpdir(),'roya-domain-diagnostic-'));
  let server;
  try{
@@ -21,11 +21,15 @@ async function fixture(action,wrongName=false){
    let body='';for await(const part of req)body+=part;
    calls.push({path:req.url,method:req.method});
    res.setHeader('content-type','application/json');
+   res.setHeader('x-roya-domain-stage',publicPreview?'public-preview-v1':'private-app-v1');
+   res.setHeader('x-robots-tag','noindex, nofollow');
    const reply=(status,value)=>{res.statusCode=status;res.end(JSON.stringify(value));};
-   if(req.headers.authorization!==authorization)return reply(401,{});
+   if(!publicPreview&&req.headers.authorization!==authorization){res.setHeader('www-authenticate','Basic realm="Roya private preview"');return reply(401,{});}
+   if(publicPreview)assert.equal(req.headers.authorization,undefined);
    assert.equal(req.headers.host,'royahealthyfood.ir');
    const path=req.url.split('?')[0];
    if(path==='/api/health/')return reply(200,{ok:true});
+   if(path==='/fa/catalog/')return reply(200,{});
    if(path==='/redirect/') {res.setHeader('location','https://wrong.invalid/');return reply(302,{});}
    if(path==='/unsafe-cookie/') {res.setHeader('set-cookie','__Secure-next-auth.session-token=hidden; Path=/; HttpOnly; SameSite=Lax');return reply(200,{});}
    if(path==='/api/auth/csrf/'){
@@ -90,4 +94,18 @@ test('cookie checks reject absent secure prefix, Domain, missing HttpOnly and Sa
  for(const text of ['next-auth.session-token=hidden; Path=/; Secure; HttpOnly; SameSite=Lax','__Secure-next-auth.session-token=hidden; Path=/; Secure; HttpOnly; SameSite=Lax; Domain=royahealthyfood.ir','__Secure-next-auth.session-token=hidden; Path=/; Secure; SameSite=Lax','__Secure-next-auth.session-token=hidden; Path=/; Secure; HttpOnly; SameSite=None']){
   assert.throws(()=>secureCookies(new Headers({'set-cookie':text})),/cookie/);
  }
+});
+test('access detection recognizes the existing gate and explicit anonymous preview with administrator guard',async()=>{
+ await fixture(async({options})=>assert.equal(await domainAccessMode(domainTransport(options)),'private'));
+ await fixture(async({options,calls})=>{
+  const send=domainTransport(options);
+  assert.equal(await domainAccessMode(send),'public-preview');
+  await probeLogin({base:ORIGIN,origin:ORIGIN,mobile:'09120000000',password:'fixture-admin-password',send,settings:true,emit:()=>{}});
+  assert.equal(calls.filter(x=>x.path==='/api/auth/callback/credentials/').length,1);
+ },false,true);
+});
+test('access detection refuses unknown successful responses and missing guest protection',async()=>{
+ const publicHeaders={'x-roya-domain-stage':'public-preview-v1','x-robots-tag':'noindex, nofollow'};
+ await assert.rejects(domainAccessMode(async()=>new Response('{"ok":true}',{status:200})),/Unrecognized/);
+ await assert.rejects(domainAccessMode(async url=>new Response('{"ok":true}',{status:200,headers:publicHeaders})),/guest guard/);
 });

@@ -4,7 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {createInterface} from 'node:readline/promises';
 import {Writable} from 'node:stream';
 import {probeProducts} from './private-product-probe.mjs';
-import {ORIGIN,domainTransport,inspectRuntime} from './diagnose-domain-admin.mjs';
+import {ORIGIN,domainTransport,domainAccessMode,inspectRuntime} from './diagnose-domain-admin.mjs';
 
 const args=process.argv.slice(2);
 if(args.some(arg=>!['--catalog','--domain'].includes(arg)))throw new Error('Only --catalog and --domain are supported.');
@@ -24,11 +24,13 @@ const terminal=createInterface({input:process.stdin,output,terminal:true});
 async function secret(prompt){process.stdout.write(prompt);muted=true;try{return await terminal.question('');}finally{muted=false;process.stdout.write('\n');}}
 try{
  if(domain){
-  const anonymous=await domainTransport()(ORIGIN+'/api/health/',{signal:AbortSignal.timeout(15000)});
-  if(anonymous.status!==401)throw new Error('Private gate did not deny anonymous access; no product writes attempted.');
-  password=await secret('Existing private-preview password (hidden; not administrator): ');
-  if(!/^[!-~]{12,128}$/.test(password))throw new Error('Private password format invalid; no product writes attempted.');
-  send=domainTransport({password});password=undefined;
+  send=domainTransport();
+  const mode=await domainAccessMode(send);console.log('ACCESS MODE: '+mode);
+  if(mode==='private'){
+   password=await secret('Existing private-preview password (hidden; not administrator): ');
+   if(!/^[!-~]{12,128}$/.test(password))throw new Error('Private password format invalid; no product writes attempted.');
+   send=domainTransport({password});password=undefined;
+  }
   const health=await send(ORIGIN+'/api/health/',{signal:AbortSignal.timeout(15000)});
   if(health.status!==200)throw new Error('Private gate rejected access; no administrator login attempted.');
  }

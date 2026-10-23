@@ -50,6 +50,24 @@ export function domainTransport({password,port=443,ca}={}){
  });
 }
 
+export async function domainAccessMode(send=domainTransport()){
+ const health=await send(ORIGIN+'/api/health/',{signal:AbortSignal.timeout(15000)});
+ const marker=health.headers.get('x-roya-domain-stage');
+ let mode;
+ if(health.status===401&&marker==='private-app-v1'&&health.headers.get('www-authenticate')==='Basic realm="Roya private preview"')mode='private';
+ else if(health.status===200&&marker==='public-preview-v1'&&!health.headers.get('www-authenticate')&&health.headers.get('x-robots-tag')?.includes('noindex')){
+  try{if((await health.json()).ok!==true)throw new Error();}catch{throw new ProbeError('Unexpected test-preview health response; no login attempted.');}
+  mode='public-preview';
+ }else throw new ProbeError('Unrecognized domain access mode; no login attempted.');
+ const catalog=await send(ORIGIN+'/fa/catalog/',{signal:AbortSignal.timeout(15000)});
+ if(catalog.status!==(mode==='private'?401:200)||catalog.headers.get('x-roya-domain-stage')!==marker)throw new ProbeError('Domain access checks disagree; no login attempted.');
+ if(mode==='public-preview'){
+  const guard=await send(ORIGIN+'/api/admin/data/?section=settings',{signal:AbortSignal.timeout(15000)});
+  if(guard.status!==401||guard.headers.get('www-authenticate'))throw new ProbeError('Administrator guest guard differs; no login attempted.');
+ }
+ return mode;
+}
+
 function privileged(args,input){
  try{return execFileSync('sudo',['-n',...args],{encoding:'utf8',input,stdio:['pipe','pipe','pipe'],timeout:15000,maxBuffer:2*1024*1024});}
  catch{throw new ProbeError('Local inspection failed. Run sudo -v, then retry. Private command details omitted.');}
@@ -94,16 +112,18 @@ async function main(){
  if(!process.stdin.isTTY||!process.stdout.isTTY)throw new ProbeError('Run interactively in the VPS SSH terminal.');
  inspectRuntime();
  const anonymous=domainTransport();
- await expect(anonymous,'/fa/catalog/',401);await expect(anonymous,'/api/health/',401);
- if(args.includes('--status-only')){console.log('DOMAIN STATUS PASS: private gate and trusted HTTPS verified locally. No administrator login attempted.');return;}
- let muted=false,password,send;
+ const mode=await domainAccessMode(anonymous);console.log('ACCESS MODE: '+mode);
+ if(args.includes('--status-only')){console.log('DOMAIN STATUS PASS: access mode and trusted HTTPS verified locally. No administrator login attempted.');return;}
+ let muted=false,password,send=anonymous;
  const output=new Writable({write(chunk,_encoding,callback){if(!muted)process.stdout.write(chunk);callback();}});
  const terminal=createInterface({input:process.stdin,output,terminal:true});
  async function secret(prompt){process.stdout.write(prompt);muted=true;try{return await terminal.question('');}finally{muted=false;process.stdout.write('\n');}}
  try{
-  password=await secret('Existing private-preview password (hidden; not administrator): ');
-  if(!/^[!-~]{12,128}$/.test(password))throw new ProbeError('Private password format invalid; no authenticated request attempted.');
-  send=domainTransport({password});password=undefined;
+  if(mode==='private'){
+   password=await secret('Existing private-preview password (hidden; not administrator): ');
+   if(!/^[!-~]{12,128}$/.test(password))throw new ProbeError('Private password format invalid; no authenticated request attempted.');
+   send=domainTransport({password});password=undefined;
+  }
   await expect(send,'/api/health/',200);
   for(const path of ['/fa/catalog/','/en/catalog/','/fa/rates/','/en/rates/','/api/shop/catalog/','/api/shop/pricing/'])await expect(send,path,200);
   const mobile=(await terminal.question('موبایل مدیر: ')).trim().replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-0x6f0));
@@ -116,7 +136,7 @@ async function main(){
   password=await secret('رمز عبور مدیر (پنهان، فقط یک تلاش): ');
   if(!password||password.length>128)throw new ProbeError('Administrator password length invalid; no login attempted.');
   await probeLogin({base:ORIGIN,origin:ORIGIN,mobile,password,send,settings:true});
-  console.log('DOMAIN ADMIN PASS: actual HTTPS gate, credentials, secure cookies, products/settings read and logout. No product or pricing changes; no order, payment or SMS. Browser layout and external connectivity remain separate tests.');
+  console.log('DOMAIN ADMIN PASS: actual HTTPS access mode, credentials, secure cookies, products/settings read and logout. No product or pricing changes; no order, payment or SMS. Browser layout and external connectivity remain separate tests.');
  }finally{password=undefined;send=undefined;muted=false;terminal.close();}
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){

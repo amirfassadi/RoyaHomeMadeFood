@@ -88,8 +88,10 @@ with TemporaryDirectory(prefix='roya-domain-origin-native.') as temporary:
         result = subprocess.run(['nginx', '-t', '-p', str(root) + '/', '-c', str(config)], capture_output=True)
         if result.returncode:
             raise RuntimeError('Native application proxy syntax failed.')
+    public_mode = False
     def send(path, method='GET', headers=None, body=None, host=None):
-        return m.request(path, method, {'Authorization': m.basic(private_password), **(headers or {})}, body,
+        authorization = {} if public_mode else {'Authorization': m.basic(private_password)}
+        return m.request(path, method, {**authorization, **(headers or {})}, body,
                          port=19445, secure=True, cafile=tls.CERT, host=host)
     try:
         created = fixture('create')
@@ -202,6 +204,57 @@ console.log('NATIVE PRODUCT FAILURE CLEANUP PASS');
         m.configure_upgrade()
         m.verify_proxy(private_password, port=19445, cafile=tls.CERT)
         print('NATIVE HTTPS UPGRADE CHECK PASS: exact upgrade HTTPS verifier preserves authentication, secure cookies, origins and disabled live effects.')
+        # Opening test access changes only this known Nginx profile. The same
+        # application and database must still deny unauthenticated admin writes
+        # and all real checkout/payment/SMS operations.
+        m.PUBLIC_PREVIEW = public_mode = True
+        write_config(m.nginx_config(4314))
+        subprocess.run(['nginx', '-p', str(root) + '/', '-c', str(config), '-s', 'reload'], check=True, capture_output=True)
+        m.verify_proxy(None, port=19445, cafile=tls.CERT)
+        public_diagnostic_code = '''
+import {readFileSync} from 'node:fs';
+import {domainAccessMode,domainTransport} from './deploy/diagnose-domain-admin.mjs';
+const chunks=[];for await(const chunk of process.stdin)chunks.push(chunk);
+const value=JSON.parse(Buffer.concat(chunks).toString());
+const send=domainTransport({port:19445,ca:readFileSync(value.certificate)});
+if(await domainAccessMode(send)!=='public-preview')throw new Error('Public operator access detection failed.');
+console.log('NATIVE PUBLIC OPERATOR ACCESS PASS');
+'''
+        public_diagnostic = subprocess.run(['node', '--input-type=module', '-e', public_diagnostic_code],
+                                           input=json.dumps({'certificate': tls.CERT}),
+                                           text=True, capture_output=True, timeout=30, check=False)
+        if public_diagnostic.returncode or 'NATIVE PUBLIC OPERATOR ACCESS PASS' not in public_diagnostic.stdout:
+            raise RuntimeError('Public-preview operator diagnostic failed; private output omitted.')
+        m.expect(client('/api/admin/settings/content/'), 401, 'Anonymous public-preview content API')
+        csrf = client('/api/auth/csrf/').data()['csrfToken']
+        form = urlencode({'csrfToken': csrf, 'mobile': mobile, 'password': administrator_password,
+                          'callbackUrl': m.ORIGIN + '/admin/', 'json': 'true'}).encode()
+        login = m.expect(client('/api/auth/callback/credentials/', 'POST',
+                         {'Origin': m.ORIGIN, 'Content-Type': 'application/x-www-form-urlencoded'}, form), 200, 'Public-preview administrator login')
+        secure_session = False
+        for name, value in login.headers:
+            if name.lower() == 'set-cookie' and value.startswith('__Secure-next-auth.session-token='):
+                cookie = SimpleCookie()
+                cookie.load(value)
+                item = cookie['__Secure-next-auth.session-token']
+                secure_session = bool(item['secure'] and item['httponly'] and item['path'] == '/' and not item['domain'] and item['samesite'].lower() == 'lax')
+        if not secure_session or client('/api/auth/session/').data().get('adminId') != fixture_id:
+            raise RuntimeError('Public-preview secure administrator session failed.')
+        m.expect(client('/admin/content/'), 200, 'Public-preview authenticated content editor')
+        m.expect(client('/api/admin/settings/content/'), 200, 'Public-preview authenticated content read')
+        m.expect(client('/api/admin/settings/content/', 'POST', {'Origin': 'https://untrusted.invalid', 'Content-Type': 'application/json'}, b'{}'), 403, 'Public-preview content Origin guard')
+        csrf = client('/api/auth/csrf/').data()['csrfToken']
+        form = urlencode({'csrfToken': csrf, 'callbackUrl': m.ORIGIN + '/admin/login/', 'json': 'true'}).encode()
+        m.expect(client('/api/auth/signout/', 'POST', {'Origin': m.ORIGIN, 'Content-Type': 'application/x-www-form-urlencoded'}, form), 200, 'Public-preview administrator logout')
+        m.expect(client('/api/admin/settings/content/'), 401, 'Public-preview logged-out content guard')
+        print('NATIVE PUBLIC PREVIEW PASS: anonymous FA/EN/assets/robots, secure administrator login/session/logout, Origin guards and disabled live orders/payments/SMS/contact; same database and application.')
+        # Re-closing retains the old gate password. This also verifies that a
+        # public test run can return to the earlier private operator workflow.
+        m.PUBLIC_PREVIEW = public_mode = False
+        write_config(m.nginx_config(4314))
+        subprocess.run(['nginx', '-p', str(root) + '/', '-c', str(config), '-s', 'reload'], check=True, capture_output=True)
+        m.verify_proxy(private_password, port=19445, cafile=tls.CERT)
+        print('NATIVE PREVIEW RECLOSE PASS: original private password retained; anonymous access denied again.')
         write_config(tls.tls_config())
         subprocess.run(['nginx', '-p', str(root) + '/', '-c', str(config), '-s', 'reload'], check=True, capture_output=True)
         tls.verify_gate(private_password, port=19445, cafile=tls.CERT)

@@ -39,6 +39,8 @@ RELEASE_ROOT = '/opt/roya/preview-releases'
 CANDIDATE_UNIT = '/etc/systemd/system/roya-domain-candidate.service'
 CANDIDATE_ENV = '/etc/roya/domain-candidate.env'
 UPGRADING = False
+PUBLIC_PREVIEW = False
+PUBLIC_MARKER = 'public-preview-v1'
 
 def configure_upgrade():
     global UPGRADING, SOURCE_RELEASE
@@ -88,7 +90,9 @@ def service(text, release, candidate=False):
     return text
 
 
-def nginx_config(upstream_port=3311):
+def nginx_config(upstream_port=3311, public_preview=None):
+    if public_preview is None:
+        public_preview = PUBLIC_PREVIEW
     http = base.nginx_text().split('\nserver {\n    listen 443 ssl;', 1)[0]
     shared = f'''
     listen 443 ssl;
@@ -108,7 +112,7 @@ def nginx_config(upstream_port=3311):
     add_header Cache-Control "no-store" always;
     add_header X-Roya-Domain-Stage "{MARKER}" always;
 '''
-    return http + '\nserver {\n' + shared + f'''
+    text = http + '\nserver {\n' + shared + f'''
     server_name {base.DOMAIN};
     location = /_roya_private_ready.txt {{ root {tls.WEB_ROOT}; }}
     location / {{
@@ -140,6 +144,22 @@ server {{
     location @roya_apex {{ return 308 {ORIGIN}$request_uri; }}
 }}
 '''
+    if public_preview:
+        authorization = '    auth_basic "Roya private preview";\n    auth_basic_user_file ' + tls.AUTH_FILE + ';'
+        if text.count(authorization) != 2:
+            raise RuntimeError('Unexpected private authorization template.')
+        text = text.replace(authorization, '    auth_basic off;')
+        text = text.replace('X-Roya-Domain-Stage "' + MARKER + '"', 'X-Roya-Domain-Stage "' + PUBLIC_MARKER + '"')
+    return text
+
+
+def select_access_mode(text):
+    global PUBLIC_PREVIEW
+    for public in (False, True):
+        if text == nginx_config(public_preview=public):
+            PUBLIC_PREVIEW = public
+            return
+    raise RuntimeError('Expected the verified private domain gate or public test preview; nothing overwritten.')
 
 
 @dataclass
@@ -228,6 +248,8 @@ def basic(password):
 
 
 def verify_proxy(password, port=443, cafile=None):
+    if PUBLIC_PREVIEW:
+        return verify_public_proxy(port=port, cafile=cafile)
     deadline = time.monotonic() + 10
     while True:
         try:
@@ -258,8 +280,75 @@ def verify_proxy(password, port=443, cafile=None):
         raise RuntimeError('Private readiness body differs.')
 
 
-def preflight():
-    if Path(base.NGINX).is_symlink() or Path(base.NGINX).read_text() != (nginx_config() if UPGRADING else tls.tls_config()):
+def verify_public_proxy(port=443, cafile=None):
+    deadline = time.monotonic() + 10
+    while True:
+        try:
+            reply = request('/api/health/', port=port, secure=True, cafile=cafile)
+            if reply.status == 200 and reply.header('X-Roya-Domain-Stage') == PUBLIC_MARKER:
+                break
+        except OSError:
+            pass
+        if time.monotonic() >= deadline:
+            raise RuntimeError('Public test preview did not become ready.')
+        time.sleep(0.25)
+
+    def send(path, method='GET', headers=None, body=None, host=None):
+        reply = request(path, method, headers, body, port=port, secure=True, cafile=cafile, host=host)
+        if reply.header('WWW-Authenticate'):
+            raise RuntimeError('Unexpected storefront password challenge.')
+        if reply.header('X-Roya-Domain-Stage') != PUBLIC_MARKER:
+            raise RuntimeError('Public test preview stage differs.')
+        if not any(key.lower() == 'x-robots-tag' and 'noindex' in value.lower() for key, value in reply.headers):
+            raise RuntimeError('Public test preview must remain noindex.')
+        if not any(key.lower() == 'cache-control' and 'no-store' in value.lower() for key, value in reply.headers):
+            raise RuntimeError('Public test preview must remain uncached.')
+        return reply
+
+    verify_application(send)
+    redirect = send('/fa/catalog/?check=1', host='www.' + base.DOMAIN)
+    if redirect.status != 308 or redirect.header('Location') != ORIGIN + '/fa/catalog/?check=1':
+        raise RuntimeError('Anonymous www canonical redirect differs.')
+    page = expect(send('/fa/catalog/'), 200, 'Anonymous catalog')
+    asset = re.search(rb'src="(/_next/static/[^" ]+)"', page.body)
+    if not asset or send(asset[1].decode().replace('&amp;', '&')).status != 200:
+        raise RuntimeError('Anonymous storefront browser asset did not load.')
+    robots = expect(send('/robots.txt'), 200, 'Preview robots policy')
+    if not re.search(rb'(?im)^Disallow:\s*/\s*$', robots.body):
+        raise RuntimeError('Preview robots policy must disallow crawling.')
+    admin = expect(send('/admin/'), 307, 'Anonymous administrator page')
+    target = urlparse(admin.header('Location') or '')
+    if target.path.rstrip('/') != '/admin/login' or target.netloc not in ('', base.DOMAIN) or target.scheme not in ('', 'https'):
+        raise RuntimeError('Administrator login redirect differs.')
+    contact = expect(send('/api/contact/', method='POST', headers={'Origin': ORIGIN, 'Content-Type': 'application/json'}, body=b'{}'), 503, 'Preview contact submission')
+    if contact.data().get('error') not in ('STAGING_ONLY', 'UNAVAILABLE'):
+        raise RuntimeError('Preview contact submission must remain disabled.')
+    callback = expect(send('/api/payment/callback/'), 503, 'Preview payment callback')
+    if callback.data().get('error') != 'STAGING_ONLY':
+        raise RuntimeError('Preview payment callbacks must remain disabled.')
+    print('PUBLIC PREVIEW HTTPS CHECK PASS: anonymous FA/EN/assets, administrator guard, noindex, secure cookies and disabled live effects.')
+
+
+def verify_access_ready():
+    for host in (base.DOMAIN, 'www.' + base.DOMAIN):
+        if PUBLIC_PREVIEW and host == base.DOMAIN:
+            status, body, marker, _ = tls.https(host, '/_roya_private_ready.txt')
+            if (status, body, marker) != (200, tls.READY_BODY, PUBLIC_MARKER):
+                raise RuntimeError('Expected the anonymous test-preview entry.')
+        elif PUBLIC_PREVIEW:
+            reply = request('/fa/catalog/', port=443, secure=True, host=host)
+            if reply.status != 308 or reply.header('X-Roya-Domain-Stage') != PUBLIC_MARKER:
+                raise RuntimeError('Expected the anonymous www test-preview redirect.')
+        elif tls.https(host, '/')[::2] != (401, MARKER if UPGRADING else tls.MARKER):
+            raise RuntimeError('Expected the protected HTTPS gate before application connection.')
+
+
+def preflight(resource_check=True):
+    if Path(base.NGINX).is_symlink():
+        raise RuntimeError('Expected the verified private domain gate; nothing overwritten.')
+    if UPGRADING:
+        select_access_mode(Path(base.NGINX).read_text())
+    elif Path(base.NGINX).read_text() != tls.tls_config():
         raise RuntimeError('Expected the verified private domain gate; nothing overwritten.')
     if not Path(LINK).is_symlink() or str(Path(LINK).resolve()) != previous_target():
         raise RuntimeError('Installed private preview target differs.')
@@ -294,9 +383,7 @@ def preflight():
         base.command(['systemctl', 'is-active', '--quiet', service_name])
     base.preview_health()
     tls.certificate_valid()
-    for host in (base.DOMAIN, 'www.' + base.DOMAIN):
-        if tls.https(host, '/')[::2] != (401, MARKER if UPGRADING else tls.MARKER):
-            raise RuntimeError('Expected the protected HTTPS gate before application connection.')
+    verify_access_ready()
     listeners = base.command(['ss', '-lntH', '( sport = :3311 )']).splitlines()
     if not listeners or any(line.split()[3] != '127.0.0.1:3311' for line in listeners):
         raise RuntimeError('Preview listener is not loopback-only.')
@@ -308,10 +395,10 @@ def preflight():
                  if name not in {ENV, UNIT, LINK + '/.roya-release'}}
     for name in ((base.NGINX,) if UPGRADING else ()) + (tls.AUTH_FILE, tls.READY_FILE, tls.RENEWAL):
         protected[name] = base.sha(name)
-    if shutil.disk_usage('/opt/roya').free < 2500 * 1024 * 1024:
+    if resource_check and shutil.disk_usage('/opt/roya').free < 2500 * 1024 * 1024:
         raise RuntimeError('At least 2500 MiB free disk is required; nothing removed.')
     memory = re.search(r'^MemAvailable:\s+(\d+)\s+kB$', Path('/proc/meminfo').read_text(), re.M)
-    if not memory or int(memory[1]) < 1800 * 1024:
+    if resource_check and (not memory or int(memory[1]) < 1800 * 1024):
         raise RuntimeError('At least 1800 MiB available memory is required for the build.')
     print('DOMAIN ORIGIN PREFLIGHT PASS: existing private gate, release, flags, certificate and loopback listeners verified.')
     return protected
@@ -334,13 +421,13 @@ def wait_static_gate():
     deadline = time.monotonic() + 10
     while True:
         try:
-            if all(tls.https(host, '/')[::2] == (401, MARKER if UPGRADING else tls.MARKER)
-                   for host in (base.DOMAIN, 'www.' + base.DOMAIN)):
-                return
-        except OSError:
+            # This static endpoint also works if the application being rolled back is down.
+            verify_access_ready()
+            return
+        except (OSError, RuntimeError):
             pass
         if time.monotonic() >= deadline:
-            raise RuntimeError('Previous static private gate did not become ready.')
+            raise RuntimeError('Previous HTTPS access profile did not become ready.')
         time.sleep(0.25)
 
 
@@ -361,10 +448,14 @@ def candidate_cleanup(state):
 
 
 def rollback(directory):
+    global PUBLIC_PREVIEW
     directory = Path(directory)
     if directory.is_symlink() or directory.parent != Path('/var/backups/roya') or not directory.name.startswith('domain-origin-') or directory.stat().st_uid != 0:
         raise RuntimeError('Unexpected domain-origin rollback directory.')
     state = json.loads((directory / 'state.json').read_text())
+    if state.get('accessMode', 'private') not in ('private', 'public-preview'):
+        raise RuntimeError('Unknown domain rollback access mode.')
+    PUBLIC_PREVIEW = state.get('accessMode') == 'public-preview'
     if set(state['files']) != {ENV, UNIT, base.NGINX} or set(state['candidate']) != {CANDIDATE_ENV, CANDIDATE_UNIT}:
         raise RuntimeError('Unexpected domain-origin rollback targets.')
     allowed = {previous_target(), str(Path(RELEASE_ROOT, release_id()))}
@@ -395,7 +486,7 @@ def rollback(directory):
     wait_app(3311)
     candidate_cleanup(state)
     tls.assert_protected(state['protected'])
-    print('PRIVATE DOMAIN UPGRADE ROLLED BACK: previous HTTPS application and private gate restored.' if UPGRADING else 'PRIVATE DOMAIN ORIGIN ROLLED BACK: static TLS password gate and previous loopback application restored.')
+    print('PUBLIC PREVIEW UPGRADE ROLLED BACK: previous HTTPS test application and access mode restored.' if PUBLIC_PREVIEW else 'PRIVATE DOMAIN UPGRADE ROLLED BACK: previous HTTPS application and private gate restored.' if UPGRADING else 'PRIVATE DOMAIN ORIGIN ROLLED BACK: static TLS password gate and previous loopback application restored.')
 
 
 def install(stage):
@@ -412,9 +503,11 @@ def install(stage):
     for path in stage.rglob('*'):
         if path.is_symlink() and not path.resolve().is_relative_to(stage):
             raise RuntimeError('Candidate contains an external symbolic link.')
-    password = getpass.getpass('Existing private-preview password (hidden; not the administrator password): ')
-    if not re.fullmatch(r'[!-~]{12,128}', password):
-        raise RuntimeError('Private password format invalid; no application changed.')
+    password = None
+    if not PUBLIC_PREVIEW:
+        password = getpass.getpass('Existing private-preview password (hidden; not the administrator password): ')
+        if not re.fullmatch(r'[!-~]{12,128}', password):
+            raise RuntimeError('Private password format invalid; no application changed.')
     (verify_proxy if UPGRADING else tls.verify_gate)(password)
     original_env, original_unit = Path(ENV).read_text(), Path(UNIT).read_text()
     new_env = environment(original_env, 3311).encode()
@@ -427,6 +520,7 @@ def install(stage):
         raise RuntimeError('Unexpected backup root.')
     directory = Path(tempfile.mkdtemp(prefix='domain-origin-', dir=root))
     state = {'old': str(Path(LINK).resolve()), 'protected': protected, 'files': {},
+             'accessMode': 'public-preview' if PUBLIC_PREVIEW else 'private',
              'candidate': {name: hashlib.sha256(body).hexdigest() for name, body in candidate.items()}}
     for index, (name, body) in enumerate(data.items()):
         path = Path(name)
@@ -497,8 +591,8 @@ def install(stage):
         except BaseException:
             print('ORIGIN ROLLBACK NEEDS REVIEW: sudo bash ' + str(directory / 'restore.sh'), file=sys.stderr)
         raise
-    print(('PRIVATE CONTENT UPGRADE READY: ' if UPGRADING else 'PRIVATE DOMAIN STOREFRONT READY: ') + ORIGIN + '/fa/catalog/')
-    print('HTTPS origin, secure cookies and Origin guards verified. Private username remains ' + tls.USERNAME + '.')
+    print(('PUBLIC PREVIEW CONTENT UPGRADE READY: ' if PUBLIC_PREVIEW else 'PRIVATE CONTENT UPGRADE READY: ' if UPGRADING else 'PRIVATE DOMAIN STOREFRONT READY: ') + ORIGIN + '/fa/catalog/')
+    print('HTTPS origin, secure cookies and Origin guards verified. ' + ('Anonymous test-preview access retained; administrator login is required.' if PUBLIC_PREVIEW else 'Private username remains ' + tls.USERNAME + '.'))
     print('Administrator, catalog/pricing, database schema, DNS, certificates and live-effect blocks preserved.')
     print('Rollback: sudo bash ' + str(directory / 'restore.sh'))
 
