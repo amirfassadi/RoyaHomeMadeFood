@@ -7,6 +7,7 @@ permissions:
   contents: read
 jobs:
   quality:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -63,10 +64,14 @@ jobs:
           ROYA_LIVE_PAYMENTS: '0'
           ROYA_ACCEPT_ORDERS: '0'
           ROYA_SEND_SMS: '0'
-      - name: Verify administrator duration form in an isolated browser
+      - name: Install isolated browser
+        timeout-minutes: 5
         run: |
           npm install --prefix "$RUNNER_TEMP/roya-browser-test" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.62.1
           "$RUNNER_TEMP/roya-browser-test/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify administrator forms in an isolated browser
+        timeout-minutes: 3
+        run: |
           ROYA_TEST_BROWSER_MODULE="$RUNNER_TEMP/roya-browser-test/node_modules/playwright" node scripts/test-admin-duration.mjs
           ROYA_TEST_BROWSER_MODULE="$RUNNER_TEMP/roya-browser-test/node_modules/playwright" node --import tsx scripts/test-admin-content.mjs
       - name: Verify administrator HTTP flow against isolated PostgreSQL

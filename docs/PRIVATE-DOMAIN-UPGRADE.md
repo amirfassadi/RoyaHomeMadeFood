@@ -2,12 +2,12 @@
 
 `deploy/upgrade-private-domain.sh` upgrades the existing private HTTPS storefront
 from `3f6a74cef79ac602d6b9f34f57eca7ed0989a54d` to
-`fefdd25947ce179427b586550fbf8af2fbd7cdef`. It uses the explicit `--upgrade`
+`8f272a29a383ccc64b88964eea7e7dde0bd9db39`. It uses the explicit `--upgrade`
 profile of the existing guarded domain transaction; the original domain
 connection entrypoint and its historical source manifest remain available.
 
 The source manifest verifies all 239 selected application files. Its source
-release is `583f588889cc2ee81d19e98130d16705aa164403`. This adds bilingual marketing
+release is `b417f463c203fc1986cbe2fb091fb59a6cb7c641`. This adds bilingual marketing
 copy management, its public rendering and tests, and fixes contact details in
 the private database-catalog preview. See ADMIN-CONTENT.md for the editing scope.
 The previous upgrade manifest is retained as private-domain-upgrade-base-manifest.json;

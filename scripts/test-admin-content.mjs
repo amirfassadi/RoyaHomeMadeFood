@@ -5,7 +5,7 @@ import {readFile,readdir} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
-import {build} from 'esbuild';
+import {build,stop} from 'esbuild';
 import {contentEditSchema,defaultContentDocument} from '../src/lib/storefront-content.ts';
 
 const require=createRequire(import.meta.url);
@@ -16,7 +16,7 @@ const bundle=await build({entryPoints:[resolve(root,'tests/browser/content-edito
 const stylesDirectory=resolve(root,'.next/static/chunks');
 const styles=(await Promise.all((await readdir(stylesDirectory)).filter(name=>name.endsWith('.css')).map(name=>readFile(resolve(stylesDirectory,name),'utf8')))).join('\n');
 assert(styles.length>1000,'Build the application before the browser form test.');
-let document=defaultContentDocument(),writes=[],loseResponse=false;
+let document=defaultContentDocument(),writes=[],loseResponse=false,phase='setup';
 const server=createServer(async(request,response)=>{
   if(request.url==='/fixture.js'){response.setHeader('Content-Type','text/javascript');response.end(bundle.outputFiles[0].contents);return;}
   if(request.url==='/fixture.css'){response.setHeader('Content-Type','text/css');response.end(styles);return;}
@@ -40,6 +40,13 @@ const server=createServer(async(request,response)=>{
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const origin='http://127.0.0.1:'+server.address().port;
 let browser;
+const watchdog=setTimeout(()=>{
+  console.error('CONTENT FORM TEST TIMEOUT:',phase,process.getActiveResourcesInfo());
+  server.closeAllConnections();
+  process.exit(1);
+},90000);
+watchdog.unref();
+function checkpoint(value){phase=value;console.log('CONTENT FORM CHECK:',value);}
 try{
   browser=await chromium.launch({headless:true,...(process.env.ROYA_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.ROYA_TEST_BROWSER_EXECUTABLE}:{}),args:['--no-sandbox','--disable-dev-shm-usage']});
   const page=await browser.newPage();page.setDefaultTimeout(10000);
@@ -49,6 +56,7 @@ try{
   const save=page.getByRole('button',{name:'ذخیرهٔ متن‌های هر دو زبان',exact:true});
   const reload=page.getByRole('button',{name:'بارگیری نسخهٔ سرور و کنارگذاشتن تغییرات',exact:true});
   await page.goto(origin+'/fixture/');await title.waitFor();assert(await save.isDisabled());
+  checkpoint('form mounted');
   await title.fill('عنوان آزمایشی فارسی');
   await page.getByRole('button',{name:'English',exact:true}).click();await title.fill('English fixture headline');
   assert.equal(await title.getAttribute('dir'),'ltr');
@@ -57,20 +65,27 @@ try{
   assert.equal(await page.evaluate(()=>window.contentInjected),undefined);
   await save.click();await page.getByText('متن‌های هر دو زبان ذخیره شدند.',{exact:true}).waitFor();
   assert.equal(writes.length,1);assert.equal(writes[0].content.en.homeTitle1,'English fixture headline');assert.equal(writes[0].expectedUpdatedAt,defaultContentDocument().updatedAt);
+  checkpoint('bilingual save and literal preview');
   const firstVersion=document.updatedAt;
   await title.fill('پیش‌نویس مدیر اول');
   document={content:{...document.content,fa:{...document.content.fa,homeTitle1:'متن مدیر دیگر'}},updatedAt:new Date(new Date(firstVersion).getTime()+1).toISOString()};
   await save.click();await page.getByRole('alert').waitFor();assert.equal(await title.inputValue(),'پیش‌نویس مدیر اول');assert.equal(document.content.fa.homeTitle1,'متن مدیر دیگر');assert(await save.isDisabled());
   await reload.click();await page.waitForFunction(()=>Array.from(document.querySelectorAll('input')).some(input=>input.value==='متن مدیر دیگر'));assert.equal(await title.inputValue(),'متن مدیر دیگر');assert(await save.isDisabled());
+  checkpoint('conflict retained and server version loaded');
   await title.fill('نسخهٔ دریافت‌نشده');loseResponse=true;await save.click();await page.getByRole('alert').waitFor();assert(await save.isDisabled());assert.equal(document.content.fa.homeTitle1,'نسخهٔ دریافت‌نشده');
   await reload.click();await page.getByRole('alert').waitFor({state:'detached'});assert.equal(await title.inputValue(),'نسخهٔ دریافت‌نشده');
+  checkpoint('uncertain save recovered');
   const before=writes.length;await title.fill('');await save.click();assert.equal(writes.length,before);assert.equal(await title.evaluate(element=>element.validity.valueMissing),true);
   await title.fill('عنوان موبایل');await page.setViewportSize({width:375,height:812});
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Content form overflows mobile viewport.');
   await save.click();await page.getByText('متن‌های هر دو زبان ذخیره شدند.',{exact:true}).waitFor();
+  checkpoint('required field and mobile');
   await page.goto(origin+'/fixture/?demo=1');await title.waitFor();await title.fill('پیش‌نمایش بدون ذخیره');assert(await save.isDisabled());
   assert.deepEqual(errors,[]);
+  checkpoint('all assertions passed');
   console.log('ADMIN CONTENT BROWSER PASS: bilingual drafts, literal text preview, explicit versioned save, conflict preservation, lost-response recovery, required fields, mobile and read-only demonstration.');
 }finally{
-  if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));
+  if(browser)await browser.close();
+  server.closeAllConnections();await new Promise(resolve=>server.close(resolve));
+  stop();clearTimeout(watchdog);
 }
