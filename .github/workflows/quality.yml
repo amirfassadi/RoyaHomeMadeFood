@@ -62,6 +62,11 @@ jobs:
           ROYA_LIVE_PAYMENTS: '0'
           ROYA_ACCEPT_ORDERS: '0'
           ROYA_SEND_SMS: '0'
+      - name: Verify administrator duration form in an isolated browser
+        run: |
+          npm install --prefix "$RUNNER_TEMP/roya-browser-test" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.62.1
+          "$RUNNER_TEMP/roya-browser-test/node_modules/.bin/playwright" install --with-deps chromium
+          ROYA_TEST_BROWSER_MODULE="$RUNNER_TEMP/roya-browser-test/node_modules/playwright" node scripts/test-admin-duration.mjs
       - name: Verify administrator HTTP flow against isolated PostgreSQL
         run: |
           bash -n deploy/recover-vps-admin.sh

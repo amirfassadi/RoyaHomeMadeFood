@@ -1,15 +1,16 @@
-# Private checkout preparation upgrade
+# Private administrator preparation-time upgrade
 
 `deploy/upgrade-private-domain.sh` upgrades the existing private HTTPS storefront
-from `bd69388bdfea903b892ad2a5430be8382c0fe012` to
-`26b04f0f882a811604b720aa069660e7c58201ed`. It uses the explicit `--upgrade`
+from `26b04f0f882a811604b720aa069660e7c58201ed` to
+`10b49d3c2c4c6203211b81d3d0300e9c4ac4ebc5`. It uses the explicit `--upgrade`
 profile of the existing guarded domain transaction; the original domain
 connection entrypoint and its historical source manifest remain available.
 
-The source manifest verifies all 224 selected application files. Its source
-release is `ebe901411a2b15eab341d8d691e4c065a2d4573d`. Only the checkout rule and
-component, delivery helper, scenario test and regression documentation differ
-from the previous HTTPS application source. Next.js remains pinned to 16.4.2.
+The source manifest verifies all 228 selected application files. Its source
+release is `b160057bbb7c40ed60684614b7bc8f10c6c33900`. Only the product editor, shared field sizing, duration input and their browser
+fixture/test/documentation differ from the previous HTTPS application source.
+The previous upgrade manifest is retained as private-domain-upgrade-base-manifest.json;
+older pinned archives and rollback backups retain their matching operator code. Next.js remains pinned to 16.4.2.
 
 Run the supplied pinned GitHub download in the VPS SSH terminal as `amir`.
 The entrypoint checks the current release/link, exact existing private proxy,
@@ -37,8 +38,9 @@ review path; keep that report for investigation.
 
 Successful activation ends with `PRIVATE CHECKOUT UPGRADE READY` and a rollback
 path. Until that output is received from the VPS, this upgrade is **prepared,
-not installed**. Afterwards refresh the browser and test the product's two-day
-preparation and both Tehran delivery windows. Existing browser invoices retain
+not installed**. Afterwards refresh the browser and test the product editor by selecting days, entering 2 and saving.
+The UI update does not change the existing product's 240-minute setting automatically.
+Then create a fresh test checkout and verify both Tehran delivery windows. Existing browser invoices retain
 their original snapshot and are not rewritten.
 
 Validation includes source reconstruction/tamper rejection, unknown release and

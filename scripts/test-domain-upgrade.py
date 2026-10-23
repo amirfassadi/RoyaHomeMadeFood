@@ -25,15 +25,14 @@ def module():
 
 
 class Sources(unittest.TestCase):
-    def test_upgrade_manifest_matches_complete_sources_and_changes_only_checkout(self):
+    def test_upgrade_manifest_matches_complete_sources_and_changes_only_product_form(self):
         m = module()
         manifest = json.loads((ROOT / 'deploy/private-domain-upgrade-manifest.json').read_text())
-        previous = json.loads((ROOT / 'deploy/private-domain-app-manifest.json').read_text())
-        self.assertEqual(manifest['baseRelease'], 'bd69388bdfea903b892ad2a5430be8382c0fe012')
-        self.assertEqual(m.release_id(), '26b04f0f882a811604b720aa069660e7c58201ed')
+        previous = json.loads((ROOT / 'deploy/private-domain-upgrade-base-manifest.json').read_text())
+        self.assertEqual(manifest['baseRelease'], '26b04f0f882a811604b720aa069660e7c58201ed')
+        self.assertEqual(m.release_id(), '10b49d3c2c4c6203211b81d3d0300e9c4ac4ebc5')
         changed = {n for n, digest in manifest['files'].items() if previous['files'].get(n) != digest}
-        self.assertEqual(changed, {'src/lib/prototype.ts', 'src/components/store/prototype-checkout.tsx',
-                                  'src/lib/prototype-delivery.ts', 'tests/storefront-scenario.test.ts', 'docs/CHECKOUT-REGRESSION.md'})
+        self.assertEqual(changed, {'docs/ADMIN-PREPARATION-TIME.md', 'src/components/admin/preparation-time-input.tsx', 'src/components/admin/product-editor.tsx', 'src/components/admin/shared.tsx', 'scripts/test-admin-duration.mjs', 'tests/browser/product-duration-fixture.tsx'})
         for name, digest in manifest['files'].items():
             self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(), digest, name)
 
