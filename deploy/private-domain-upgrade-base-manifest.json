@@ -1,5 +1,5 @@
 {
-  "baseRelease": "3f6a74cef79ac602d6b9f34f57eca7ed0989a54d",
+  "baseRelease": "8f272a29a383ccc64b88964eea7e7dde0bd9db39",
   "files": {
     ".gitignore": "8d341f5c128c2dde1c62b67be2cba7a0b3cd2589d75e04f341fc1efde3b18f7e",
     "README.md": "696158461010b1bf69a248effe5552206ae345f450c5455105a914176ac10ded",
@@ -18,8 +18,8 @@
     "messages/fa.json": "f6e7e517aec56bc169a09c6aaa9aed8fa63b32f5fa272a1638ef557f6bf684ee",
     "next-env.d.ts": "1862ac4bbbc5192d4bf562161df66ea547ed3e67173100656ab606ae9797db2b",
     "next.config.ts": "79f9989da179d34416d7ce7b4d9368a7474d1a397581887b1de9cc3db36f2c72",
-    "package-lock.json": "57fd2b21c8e1a27905910e1a65e7e8f1642d5283ef18df22d7156591b5adb67a",
-    "package.json": "cc0fd5326b4b8a7a78b346259c9c9a11c65a116b55fd9dd575634cceb078d395",
+    "package-lock.json": "0c45e8942b0a43220fbaeda24cf3e7f1289bc4e199accd60a3db989190804219",
+    "package.json": "d4a212d31fe710e35901447174c23e1e73da119b1dee5d45534313786b46f65c",
     "postcss.config.mjs": "d7c07db9a36ab70c78a63b82668435659b8b160bee3551b204b35475d56ef7da",
     "prisma.config.ts": "f9af5d260f895bc0535858de41f84a582a1b682a67e106a8d72b9259f1edeed6",
     "prisma/migrations/20261010150000_initial/migration.sql": "7eacf7fb9a2a56009bbefa60d9403ce66427327cc6f0fd65ee891b0325cfcec2",
@@ -238,10 +238,10 @@
     "tests/storefront-content.test.ts": "41cdc754887fd7ea68e7165dc4773b885014ef00bef06e2f704b20a2cb02d3c2",
     "tests/storefront-scenario.test.ts": "aa6c1e53ff62debfe93ae18b1b02fb6093e487c71d5c744f20b60ea4f4ac251c",
     "tests/unified.test.ts": "84ef3d09ab03455c65765c4da9698521ff2aaa8803c9ea3590c04ffdd111e6c1",
-    "tests/validation.test.ts": "2411ef33045afaa86155045d8ba75b658ddf82e657363baad9304b2a823f0b59",
+    "tests/validation.test.ts": "95cac821e49d2651c391fab6b6af8ffe828b5987a9805367ada9b2f91bdd7033",
     "tsconfig.json": "65e13985dfef97d257a4e1a265b3530d9a81e24b851ee2e51ffb05f96ba91232"
   },
   "format": 1,
   "origin": "https://royahealthyfood.ir",
-  "sourceRelease": "b417f463c203fc1986cbe2fb091fb59a6cb7c641"
+  "sourceRelease": "e500aeab698926995bbbb853e02851ecb694cc11"
 }

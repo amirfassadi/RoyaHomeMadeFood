@@ -45,8 +45,8 @@ PUBLIC_MARKER = 'public-preview-v1'
 def configure_upgrade():
     global UPGRADING, SOURCE_RELEASE
     m = json.loads(Path(__file__).with_name('private-domain-upgrade-manifest.json').read_text())
-    source = 'e500aeab698926995bbbb853e02851ecb694cc11'
-    previous = '8f272a29a383ccc64b88964eea7e7dde0bd9db39'
+    source = 'db9dd404ceaebf2af49c5d531080248e4a3f2e81'
+    previous = '321f8929648c9fcf2bdcfda3e270352b0b9d2174'
     if (m.get('format') != 1 or m.get('origin') != ORIGIN or m.get('baseRelease') != previous
             or m.get('sourceRelease') != source
             or hashlib.sha1(json.dumps(m['files'], sort_keys=True).encode()).hexdigest() != source):
@@ -591,7 +591,7 @@ def install(stage):
         except BaseException:
             print('ORIGIN ROLLBACK NEEDS REVIEW: sudo bash ' + str(directory / 'restore.sh'), file=sys.stderr)
         raise
-    print(('PUBLIC PREVIEW DEPENDENCY UPGRADE READY: ' if PUBLIC_PREVIEW else 'PRIVATE DEPENDENCY UPGRADE READY: ' if UPGRADING else 'PRIVATE DOMAIN STOREFRONT READY: ') + ORIGIN + '/fa/catalog/')
+    print(('PUBLIC PREVIEW TRACKING UPGRADE READY: ' if PUBLIC_PREVIEW else 'PRIVATE TRACKING UPGRADE READY: ' if UPGRADING else 'PRIVATE DOMAIN STOREFRONT READY: ') + ORIGIN + '/fa/catalog/')
     print('HTTPS origin, secure cookies and Origin guards verified. ' + ('Anonymous test-preview access retained; administrator login is required.' if PUBLIC_PREVIEW else 'Private username remains ' + tls.USERNAME + '.'))
     print('Administrator, catalog/pricing, database schema, DNS, certificates and live-effect blocks preserved.')
     print('Rollback: sudo bash ' + str(directory / 'restore.sh'))

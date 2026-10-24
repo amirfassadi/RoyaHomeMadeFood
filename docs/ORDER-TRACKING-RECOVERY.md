@@ -1,6 +1,12 @@
 # Order tracking without a tracking code
 
-Status: requested by Amir on 24 October 2026; requirement recorded, implementation and deployment pending. The current VPS runtime is `321f8929648c9fcf2bdcfda3e270352b0b9d2174`. This document changes no runtime or SMS configuration.
+Status: requested by Amir on 24 October 2026. The browser-local interactive demonstration is implemented in source; VPS installation is pending. Real SMS recovery and server authorization remain unimplemented. The current VPS runtime is `321f8929648c9fcf2bdcfda3e270352b0b9d2174`; this source does not change SMS configuration.
+
+## Interactive demonstration
+
+The demo tracking page retains code/mobile lookup and adds «کد پیگیری را ندارم» / “I do not have my tracking code”. It explicitly displays a browser-generated test code instead of sending SMS. Correct entry reveals up to 20 newest matching DEMO orders from this browser, including guest orders. There is no server request, login, user creation, consent change or mutation of stored orders.
+
+For UX testing only: the in-memory code lasts five minutes, has five attempts and a 60-second resend cooldown; the simulated viewing grant lasts ten minutes. Resending, editing the mobile, leaving the mode or reloading removes the previous access. The demonstration checks wrong/expired/reused codes and mobile isolation, but client state is not an authorization boundary. Neither the code nor its state is accepted by a live endpoint. Real server authorization and delivery below are still required before launch.
 
 ## Customer flow
 
@@ -20,7 +26,7 @@ Before verification, reveal neither whether orders exist nor any order, name or 
 
 Reuse the established server-side OTP primitives where suitable, retaining independent tracking purpose and scope: cryptographically generated codes, keyed verifiers bound to challenge/mobile/purpose, expiry, single-use atomic redemption, failed-attempt limits, resend cooldown and mobile/IP/global limits. No code, verifier, provider credential or recovery token in logs or URLs. Use secure HttpOnly cookies, same-origin checks and no-store responses. A resend must invalidate the previous challenge; provider failure must not produce a usable challenge or a fake success. Expiry/sign-out must remove recovery access.
 
-Real SMS remains disabled until the provider/template/secrets and explicit send approval are ready. A future interactive demo must visibly say that no SMS is sent, access only browser-local DEMO orders and never accept a demo code on a real order endpoint. The present demo and live-effect flags remain unchanged.
+Real SMS remains disabled until the provider/template/secrets and explicit send approval are ready. The interactive demo visibly says that no SMS is sent, accesses only browser-local DEMO orders and has no live-order endpoint. The present demo and live-effect flags remain unchanged.
 
 ## Acceptance checks (pending)
 

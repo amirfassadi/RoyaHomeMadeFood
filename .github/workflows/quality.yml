@@ -75,6 +75,9 @@ jobs:
         run: |
           ROYA_TEST_BROWSER_MODULE="$RUNNER_TEMP/roya-browser-test/node_modules/playwright" node scripts/test-admin-duration.mjs
           ROYA_TEST_BROWSER_MODULE="$RUNNER_TEMP/roya-browser-test/node_modules/playwright" node --import tsx scripts/test-admin-content.mjs
+      - name: Verify guest checkout and simulated mobile recovery in an isolated browser
+        timeout-minutes: 3
+        run: ROYA_TEST_BROWSER_MODULE="$RUNNER_TEMP/roya-browser-test/node_modules/playwright" node scripts/test-storefront-browser.mjs
       - name: Verify administrator HTTP flow against isolated PostgreSQL
         run: |
           bash -n deploy/recover-vps-admin.sh

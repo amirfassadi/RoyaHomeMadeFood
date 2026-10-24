@@ -25,16 +25,16 @@ def module():
 
 
 class Sources(unittest.TestCase):
-    def test_upgrade_manifest_pins_only_zod_and_its_regressions_and_preserves_business_rules(self):
+    def test_upgrade_manifest_adds_only_browser_tracking_recovery_and_regressions(self):
         m = module()
         manifest = json.loads((ROOT / 'deploy/private-domain-upgrade-manifest.json').read_text())
         previous = json.loads((ROOT / 'deploy/private-domain-upgrade-base-manifest.json').read_text())
-        self.assertEqual(previous['sourceRelease'], 'b417f463c203fc1986cbe2fb091fb59a6cb7c641')
+        self.assertEqual(previous['sourceRelease'], 'e500aeab698926995bbbb853e02851ecb694cc11')
         self.assertEqual(hashlib.sha1(json.dumps(previous['files'], sort_keys=True).encode()).hexdigest(), previous['sourceRelease'])
-        self.assertEqual(manifest['baseRelease'], '8f272a29a383ccc64b88964eea7e7dde0bd9db39')
-        self.assertEqual(m.release_id(), '321f8929648c9fcf2bdcfda3e270352b0b9d2174')
+        self.assertEqual(manifest['baseRelease'], '321f8929648c9fcf2bdcfda3e270352b0b9d2174')
+        self.assertEqual(m.release_id(), '6e5669e0d5add140ff60cd6164f94673143582b1')
         changed = {n for n, digest in manifest['files'].items() if previous['files'].get(n) != digest}
-        self.assertEqual(changed, {'package.json', 'package-lock.json', 'tests/validation.test.ts'})
+        self.assertEqual(changed, {'tests/browser/storefront-navigation.ts', 'src/components/store/prototype-mobile-recovery.tsx', 'src/components/store/prototype-tracking.tsx', 'tests/browser/storefront-fixture.tsx', 'tests/prototype-recovery.test.ts', 'src/lib/prototype-recovery.ts'})
         for name, digest in manifest['files'].items():
             self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(), digest, name)
 
@@ -101,7 +101,7 @@ class UpgradeTransaction(old.Transaction):
             raise RuntimeError('Injected proxy verification failure')
 
     def test_success_then_guarded_rollback(self):
-        self.assertIn('PRIVATE DEPENDENCY UPGRADE READY', self.install())
+        self.assertIn('PRIVATE TRACKING UPGRADE READY', self.install())
         self.assertEqual(Path(self.m.base.NGINX).read_text(), self.original[self.m.base.NGINX])
         directory = self.backup()
         self.assertIn('--upgrade --rollback', (directory / 'restore.sh').read_text())

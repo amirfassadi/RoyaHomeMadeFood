@@ -44,7 +44,7 @@ class Policy(unittest.TestCase):
         self.assertEqual({name for name, digest in new['files'].items() if old['target_files'][name] != digest}, {'package.json', 'package-lock.json'})
         # The initial HTTPS manifest stays frozen; the installed content snapshot
         # retains its package hashes when a later dependency upgrade is prepared.
-        installed = json.loads((root / 'deploy/private-domain-upgrade-base-manifest.json').read_text())
+        installed = json.loads((root / 'deploy/private-domain-content-manifest.json').read_text())
         current = json.loads((root / 'deploy/private-domain-upgrade-manifest.json').read_text())
         for name in ('package.json', 'package-lock.json'):
             self.assertEqual(installed['files'][name], new['files'][name])

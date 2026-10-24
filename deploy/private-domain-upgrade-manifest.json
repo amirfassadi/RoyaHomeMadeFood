@@ -1,5 +1,5 @@
 {
-  "baseRelease": "8f272a29a383ccc64b88964eea7e7dde0bd9db39",
+  "baseRelease": "321f8929648c9fcf2bdcfda3e270352b0b9d2174",
   "files": {
     ".gitignore": "8d341f5c128c2dde1c62b67be2cba7a0b3cd2589d75e04f341fc1efde3b18f7e",
     "README.md": "696158461010b1bf69a248effe5552206ae345f450c5455105a914176ac10ded",
@@ -140,9 +140,10 @@
     "src/components/store/product-gallery.tsx": "5f0c9febb486f7398bc6bffb8b1a5101e60a1e1411fd50c8a35c025047c3ff79",
     "src/components/store/product-quantity.tsx": "a4adf9ece8eddb0a23af86317ec05c10cc57725c2475e7eb730b7c3020caab0c",
     "src/components/store/prototype-checkout.tsx": "7041a44eb713a00934f6e17c4e70796407329971dc8a9aa30f83bf872e47b4ad",
+    "src/components/store/prototype-mobile-recovery.tsx": "cbf321b7c45e1176e52da72a3a395446be74f2cf743ecd8a67049c1a93451d40",
     "src/components/store/prototype-region.tsx": "ce0de4524ae93e6934689541e1097e55ada23f19ab93002fe752a024e1ab2490",
     "src/components/store/prototype-storage.ts": "c476292d4229f2bb6cbdb0ed9ffe304aa2980d4b689c519ed1368bdbc53b440b",
-    "src/components/store/prototype-tracking.tsx": "e8926d399942cdcd5316216c4000b7ed30258708405af730f07c0741672f57eb",
+    "src/components/store/prototype-tracking.tsx": "737e3dc66589b2d90eb26242b32c77704b6477fa50bcf1685e67a3d3b05cb8cd",
     "src/components/store/tracking-form.tsx": "6700a11b99a0877af062612ad64ba46a070746db1707149b57ac8c2d61cd7c77",
     "src/components/ui/badge.tsx": "be8252fcbaa0c26dc7246598ae2631457a3da89ff767865051c3314d78715971",
     "src/components/ui/button.tsx": "69028ff50681bc8c99bf77d5e634dbad09a22afec4f991dca009e64691e41d59",
@@ -175,6 +176,7 @@
     "src/lib/pricing-store.ts": "4c4b3b66d17f0a54a450de8105e2f2db8d9a51af75a43bf2a0392578fdb18224",
     "src/lib/pricing.ts": "d981ccd5ee8e4eef9fd03b3b39c05177840b4afbbb2f73c31d982a79b9c175a2",
     "src/lib/prototype-delivery.ts": "5ca848d8a20af46859200e2f8abb552a34535c548bc4c8f7013f61bebb9f4ad9",
+    "src/lib/prototype-recovery.ts": "268afa187870988b8f79b85d102b300c307c7edde768c02ef12aa51a3e893e5d",
     "src/lib/prototype.ts": "6a1f367546276c0f78c964369949328621ea7f8c1abee592774858a0467665eb",
     "src/lib/security.ts": "5492bff99e9fef661f613b81cecc2bc9b077e1732c1219a2d0392b56990fdb1c",
     "src/lib/seo/core.ts": "59f80095ffaf9ae4b4bb9c696c889d9267d7ca1ccf660f7f414d44c2cbf77659",
@@ -216,6 +218,8 @@
     "tests/admin.test.ts": "839259c451133a41616f8d062e86ba57b661b5a86926357a6bb06af59cf7bc9b",
     "tests/browser/content-editor-fixture.tsx": "3f3e0167e4c3ba66215c6b2e916c405a0c59b5d4527f97a57412248690d9fcef",
     "tests/browser/product-duration-fixture.tsx": "1975c1f7ec82ae79891516bc39be436cf86f7cd532791d959bc6bc01b36904db",
+    "tests/browser/storefront-fixture.tsx": "b785b2ea6b3325eedf255182547b56d4cbad553c57a3e5da3c6fd547ce5c3708",
+    "tests/browser/storefront-navigation.ts": "f3f657286c14b6342ce7fdcaa256fc08d4f57451d1fdfc58db7e319f88d3df30",
     "tests/catalog.test.ts": "82daa7196f97859bb26b346a1ec692e8745783eb88cceee0c7776283148fada6",
     "tests/checkout.test.ts": "431ececa7c39cd469120cea3db2ee0952a0d79ce5b57cdb17ebabdcf0c163e0d",
     "tests/communications.test.ts": "bc8d108af81e9c806488a98450bd57c2987f66388989bcfde66dac3a68e43e8b",
@@ -225,6 +229,7 @@
     "tests/integration/postgres.test.ts": "93b7a4fb0eb29ec7a110c6d4b73c7c8bfe8e3922cdf8bca8dc63a44389ad5d8f",
     "tests/international.test.ts": "451e2db0102bb4f355a91595e42a8178f0d63e9d544189122135e88416d5335c",
     "tests/pricing.test.ts": "82735e485115d05ddb817ef495e452c26a1a755d096cd5880e87663b01a06419",
+    "tests/prototype-recovery.test.ts": "20da585cf7cd31fe8a11590a10f9909de72b974d00d13535023093212f75ff1d",
     "tests/prototype.test.ts": "158a28428adb6aec15e9e1355f8e6811b7f83abd237bf927de6fa9be3d3b2979",
     "tests/seo-security.test.ts": "087089665af8482eef0a590b53eafc480e71f5738a71a9f30fa64986a7dba98e",
     "tests/server/admin-security.test.ts": "5adfe6f4bca389dac97157ba9a2c834fcdba6787e8b9c0ff1ed958eaa3c092f5",
@@ -243,5 +248,5 @@
   },
   "format": 1,
   "origin": "https://royahealthyfood.ir",
-  "sourceRelease": "e500aeab698926995bbbb853e02851ecb694cc11"
+  "sourceRelease": "db9dd404ceaebf2af49c5d531080248e4a3f2e81"
 }
