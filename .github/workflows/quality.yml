@@ -7,6 +7,7 @@ permissions:
   contents: read
 jobs:
   quality:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -32,14 +33,82 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
-      - run: npm audit --audit-level=high
+      - run: npm ci --no-audit --no-fund
       - run: npm run db:validate
       - run: npm run db:deploy
       - run: npm run db:seed
       - run: npm run db:seed
       - run: npm run typecheck
       - run: npm test
+      - name: Verify administrator diagnostic boundaries and secret redaction
+        run: node --test scripts/test-admin-diagnostics.mjs scripts/test-domain-admin-diagnostics.mjs scripts/test-storefront-data-check.mjs
+      - name: Verify domain rollback and native DNS/web configuration
+        run: |
+          python3 scripts/test-domain-build-cleanup.py
+          sudo python3 scripts/test-domain-preparation.py
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends nginx-light bind9-utils bind9-dnsutils
+          sudo python3 scripts/test-domain-native.py
+          sudo python3 scripts/test-domain-tls.py
+          sudo python3 scripts/test-domain-origin.py
+          sudo python3 scripts/test-domain-upgrade.py
+          sudo python3 scripts/test-domain-access.py
+          python3 scripts/test-domain-dns-native.py
+          sudo python3 scripts/test-domain-tls-native.py
       - run: npm run test:integration
-      - run: npm run build
-      - run: npm run build:sites
+      - name: Build VPS application
+        run: npm run build:app
+        env:
+          ROYA_DEPLOYMENT_ROLE: standalone
+          ROYA_PRIVATE_DB_CATALOG: '1'
+          ROYA_DEMO_CATALOG: '1'
+          ROYA_LIVE_PAYMENTS: '0'
+          ROYA_ACCEPT_ORDERS: '0'
+          ROYA_SEND_SMS: '0'
+      - name: Install isolated browser
+        timeout-minutes: 5
+        run: |
+          npm install --prefix "$RUNNER_TEMP/roya-browser-test" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.62.1
+          "$RUNNER_TEMP/roya-browser-test/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify administrator forms in an isolated browser
+        timeout-minutes: 3
+        run: |
+          ROYA_TEST_BROWSER_MODULE="$RUNNER_TEMP/roya-browser-test/node_modules/playwright" node scripts/test-admin-duration.mjs
+          ROYA_TEST_BROWSER_MODULE="$RUNNER_TEMP/roya-browser-test/node_modules/playwright" node --import tsx scripts/test-admin-content.mjs
+      - name: Verify guest checkout and simulated mobile recovery in an isolated browser
+        timeout-minutes: 3
+        run: ROYA_TEST_BROWSER_MODULE="$RUNNER_TEMP/roya-browser-test/node_modules/playwright" node scripts/test-storefront-browser.mjs
+      - name: Verify administrator HTTP flow against isolated PostgreSQL
+        run: |
+          bash -n deploy/recover-vps-admin.sh
+          bash -n deploy/test-vps-pricing.sh
+          bash scripts/test-admin-http.sh
+      - name: Verify private HTTPS domain application and secure administrator session
+        run: |
+          mv .next "$RUNNER_TEMP/roya-loopback-app-build"
+          npm run build:app
+          mkdir -p .next/standalone/.next
+          cp -a public .next/standalone/
+          cp -a .next/static .next/standalone/.next/
+          sudo env PATH="$PATH" ROYA_INTEGRATION_DATABASE_URL="$ROYA_INTEGRATION_DATABASE_URL" python3 scripts/test-domain-origin-native.py
+        env:
+          ROYA_DEPLOYMENT_ROLE: standalone
+          ROYA_PRIVATE_DB_CATALOG: '1'
+          ROYA_DEMO_CATALOG: '1'
+          ROYA_LIVE_PAYMENTS: '0'
+          ROYA_ACCEPT_ORDERS: '0'
+          ROYA_SEND_SMS: '0'
+          NEXTAUTH_URL: https://royahealthyfood.ir
+          NEXT_PUBLIC_SITE_URL: https://royahealthyfood.ir
+      - name: Verify backup and isolated restore
+        run: python3 scripts/test-backup-restore.py
+        env:
+          ROYA_TEST_PG_CONTAINER: ${{ job.services.postgres.id }}
+      - name: Build static preview separately
+        run: |
+          mv .next "$RUNNER_TEMP/roya-app-build"
+          npm run build:sites
+        env:
+          ROYA_DEMO_CATALOG: '1'
+      - name: Audit locked dependencies
+        run: npm audit --audit-level=high --fetch-timeout=30000 --fetch-retries=1

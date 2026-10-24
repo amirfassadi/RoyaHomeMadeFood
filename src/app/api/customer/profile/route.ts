@@ -1,8 +1,9 @@
+import {withBackendTrust} from '@/lib/server/api-guard';
 import {optionalCustomer} from '@/lib/server/customer-session';
 import {getDb} from '@/lib/server/db';
 import {profileSchema,consentVersion} from '@/lib/customer/validation';
 import {readShopBody,json,failure,ShopError} from '@/lib/server/shop-http';
-export async function POST(request:Request){try{
+async function handlePOST(request:Request){try{
  const input=await readShopBody(request,profileSchema,'customer-profile',2048),user=await optionalCustomer();if(!user)throw new ShopError('UNAUTHORIZED',401);
  await getDb().$transaction(async tx=>{
   await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id"=${user.id} FOR UPDATE`;
@@ -11,3 +12,5 @@ export async function POST(request:Request){try{
   await tx.user.update({where:{id:user.id},data:input});
  });return json({saved:true});
 }catch(e){return failure(e);}}
+
+export const POST=withBackendTrust(handlePOST);

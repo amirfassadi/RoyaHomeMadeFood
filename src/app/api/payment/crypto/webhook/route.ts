@@ -1,3 +1,4 @@
+import {withBackendTrust} from '@/lib/server/api-guard';
 import {z} from 'zod';
 import {validWebhook} from '@/lib/crypto-invoice';
 import {cryptoConfig} from '@/lib/server/international';
@@ -6,7 +7,7 @@ import {reconcileCrypto} from '@/lib/server/btcpay';
 import {json,failure,ShopError} from '@/lib/server/shop-http';
 export const runtime='nodejs';
 export const maxDuration=60;
-export async function POST(request:Request){try{
+async function handlePOST(request:Request){try{
  const c=cryptoConfig(false),reader=request.body?.getReader();if(!reader)throw new ShopError('INVALID');
  const chunks:Uint8Array[]=[];let size=0;
  for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>32768){await reader.cancel();throw new ShopError('INVALID',413);}chunks.push(value);}
@@ -19,3 +20,5 @@ export async function POST(request:Request){try{
  if(!p)return json({received:false},503);
  await reconcileCrypto(p.orderId);return json({received:true});
 }catch(e){return failure(e);}}
+
+export const POST=withBackendTrust(handlePOST);

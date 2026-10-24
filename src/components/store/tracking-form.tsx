@@ -6,8 +6,12 @@ import {Button,buttonClasses} from '@/components/ui/button';
 import {formatDate,formatNumber,formatToman} from '@/lib/format';
 import type {Locale} from '@/i18n/routing';
 import {trackingSchema} from '@/lib/validation/checkout';
+import {PrototypeTracking} from './prototype-tracking';
 type Tracked={amountUsdCents?:number;trackingCode:string;status:string;paymentStatus:string;paymentMethod:string;totalToman:number;estimatedDeliveryAt:string;items:{nameFa:string;nameEn:string;quantity:number;unit:string;lineTotalToman:number}[];history:{status:string;date:string}[];paymentUrl:string|null};
 export function TrackingForm({isDemo}:{isDemo:boolean}){
+ return isDemo?<PrototypeTracking/>:<LiveTrackingForm isDemo={false}/>;
+}
+function LiveTrackingForm({isDemo}:{isDemo:boolean}){
  const t=useTranslations('Shop'),unit=useTranslations('Catalog'),locale=useLocale() as Locale;
  const [result,setResult]=useState<Tracked|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const status=(s:string)=>t(s==='PENDING'?'PENDING':s);
