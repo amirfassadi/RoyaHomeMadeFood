@@ -42,8 +42,13 @@ class Policy(unittest.TestCase):
         self.assertEqual(hashlib.sha1(json.dumps(new['files'], sort_keys=True).encode()).hexdigest(), self.m.SOURCE_RELEASE)
         self.assertEqual(set(new['files']), set(old['target_files']))
         self.assertEqual({name for name, digest in new['files'].items() if old['target_files'][name] != digest}, {'package.json', 'package-lock.json'})
+        # The initial HTTPS manifest stays frozen; the installed content snapshot
+        # retains its package hashes when a later dependency upgrade is prepared.
+        installed = json.loads((root / 'deploy/private-domain-upgrade-base-manifest.json').read_text())
+        current = json.loads((root / 'deploy/private-domain-upgrade-manifest.json').read_text())
         for name in ('package.json', 'package-lock.json'):
-            self.assertEqual(hashlib.sha256((root / name).read_bytes()).hexdigest(), new['files'][name])
+            self.assertEqual(installed['files'][name], new['files'][name])
+            self.assertEqual(hashlib.sha256((root / name).read_bytes()).hexdigest(), current['files'][name])
         package = json.loads((root / 'package.json').read_text())
         lock = json.loads((root / 'package-lock.json').read_text())
         self.assertEqual(package['dependencies']['next'], '16.4.2')

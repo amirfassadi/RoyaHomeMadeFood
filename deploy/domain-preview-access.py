@@ -22,6 +22,7 @@ BACKUPS = '/var/backups/roya'
 SOURCES = {
     '3f6a74cef79ac602d6b9f34f57eca7ed0989a54d': '2ce213315171f1bba64211e27a8b46797d71bf96',
     '8f272a29a383ccc64b88964eea7e7dde0bd9db39': 'b417f463c203fc1986cbe2fb091fb59a6cb7c641',
+    '321f8929648c9fcf2bdcfda3e270352b0b9d2174': 'e500aeab698926995bbbb853e02851ecb694cc11',
 }
 DEPENDENCIES = ('domain-preview-access.py', 'connect-private-domain.py',
                 'enable-private-domain-tls.py', 'prepare-private-domain.py')

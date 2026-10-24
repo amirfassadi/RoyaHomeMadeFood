@@ -11,8 +11,8 @@ From a verified, pinned GitHub source download, run as `amir`:
 sudo python3 deploy/domain-preview-access.py --open
 ```
 
-This accepts the exact installed duration build `3f6a74c...` and content build
-`8f272a2...`. It changes only the recognized Roya domain Nginx configuration,
+This accepts the exact installed duration build `3f6a74c...`, content build
+`8f272a2...` and dependency update `321f892...`. It changes only the recognized Roya domain Nginx configuration,
 tests syntax, reloads Nginx and verifies anonymous HTTPS. It does not rebuild or
 restart the app, issue a certificate, change DNS, migrate/seed the database or
 change administrator credentials. Another deployment or an unknown configuration

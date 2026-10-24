@@ -25,14 +25,16 @@ def module():
 
 
 class Sources(unittest.TestCase):
-    def test_upgrade_manifest_matches_complete_sources_and_covers_bilingual_content_and_preserves_existing_business_rules(self):
+    def test_upgrade_manifest_pins_only_zod_and_its_regressions_and_preserves_business_rules(self):
         m = module()
         manifest = json.loads((ROOT / 'deploy/private-domain-upgrade-manifest.json').read_text())
         previous = json.loads((ROOT / 'deploy/private-domain-upgrade-base-manifest.json').read_text())
-        self.assertEqual(manifest['baseRelease'], '3f6a74cef79ac602d6b9f34f57eca7ed0989a54d')
-        self.assertEqual(m.release_id(), '8f272a29a383ccc64b88964eea7e7dde0bd9db39')
+        self.assertEqual(previous['sourceRelease'], 'b417f463c203fc1986cbe2fb091fb59a6cb7c641')
+        self.assertEqual(hashlib.sha1(json.dumps(previous['files'], sort_keys=True).encode()).hexdigest(), previous['sourceRelease'])
+        self.assertEqual(manifest['baseRelease'], '8f272a29a383ccc64b88964eea7e7dde0bd9db39')
+        self.assertEqual(m.release_id(), '321f8929648c9fcf2bdcfda3e270352b0b9d2174')
         changed = {n for n, digest in manifest['files'].items() if previous['files'].get(n) != digest}
-        self.assertEqual(changed, {'src/app/api/admin/settings/content/route.ts', 'scripts/test-admin-content.mjs', 'tests/integration/content.test.ts', 'src/app/[locale]/about/page.tsx', 'src/components/admin/shell.tsx', 'src/lib/server/contact-settings.ts', 'src/components/store/page-shell.tsx', 'tests/server/storefront-content.test.ts', 'src/lib/storefront-content.ts', 'src/lib/server/storefront-content.ts', 'src/app/admin/(protected)/content/page.tsx', 'src/components/admin/content-editor.tsx', 'tests/storefront-content.test.ts', 'src/components/store/footer.tsx', 'tests/browser/content-editor-fixture.tsx', 'src/app/[locale]/page.tsx', 'docs/ADMIN-CONTENT.md'})
+        self.assertEqual(changed, {'package.json', 'package-lock.json', 'tests/validation.test.ts'})
         for name, digest in manifest['files'].items():
             self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(), digest, name)
 
@@ -99,7 +101,7 @@ class UpgradeTransaction(old.Transaction):
             raise RuntimeError('Injected proxy verification failure')
 
     def test_success_then_guarded_rollback(self):
-        self.assertIn('PRIVATE CONTENT UPGRADE READY', self.install())
+        self.assertIn('PRIVATE DEPENDENCY UPGRADE READY', self.install())
         self.assertEqual(Path(self.m.base.NGINX).read_text(), self.original[self.m.base.NGINX])
         directory = self.backup()
         self.assertIn('--upgrade --rollback', (directory / 'restore.sh').read_text())
