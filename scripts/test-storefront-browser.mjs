@@ -103,7 +103,9 @@ try{
  const target=created[0],other=created.find(o=>o.details.country==='CA');
  await nav('tracking');await page.getByLabel('Tracking code',{exact:true}).fill(target.trackingCode);
  await page.getByLabel('Recipient mobile',{exact:true}).fill('09121111111');await page.getByRole('button',{name:'Find test order',exact:true}).click();await page.getByRole('alert').waitFor();
- await page.getByLabel('Recipient mobile',{exact:true}).fill('۰۹۱۲۳۴۵۶۷۸۹');await page.getByRole('button',{name:'Find test order',exact:true}).click();await page.getByText('Payment success simulated',{exact:true}).waitFor();
+ await page.getByLabel('Recipient mobile',{exact:true}).fill('۰۹۱۲۳۴۵۶۷۸۹');await page.getByRole('button',{name:'Find test order',exact:true}).click();
+ console.log('TRACKING LOOKUP FIXTURE: '+JSON.stringify({target:target.trackingCode,mobileMatches:target.details.mobile==='09123456789',visible:await page.locator('main').innerText()}));
+ await page.getByText('Payment success simulated',{exact:true}).waitFor();
  await nav('admin');
  const details=page.locator('details').filter({has:page.getByText(target.trackingCode,{exact:true})});await details.locator('summary').click();
  await details.getByRole('button',{name:'در حال آماده‌سازی (آزمایشی)',exact:true}).click();
