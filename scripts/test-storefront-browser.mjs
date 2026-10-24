@@ -104,6 +104,7 @@ try{
  await nav('tracking');await page.getByLabel('Tracking code',{exact:true}).fill(target.trackingCode);
  await page.getByLabel('Recipient mobile',{exact:true}).fill('09121111111');await page.getByRole('button',{name:'Find test order',exact:true}).click();await page.getByRole('alert').waitFor();
  await page.getByLabel('Recipient mobile',{exact:true}).fill('۰۹۱۲۳۴۵۶۷۸۹');await page.getByRole('button',{name:'Find test order',exact:true}).click();
+ console.log('TRACKING_LOOKUP_DIAGNOSTIC '+JSON.stringify({target,storedTarget:(await saved()).find(o=>o.id===target.id),storedCount:(await saved()).length,lookupCode:await page.getByLabel('Tracking code',{exact:true}).inputValue(),lookupMobile:await page.getByLabel('Recipient mobile',{exact:true}).inputValue()}));
  await page.getByText('Payment success simulated',{exact:true}).first().waitFor();
  await nav('admin');
  const details=page.locator('details').filter({has:page.getByText(target.trackingCode,{exact:true})});await details.locator('summary').click();
