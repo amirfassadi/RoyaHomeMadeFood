@@ -181,7 +181,7 @@ class Access(unittest.TestCase):
         self.assertEqual(self.m.release_id(), release)
 
     def test_tracking_release_is_supported_with_the_existing_access_guards(self):
-        release = '6e5669e0d5add140ff60cd6164f94673143582b1'
+        release = 'e13824b5061e745a4e4ac28bf8e7a9e128f3a3f1'
         target = self.map(self.m.RELEASE_ROOT, release)
         target.mkdir()
         (target / '.roya-release').write_text(release + '\n')

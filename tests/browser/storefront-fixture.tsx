@@ -24,7 +24,7 @@ const catalog={...demoCatalog,products:[{...demoCatalog.products[3],id:'fixture-
 function Fixture(){
  const [view,setView]=useState('cart'),cart=useCart();
  return <main className="mx-auto max-w-6xl p-4"><nav className="mb-5 flex flex-wrap gap-3" aria-label="Fixture navigation">{['cart','checkout','tracking','admin'].map(v=><button type="button" key={v} onClick={()=>setView(v)} className="min-h-11 rounded border p-2">{'FIXTURE '+v}</button>)}<button type="button" className="min-h-11 rounded border p-2" onClick={()=>cart.add('fixture-kg',0.5)}>FIXTURE add half kg</button><button type="button" className="min-h-11 rounded border p-2" onClick={()=>cart.add('fixture-limited',1)}>FIXTURE add limited</button></nav>
-  {view==='cart'?<><CountrySelect id="fixture-country"/><div className="mt-5"><CartPage/></div></>:view==='checkout'?<PrototypeCheckout/>:view==='tracking'?<PrototypeTracking/>:<PrototypeOrders/>}
+  {view==='cart'?<PricingProvider><CountrySelect id="fixture-country"/><div className="mt-5"><CartPage/></div></PricingProvider>:view==='checkout'?<PricingProvider><PrototypeCheckout/></PricingProvider>:view==='tracking'?<PrototypeTracking/>:<PrototypeOrders/>}
  </main>;
 }
-createRoot(document.getElementById('root')!).render(<NextIntlClientProvider locale={locale} messages={locale==='fa'?fa:en}><CartProvider catalog={catalog}><PrototypeRegionProvider isDemo><PricingProvider><Fixture/></PricingProvider></PrototypeRegionProvider></CartProvider></NextIntlClientProvider>);
+createRoot(document.getElementById('root')!).render(<NextIntlClientProvider locale={locale} messages={locale==='fa'?fa:en}><CartProvider catalog={catalog}><PrototypeRegionProvider isDemo><Fixture/></PrototypeRegionProvider></CartProvider></NextIntlClientProvider>);

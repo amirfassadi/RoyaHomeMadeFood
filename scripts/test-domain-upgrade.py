@@ -32,7 +32,7 @@ class Sources(unittest.TestCase):
         self.assertEqual(previous['sourceRelease'], 'e500aeab698926995bbbb853e02851ecb694cc11')
         self.assertEqual(hashlib.sha1(json.dumps(previous['files'], sort_keys=True).encode()).hexdigest(), previous['sourceRelease'])
         self.assertEqual(manifest['baseRelease'], '321f8929648c9fcf2bdcfda3e270352b0b9d2174')
-        self.assertEqual(m.release_id(), '6e5669e0d5add140ff60cd6164f94673143582b1')
+        self.assertEqual(m.release_id(), 'e13824b5061e745a4e4ac28bf8e7a9e128f3a3f1')
         changed = {n for n, digest in manifest['files'].items() if previous['files'].get(n) != digest}
         self.assertEqual(changed, {'tests/browser/storefront-navigation.ts', 'src/components/store/prototype-mobile-recovery.tsx', 'src/components/store/prototype-tracking.tsx', 'tests/browser/storefront-fixture.tsx', 'tests/prototype-recovery.test.ts', 'src/lib/prototype-recovery.ts'})
         for name, digest in manifest['files'].items():

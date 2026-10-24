@@ -104,8 +104,7 @@ try{
  await nav('tracking');await page.getByLabel('Tracking code',{exact:true}).fill(target.trackingCode);
  await page.getByLabel('Recipient mobile',{exact:true}).fill('09121111111');await page.getByRole('button',{name:'Find test order',exact:true}).click();await page.getByRole('alert').waitFor();
  await page.getByLabel('Recipient mobile',{exact:true}).fill('۰۹۱۲۳۴۵۶۷۸۹');await page.getByRole('button',{name:'Find test order',exact:true}).click();
- console.log('TRACKING LOOKUP FIXTURE: '+JSON.stringify({target:target.trackingCode,mobileMatches:target.details.mobile==='09123456789',visible:await page.locator('main').innerText()}));
- await page.getByText('Payment success simulated',{exact:true}).waitFor();
+ await page.getByText('Payment success simulated',{exact:true}).first().waitFor();
  await nav('admin');
  const details=page.locator('details').filter({has:page.getByText(target.trackingCode,{exact:true})});await details.locator('summary').click();
  await details.getByRole('button',{name:'در حال آماده‌سازی (آزمایشی)',exact:true}).click();
@@ -136,7 +135,7 @@ try{
  await page.clock.fastForward(61*1000);await page.getByRole('button',{name:'New test code',exact:true}).click();
  const viewingCode=await page.getByLabel('Displayed test code',{exact:true}).innerText();await page.getByLabel('Test verification code',{exact:true}).fill(viewingCode);await page.getByRole('button',{name:'Verify test code',exact:true}).click();
  await page.getByRole('heading',{name:'Sample orders for this mobile',exact:true}).waitFor();await page.clock.fastForward(10*60*1000+1000);await page.getByText('Viewing access expired. Verify the mobile again.',{exact:true}).waitFor();assert.equal(await page.getByRole('heading',{name:'Sample orders for this mobile',exact:true}).count(),0);
- assert(expiredCode.length===6);await page.clock.resume();
+ assert(expiredCode.length===6);await page.clock.setSystemTime(new Date());await page.clock.resume();
  await page.setViewportSize({width:375,height:812});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'English tracking overflows mobile.');
  await page.goto(origin+'/fixture/?locale=fa');await nav('tracking');await page.getByRole('button',{name:'کد پیگیری را ندارم',exact:true}).click();await page.getByLabel('موبایل ثبت‌شده در سفارش',{exact:true}).fill('09123456789');await page.getByRole('button',{name:'نمایش کد آزمایشی',exact:true}).click();
