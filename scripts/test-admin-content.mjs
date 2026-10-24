@@ -18,8 +18,8 @@ const styles=(await Promise.all((await readdir(stylesDirectory)).filter(name=>na
 assert(styles.length>1000,'Build the application before the browser form test.');
 let document=defaultContentDocument(),writes=[],loseResponse=false,phase='setup';
 const server=createServer(async(request,response)=>{
-  if(request.url==='/fixture.js'){response.setHeader('Content-Type','text/javascript');response.end(bundle.outputFiles[0].contents);return;}
-  if(request.url==='/fixture.css'){response.setHeader('Content-Type','text/css');response.end(styles);return;}
+  if(request.url==='/fixture.js'){response.setHeader('Content-Type','text/javascript; charset=utf-8');response.end(bundle.outputFiles[0].contents);return;}
+  if(request.url==='/fixture.css'){response.setHeader('Content-Type','text/css; charset=utf-8');response.end(styles);return;}
   if(request.url==='/api/admin/settings/content/'){
     response.setHeader('Content-Type','application/json');
     if(request.method==='GET'){response.end(JSON.stringify({document}));return;}
@@ -34,7 +34,7 @@ const server=createServer(async(request,response)=>{
       response.end(JSON.stringify({document}));return;
     }
   }
-  if(request.url.startsWith('/fixture/')){response.setHeader('Content-Type','text/html');response.end('<!doctype html><html lang="fa" dir="rtl"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body><div id="root"></div><script src="/fixture.js"></script></body></html>');return;}
+  if(request.url.startsWith('/fixture/')){response.setHeader('Content-Type','text/html; charset=utf-8');response.end('<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body><div id="root"></div><script src="/fixture.js"></script></body></html>');return;}
   response.statusCode=404;response.end();
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));

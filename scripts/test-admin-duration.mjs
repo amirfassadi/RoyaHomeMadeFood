@@ -19,14 +19,14 @@ const styles=(await Promise.all((await readdir(styleDirectory)).filter(n=>n.ends
 assert(styles.length>1000,'Build the application before the browser form test.');
 let received=[];
 const server=createServer(async(req,res)=>{
- if(req.url==='/fixture.js'){res.setHeader('Content-Type','text/javascript');res.end(bundle.outputFiles[0].contents);return;}
- if(req.url==='/fixture.css'){res.setHeader('Content-Type','text/css');res.end(styles);return;}
+ if(req.url==='/fixture.js'){res.setHeader('Content-Type','text/javascript; charset=utf-8');res.end(bundle.outputFiles[0].contents);return;}
+ if(req.url==='/fixture.css'){res.setHeader('Content-Type','text/css; charset=utf-8');res.end(styles);return;}
  if(req.url==='/api/admin/products'&&req.method==='POST'){
   const chunks=[];for await(const part of req)chunks.push(part);
   received.push(JSON.parse(Buffer.concat(chunks).toString()));
   res.setHeader('Content-Type','application/json');res.end('{"ok":true}');return;
  }
- if(req.url.startsWith('/fixture/')){res.setHeader('Content-Type','text/html');res.end('<!doctype html><html lang="fa" dir="rtl"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body><div id="root"></div><script src="/fixture.js"></script></body></html>');return;}
+ if(req.url.startsWith('/fixture/')){res.setHeader('Content-Type','text/html; charset=utf-8');res.end('<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body><div id="root"></div><script src="/fixture.js"></script></body></html>');return;}
  res.statusCode=404;res.end();
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));

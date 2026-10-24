@@ -5,26 +5,21 @@ import {createServer} from 'node:http';
 import {readFile,readdir} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
-import {resolve,dirname} from 'node:path';
+import {resolve} from 'node:path';
 import {build} from 'esbuild';
 const require=createRequire(import.meta.url),{chromium}=require(process.env.ROYA_TEST_BROWSER_MODULE||'playwright');
 const root=fileURLToPath(new URL('../',import.meta.url));
 const bundle=await build({entryPoints:[resolve(root,'tests/browser/storefront-fixture.tsx')],bundle:true,write:false,platform:'browser',format:'iife',jsx:'automatic',minify:true,
- alias:{'next/navigation':resolve(root,'tests/browser/storefront-navigation.ts')},define:{'process.env':'{}','process.env.NODE_ENV':'"production"','process.env.__NEXT_IMAGE_OPTS':JSON.stringify(require('next/dist/shared/lib/image-config').imageConfigDefault)},
- plugins:[{name:'tracking-diagnostic',setup(builder){builder.onLoad({filter:/prototype-tracking\.tsx$/},async args=>{
-  const source=await readFile(args.path,'utf8'),anchor='setSelected(found?.id??null);setError(found?';
-  assert(source.includes(anchor));
-  return {loader:'tsx',resolveDir:dirname(args.path),contents:source.replace(anchor,"console.log('TRACKING_REACT_DIAGNOSTIC '+JSON.stringify({code,mobile,parsed,orders:orders.map(o=>({id:o.id,code:o.trackingCode,mobile:o.details.mobile})),found:found?.id}));"+anchor)};
- });}}]});
+ alias:{'next/navigation':resolve(root,'tests/browser/storefront-navigation.ts')},define:{'process.env':'{}','process.env.NODE_ENV':'"production"','process.env.__NEXT_IMAGE_OPTS':JSON.stringify(require('next/dist/shared/lib/image-config').imageConfigDefault)}});
 const directory=resolve(root,'.next/static/chunks');
 const styles=(await Promise.all((await readdir(directory)).filter(n=>n.endsWith('.css')).map(n=>readFile(resolve(directory,n),'utf8')))).join('\n');
 assert(styles.length>1000,'Build the application first.');
 const writes=[];
 const server=createServer(async(req,res)=>{
  if(req.method!=='GET'){writes.push(req.method+' '+req.url);res.writeHead(503);res.end();return;}
- if(req.url==='/fixture.js'){res.setHeader('Content-Type','text/javascript');res.end(bundle.outputFiles[0].contents);return;}
- if(req.url==='/fixture.css'){res.setHeader('Content-Type','text/css');res.end(styles);return;}
- if(req.url.startsWith('/fixture/')){res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body><div id="root"></div><script src="/fixture.js"></script></body></html>');return;}
+ if(req.url==='/fixture.js'){res.setHeader('Content-Type','text/javascript; charset=utf-8');res.end(bundle.outputFiles[0].contents);return;}
+ if(req.url==='/fixture.css'){res.setHeader('Content-Type','text/css; charset=utf-8');res.end(styles);return;}
+ if(req.url.startsWith('/fixture/')){res.setHeader('Content-Type','text/html; charset=utf-8');res.end('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body><div id="root"></div><script src="/fixture.js"></script></body></html>');return;}
  res.writeHead(404);res.end();
 });
 await new Promise(done=>server.listen(0,'127.0.0.1',done));
@@ -34,11 +29,11 @@ try{
  browser=await chromium.launch({headless:true,...(process.env.ROYA_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.ROYA_TEST_BROWSER_EXECUTABLE}:{}),args:['--no-sandbox','--disable-dev-shm-usage']});
  const page=await browser.newPage({viewport:{width:1280,height:900}}),errors=[],external=[];
  page.setDefaultTimeout(10000);page.on('pageerror',e=>{errors.push(e.message);console.error('STOREFRONT_FIXTURE_ERROR: '+e.message);});
- page.on('console',message=>{if(message.text().startsWith('TRACKING_REACT_DIAGNOSTIC '))console.log(message.text());});
  await page.route('**/*',route=>{if(route.request().url().startsWith(origin+'/'))return route.continue();external.push(route.request().url());return route.abort();});
  const nav=view=>page.getByRole('button',{name:'FIXTURE '+view,exact:true}).click();
  const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('roya-prototype-orders-v1')||'[]'));
  await page.goto(origin+'/fixture/?locale=en');
+ assert.equal(await page.evaluate(()=>document.characterSet),'UTF-8');
  await page.getByRole('button',{name:'FIXTURE add half kg',exact:true}).click();
  let row=page.getByRole('article').filter({hasText:'Test cold cuts'});
  await row.getByRole('button',{name:'Increase quantity'}).click();
@@ -110,7 +105,6 @@ try{
  await nav('tracking');await page.getByLabel('Tracking code',{exact:true}).fill(target.trackingCode);
  await page.getByLabel('Recipient mobile',{exact:true}).fill('09121111111');await page.getByRole('button',{name:'Find test order',exact:true}).click();await page.getByRole('alert').waitFor();
  await page.getByLabel('Recipient mobile',{exact:true}).fill('۰۹۱۲۳۴۵۶۷۸۹');await page.getByRole('button',{name:'Find test order',exact:true}).click();
- console.log('TRACKING_LOOKUP_DIAGNOSTIC '+JSON.stringify({target,storedTarget:(await saved()).find(o=>o.id===target.id),storedCount:(await saved()).length,lookupCode:await page.getByLabel('Tracking code',{exact:true}).inputValue(),lookupMobile:await page.getByLabel('Recipient mobile',{exact:true}).inputValue()}));
  await page.getByText('Payment success simulated',{exact:true}).first().waitFor();
  await nav('admin');
  const details=page.locator('details').filter({has:page.getByText(target.trackingCode,{exact:true})});await details.locator('summary').click();
