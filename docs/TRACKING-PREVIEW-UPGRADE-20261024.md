@@ -5,9 +5,9 @@ This update adds an optional, explicitly simulated mobile-verification path to t
 ## Exact deployment edge
 
 - Required installed runtime: `321f8929648c9fcf2bdcfda3e270352b0b9d2174`.
-- New source fingerprint: `1caeeca059c0440ff91cfc89ced0e8971c828b02`.
-- New runtime: `e13824b5061e745a4e4ac28bf8e7a9e128f3a3f1`.
-- The 244-file selected application changes six files: the tracking component, the new demo recovery component/helper, its unit tests and two isolated browser fixture files. Package versions, database schema, business data, account/SMS/provider code and payment rules are unchanged.
+- New source fingerprint: `de140c00ce01ab9912c9b2c3c51f857f0aa33de9`.
+- New runtime: `a0b38ea170bc2506804a865e46bf1c7e0506037e`.
+- The 244-file selected application changes eight files: the tracking component, the new demo recovery component/helper, its unit tests, two isolated browser fixture files and UTF-8 declarations in the existing two administrator browser test servers. Package versions, database schema, business data, account/SMS/provider code and payment rules are unchanged.
 - The installer preserves the existing anonymous test-preview or private gate profile, administrator protection and all disabled-live-effect flags. It compacts only redundant build files in the new candidate under `/home/amir/roya-setup`.
 
 After the pinned source/archive and CI are verified, run the existing `deploy/upgrade-private-domain.sh` as `amir`. It refuses a different installed base or modified source, builds/tests a separate candidate, creates its configuration backup and prints the exact guarded rollback command. That backup returns to runtime `321f892` and the captured access profile. Do not run a historical rollback against a later deployment.

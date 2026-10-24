@@ -45,7 +45,7 @@ PUBLIC_MARKER = 'public-preview-v1'
 def configure_upgrade():
     global UPGRADING, SOURCE_RELEASE
     m = json.loads(Path(__file__).with_name('private-domain-upgrade-manifest.json').read_text())
-    source = '1caeeca059c0440ff91cfc89ced0e8971c828b02'
+    source = 'de140c00ce01ab9912c9b2c3c51f857f0aa33de9'
     previous = '321f8929648c9fcf2bdcfda3e270352b0b9d2174'
     if (m.get('format') != 1 or m.get('origin') != ORIGIN or m.get('baseRelease') != previous
             or m.get('sourceRelease') != source

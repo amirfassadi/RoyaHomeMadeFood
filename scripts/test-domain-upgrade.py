@@ -32,9 +32,9 @@ class Sources(unittest.TestCase):
         self.assertEqual(previous['sourceRelease'], 'e500aeab698926995bbbb853e02851ecb694cc11')
         self.assertEqual(hashlib.sha1(json.dumps(previous['files'], sort_keys=True).encode()).hexdigest(), previous['sourceRelease'])
         self.assertEqual(manifest['baseRelease'], '321f8929648c9fcf2bdcfda3e270352b0b9d2174')
-        self.assertEqual(m.release_id(), 'e13824b5061e745a4e4ac28bf8e7a9e128f3a3f1')
+        self.assertEqual(m.release_id(), 'a0b38ea170bc2506804a865e46bf1c7e0506037e')
         changed = {n for n, digest in manifest['files'].items() if previous['files'].get(n) != digest}
-        self.assertEqual(changed, {'tests/browser/storefront-navigation.ts', 'src/components/store/prototype-mobile-recovery.tsx', 'src/components/store/prototype-tracking.tsx', 'tests/browser/storefront-fixture.tsx', 'tests/prototype-recovery.test.ts', 'src/lib/prototype-recovery.ts'})
+        self.assertEqual(changed, {'tests/browser/storefront-navigation.ts', 'src/components/store/prototype-mobile-recovery.tsx', 'src/components/store/prototype-tracking.tsx', 'tests/browser/storefront-fixture.tsx', 'tests/prototype-recovery.test.ts', 'src/lib/prototype-recovery.ts', 'scripts/test-admin-duration.mjs', 'scripts/test-admin-content.mjs'})
         for name, digest in manifest['files'].items():
             self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(), digest, name)
 
