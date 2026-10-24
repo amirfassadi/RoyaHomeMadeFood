@@ -10,7 +10,7 @@ import {build} from 'esbuild';
 const require=createRequire(import.meta.url),{chromium}=require(process.env.ROYA_TEST_BROWSER_MODULE||'playwright');
 const root=fileURLToPath(new URL('../',import.meta.url));
 const bundle=await build({entryPoints:[resolve(root,'tests/browser/storefront-fixture.tsx')],bundle:true,write:false,platform:'browser',format:'iife',jsx:'automatic',minify:true,
- alias:{'next/navigation':resolve(root,'tests/browser/storefront-navigation.ts')},define:{'process.env.NODE_ENV':'"production"','process.env.__NEXT_IMAGE_OPTS':JSON.stringify(require('next/dist/shared/lib/image-config').imageConfigDefault)}});
+ alias:{'next/navigation':resolve(root,'tests/browser/storefront-navigation.ts')},define:{'process.env':'{}','process.env.NODE_ENV':'"production"','process.env.__NEXT_IMAGE_OPTS':JSON.stringify(require('next/dist/shared/lib/image-config').imageConfigDefault)}});
 const directory=resolve(root,'.next/static/chunks');
 const styles=(await Promise.all((await readdir(directory)).filter(n=>n.endsWith('.css')).map(n=>readFile(resolve(directory,n),'utf8')))).join('\n');
 assert(styles.length>1000,'Build the application first.');
@@ -28,7 +28,7 @@ let browser;
 try{
  browser=await chromium.launch({headless:true,...(process.env.ROYA_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.ROYA_TEST_BROWSER_EXECUTABLE}:{}),args:['--no-sandbox','--disable-dev-shm-usage']});
  const page=await browser.newPage({viewport:{width:1280,height:900}}),errors=[],external=[];
- page.setDefaultTimeout(10000);page.on('pageerror',e=>errors.push(e.message));
+ page.setDefaultTimeout(10000);page.on('pageerror',e=>{errors.push(e.message);console.error('STOREFRONT_FIXTURE_ERROR: '+e.message);});
  await page.route('**/*',route=>{if(route.request().url().startsWith(origin+'/'))return route.continue();external.push(route.request().url());return route.abort();});
  const nav=view=>page.getByRole('button',{name:'FIXTURE '+view,exact:true}).click();
  const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('roya-prototype-orders-v1')||'[]'));
