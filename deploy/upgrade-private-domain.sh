@@ -17,7 +17,7 @@ from pathlib import Path, PurePosixPath
 import hashlib,json,shutil,sys
 root,destination=map(Path,sys.argv[1:])
 m=json.loads((root/'deploy/private-domain-upgrade-manifest.json').read_text())
-if m['format']!=1 or m['baseRelease']!='321f8929648c9fcf2bdcfda3e270352b0b9d2174' or m['sourceRelease']!='de140c00ce01ab9912c9b2c3c51f857f0aa33de9' or m['origin']!='https://royahealthyfood.ir' or hashlib.sha1(json.dumps(m['files'],sort_keys=True).encode()).hexdigest()!=m['sourceRelease']:
+if m['format']!=1 or m['baseRelease']!='321f8929648c9fcf2bdcfda3e270352b0b9d2174' or m['sourceRelease']!='daaad0f432a44df749a00fb1f0fc09ec90307c03' or m['origin']!='https://royahealthyfood.ir' or hashlib.sha1(json.dumps(m['files'],sort_keys=True).encode()).hexdigest()!=m['sourceRelease']:
     raise SystemExit('STOP: unexpected private source manifest.')
 for name,digest in m['files'].items():
     path=PurePosixPath(name);p=root/name
@@ -27,7 +27,7 @@ for name,digest in m['files'].items():
 origin='https://royahealthyfood.ir'
 release=hashlib.sha1(('roya-private-domain-v1\n'+m['sourceRelease']+'\n'+origin).encode()).hexdigest()
 (destination/'.roya-origin.json').write_text(json.dumps({'release':release,'sourceRelease':m['sourceRelease'],'origin':origin},sort_keys=True))
-print('Verified simulated tracking upgrade source; running application and private gate are unchanged.')
+print('Verified finalization upgrade source; running application and private gate are unchanged.')
 PREPARE
 cd "$candidate"
 unset DATABASE_URL DIRECT_URL NEXTAUTH_SECRET NEXTAUTH_URL_INTERNAL ROYA_BACKEND_URL SITES_STATIC_PREVIEW

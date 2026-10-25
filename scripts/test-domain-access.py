@@ -181,7 +181,7 @@ class Access(unittest.TestCase):
         self.assertEqual(self.m.release_id(), release)
 
     def test_tracking_release_is_supported_with_the_existing_access_guards(self):
-        release = 'a0b38ea170bc2506804a865e46bf1c7e0506037e'
+        release = 'b7c803d9888b6ca9d46b3a382900f136b63865f1'
         target = self.map(self.m.RELEASE_ROOT, release)
         target.mkdir()
         (target / '.roya-release').write_text(release + '\n')
@@ -272,7 +272,7 @@ class PublicUpgrade(unittest.TestCase):
         self.c.stack.enter_context(patch.object(m.getpass, 'getpass', side_effect=AssertionError('Public preview must not ask for the old gate password.')))
 
     def test_upgrade_and_rollback_preserve_anonymous_access_without_password_prompt(self):
-        self.assertIn('PUBLIC PREVIEW TRACKING UPGRADE READY', self.c.install())
+        self.assertIn('PUBLIC PREVIEW FINALIZATION UPGRADE READY', self.c.install())
         m = self.c.m
         self.assertTrue(m.PUBLIC_PREVIEW)
         with redirect_stdout(io.StringIO()):

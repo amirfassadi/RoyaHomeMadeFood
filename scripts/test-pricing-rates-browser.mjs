@@ -11,10 +11,13 @@ import {pricingPolicyEditSchema,FX_SCALE} from '../src/lib/pricing.ts';
 const require=createRequire(import.meta.url),{chromium}=require(process.env.ROYA_TEST_BROWSER_MODULE||'playwright');
 const root=fileURLToPath(new URL('../',import.meta.url));
 const bundle=await build({entryPoints:[resolve(root,'tests/browser/pricing-rates-fixture.tsx')],bundle:true,write:false,platform:'browser',format:'iife',jsx:'automatic',minify:true,
+  alias:{'next/navigation':resolve(root,'tests/browser/storefront-navigation.ts')},
   define:{'process.env':'{}','process.env.NODE_ENV':'"production"'}});
 const directory=resolve(root,'.next/static/chunks');
 const styles=(await Promise.all((await readdir(directory)).filter(n=>n.endsWith('.css')).map(n=>readFile(resolve(directory,n),'utf8')))).join('\n');
 assert(styles.length>1000,'Build the application before the browser test.');
+const media=resolve(root,'.next/static/media');
+const fonts=new Map(await Promise.all((await readdir(media)).filter(n=>n.endsWith('.woff2')).map(async n=>['/media/'+n,await readFile(resolve(media,n))])));
 const base=Date.now(),asOf=new Date(base).toISOString(),date=asOf.slice(0,10);
 function freshFeed(toman=250000){const rates={fetchedAt:asOf,usdtTomanMicros:toman*FX_SCALE,usdTomanMicros:toman*FX_SCALE,usdtPerUsdMicros:FX_SCALE,fxMeta:{provider:'currency-api',date,mirror:'jsdelivr'},unitsPerUsd:{USD:FX_SCALE,EUR:800000,GBP:700000,AED:3672500,TRY:50000000,CAD:1400000}};
   return {schemaVersion:2,rates,tether:{fetchedAt:asOf,usdtTomanMicros:rates.usdtTomanMicros},fx:{fetchedAt:asOf,usdtPerUsdMicros:rates.usdtPerUsdMicros,unitsPerUsd:rates.unitsPerUsd,fxMeta:rates.fxMeta},sources:{nobitex:{state:'fresh',fetchedAt:asOf,refreshFailed:false},fx:{state:'fresh',fetchedAt:asOf,refreshFailed:false}}};}
@@ -26,6 +29,7 @@ const server=createServer(async(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   if(req.url==='/fixture.js'){res.setHeader('Content-Type','text/javascript; charset=utf-8');res.end(bundle.outputFiles[0].contents);return;}
   if(req.url==='/fixture.css'){res.setHeader('Content-Type','text/css; charset=utf-8');res.end(styles);return;}
+  if(req.method==='GET'&&fonts.has(req.url)){res.setHeader('Content-Type','font/woff2');res.end(fonts.get(req.url));return;}
   if(req.method==='GET'&&req.url==='/api/shop/rates/'){res.setHeader('Content-Type','application/json; charset=utf-8');res.statusCode=feed.rates?200:503;res.end(JSON.stringify(feed));return;}
   if(req.method==='GET'&&req.url==='/api/shop/pricing/'){res.setHeader('Content-Type','application/json; charset=utf-8');res.statusCode=readDown?503:200;res.end(JSON.stringify(readDown?{error:'UNAVAILABLE'}:responsePolicy()));return;}
   if(req.method==='POST'&&req.url==='/api/admin/settings/pricing/'){
@@ -47,7 +51,7 @@ const check=value=>{phase=value;console.log('PRICING/RATES CHECK:',value);};
 try{
   browser=await chromium.launch({headless:true,...(process.env.ROYA_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.ROYA_TEST_BROWSER_EXECUTABLE}:{}),args:['--no-sandbox','--disable-dev-shm-usage']});
   const context=await browser.newContext({viewport:{width:1280,height:900}});
-  context.on('page',p=>{p.setDefaultTimeout(10000);p.on('pageerror',e=>errors.push(e.message));});
+  context.on('page',p=>{p.setDefaultTimeout(10000);p.on('pageerror',e=>{errors.push(e.message);console.error('PRICING/RATES PAGE ERROR:',e.message);});});
   await context.route('**/*',route=>{if(route.request().url().startsWith(origin+'/'))return route.continue();external.push(route.request().url());return route.abort();});
   const page=await context.newPage();await page.clock.install({time:new Date(base)});
   await page.goto(origin+'/fixture/?country=DE&locale=en');
@@ -95,7 +99,7 @@ try{
   const uncertainWrites=writes.length;await reload.click();await admin.getByRole('alert').waitFor({state:'detached'});assert.equal(writes.length,uncertainWrites);assert.equal(await fee.inputValue(),'9.25');
   await manual.fill('');await tr.fill('');await save.click();await admin.getByText('سیاست قیمت‌گذاری فروشگاه ذخیره شد.',{exact:true}).waitFor();assert.equal(policy.manualUsdToman,null);assert.equal('TR' in policy.countryFees,false);
   await page.waitForFunction(()=>JSON.parse(document.querySelector('[data-testid=pricing-state]').textContent).policy.manualUsdToman===null);await page.getByText('USD derived from Tether',{exact:true}).waitFor();
-  await admin.setViewportSize({width:375,height:812});assert(await admin.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await admin.evaluate(()=>document.fonts.ready);await admin.setViewportSize({width:375,height:812});assert(await admin.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   check('invalid fees, read outage, expired-session response, uncertain committed save recovery and automatic USD');
 
   feed={...feed,rates:null,fx:null,sources:{...feed.sources,fx:{state:'unavailable',fetchedAt:null,refreshFailed:true}}};
@@ -118,7 +122,7 @@ try{
   await page.clock.fastForward(11*60*1000);await page.getByText('Invoice expired',{exact:true}).waitFor();assert.equal((await saved())[0].paymentState,'EXPIRED');assert.deepEqual((await saved())[0].quote,expiring.quote);assert.equal(JSON.stringify((await saved())[1]),frozen);
   check('pending invoice expires without altering its quote or earlier paid invoice');
   await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'FIXTURE rates',exact:true}).click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await page.goto(origin+'/fixture/?country=DE&locale=fa');await page.getByText('نرخ ارز و قیمت خرید شما',{exact:true}).waitFor();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.goto(origin+'/fixture/?country=DE&locale=fa');await page.getByText('نرخ ارز و قیمت خرید شما',{exact:true}).waitFor();await page.evaluate(()=>document.fonts.ready);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert.deepEqual(errors,[]);assert.deepEqual(external,[]);assert.deepEqual(unexpected,[]);
   console.log('PRICING FORM BROWSER PASS: unsaved drafts, real two-tab updates, version conflicts, manual/default/country fees, invalid input, read/session failures and uncertain-save recovery. Mock loopback HTTP complements existing real PostgreSQL tests.');
   console.log('RATE SAFETY BROWSER PASS: explicit provenance, Persian converter, partial outage and stale checkout guard, original cache age, opt-in sample/reload, frozen paid invoice, pending expiry and FA/EN mobile. No market/provider/VPS requests or real orders/payments/SMS.');

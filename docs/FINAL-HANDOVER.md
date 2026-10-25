@@ -21,7 +21,7 @@
 ## نسخه و مسیرهای ثبت‌شده
 
 - آخرین runtime نصب‌شدهٔ تأییدشده: `321f8929648c9fcf2bdcfda3e270352b0b9d2174`.
-- ارتقای پیگیری آماده: `a0b38ea170bc2506804a865e46bf1c7e0506037e`؛ تا خروجی نصب و خواندن marker دریافت نشود، آن را نصب‌شده نخوانید. راهنمای آن [TRACKING-PREVIEW-UPGRADE](TRACKING-PREVIEW-UPGRADE-20261024.md) است. تغییر صرف تست/مستندات به نصب دوباره نیاز ندارد.
+- ارتقای نهایی آزمایشی آماده: `b7c803d9888b6ca9d46b3a382900f136b63865f1`؛ تا خروجی نصب و خواندن marker دریافت نشود، آن را نصب‌شده نخوانید. راهنمای آن [FINALIZATION-20261025](FINALIZATION-20261025.md) است. تغییر صرف تست/مستندات به نصب دوباره نیاز ندارد.
 - سرویس: `roya-preview.service`؛ Node برنامه روی `127.0.0.1:3311`، پشت Nginx و HTTPS دامنه.
 - کد نصب‌شده: `/opt/roya/preview-current`؛ marker: `/opt/roya/preview-current/.roya-release`؛ releaseهای قبلی در `/opt/roya/preview-releases`.
 - سورس/ساخت‌های اپراتور: `/home/amir/roya-setup`؛ مخزن و چک‌لیست مشترک: [GitHub](https://github.com/amirfassadi/RoyaHomeMadeFood/blob/vps-private-preview/roya-vps-checklist.md)، PR پیش‌نویس ۱.

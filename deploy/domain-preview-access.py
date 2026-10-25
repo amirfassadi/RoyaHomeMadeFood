@@ -24,6 +24,7 @@ SOURCES = {
     '8f272a29a383ccc64b88964eea7e7dde0bd9db39': 'b417f463c203fc1986cbe2fb091fb59a6cb7c641',
     '321f8929648c9fcf2bdcfda3e270352b0b9d2174': 'e500aeab698926995bbbb853e02851ecb694cc11',
     'a0b38ea170bc2506804a865e46bf1c7e0506037e': 'de140c00ce01ab9912c9b2c3c51f857f0aa33de9',
+    'b7c803d9888b6ca9d46b3a382900f136b63865f1': 'daaad0f432a44df749a00fb1f0fc09ec90307c03',
 }
 DEPENDENCIES = ('domain-preview-access.py', 'connect-private-domain.py',
                 'enable-private-domain-tls.py', 'prepare-private-domain.py')

@@ -25,16 +25,16 @@ def module():
 
 
 class Sources(unittest.TestCase):
-    def test_upgrade_manifest_adds_only_browser_tracking_recovery_and_regressions(self):
+    def test_upgrade_manifest_adds_tracking_recovery_and_fast_uri_patch(self):
         m = module()
         manifest = json.loads((ROOT / 'deploy/private-domain-upgrade-manifest.json').read_text())
         previous = json.loads((ROOT / 'deploy/private-domain-upgrade-base-manifest.json').read_text())
         self.assertEqual(previous['sourceRelease'], 'e500aeab698926995bbbb853e02851ecb694cc11')
         self.assertEqual(hashlib.sha1(json.dumps(previous['files'], sort_keys=True).encode()).hexdigest(), previous['sourceRelease'])
         self.assertEqual(manifest['baseRelease'], '321f8929648c9fcf2bdcfda3e270352b0b9d2174')
-        self.assertEqual(m.release_id(), 'a0b38ea170bc2506804a865e46bf1c7e0506037e')
+        self.assertEqual(m.release_id(), 'b7c803d9888b6ca9d46b3a382900f136b63865f1')
         changed = {n for n, digest in manifest['files'].items() if previous['files'].get(n) != digest}
-        self.assertEqual(changed, {'tests/browser/storefront-navigation.ts', 'src/components/store/prototype-mobile-recovery.tsx', 'src/components/store/prototype-tracking.tsx', 'tests/browser/storefront-fixture.tsx', 'tests/prototype-recovery.test.ts', 'src/lib/prototype-recovery.ts', 'scripts/test-admin-duration.mjs', 'scripts/test-admin-content.mjs'})
+        self.assertEqual(changed, {'tests/browser/storefront-navigation.ts', 'src/components/store/prototype-mobile-recovery.tsx', 'src/components/store/prototype-tracking.tsx', 'tests/browser/storefront-fixture.tsx', 'tests/prototype-recovery.test.ts', 'src/lib/prototype-recovery.ts', 'scripts/test-admin-duration.mjs', 'scripts/test-admin-content.mjs', 'package-lock.json'})
         for name, digest in manifest['files'].items():
             self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(), digest, name)
 
@@ -101,7 +101,7 @@ class UpgradeTransaction(old.Transaction):
             raise RuntimeError('Injected proxy verification failure')
 
     def test_success_then_guarded_rollback(self):
-        self.assertIn('PRIVATE TRACKING UPGRADE READY', self.install())
+        self.assertIn('PRIVATE FINALIZATION UPGRADE READY', self.install())
         self.assertEqual(Path(self.m.base.NGINX).read_text(), self.original[self.m.base.NGINX])
         directory = self.backup()
         self.assertIn('--upgrade --rollback', (directory / 'restore.sh').read_text())

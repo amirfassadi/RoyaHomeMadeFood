@@ -15,7 +15,8 @@ import subprocess
 DOMAIN = 'royahealthyfood.ir'
 KNOWN_RELEASES = {
     '321f8929648c9fcf2bdcfda3e270352b0b9d2174': 'operator-confirmed baseline',
-    'a0b38ea170bc2506804a865e46bf1c7e0506037e': 'prepared tracking preview',
+    'a0b38ea170bc2506804a865e46bf1c7e0506037e': 'superseded prepared tracking preview',
+    'b7c803d9888b6ca9d46b3a382900f136b63865f1': 'prepared finalization preview',
 }
 
 

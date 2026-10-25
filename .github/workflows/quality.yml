@@ -44,6 +44,7 @@ jobs:
         run: node --test scripts/test-admin-diagnostics.mjs scripts/test-domain-admin-diagnostics.mjs scripts/test-storefront-data-check.mjs
       - name: Verify domain rollback and native DNS/web configuration
         run: |
+          python3 -m py_compile deploy/final-readiness.py
           python3 scripts/test-domain-build-cleanup.py
           sudo python3 scripts/test-domain-preparation.py
           sudo apt-get update -qq
