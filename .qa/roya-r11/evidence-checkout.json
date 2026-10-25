@@ -1,0 +1,89 @@
+{
+  "time": "2026-10-24T22:26:43.564Z",
+  "url": "https://royahealthyfood.ir",
+  "browser": "isolated local Chrome / native CDP",
+  "evidence": [
+    {
+      "check": "required_fields",
+      "result": "PASS",
+      "invalidFields": [
+        "name",
+        "mobile",
+        "address"
+      ]
+    },
+    {
+      "check": "invalid_mobile",
+      "result": "PASS",
+      "message": "نام، موبایل ایرانی گیرنده، نشانی و ایمیل خریدار را بررسی کنید."
+    },
+    {
+      "check": "preparation_and_delivery_windows",
+      "result": "PASS",
+      "firstWindow": "2026-10-27T10:30:00.000Z",
+      "now": 1792880799530,
+      "options": [
+        {
+          "value": "2026-10-27T14:30:00.000Z",
+          "text": "۵ آبان ۱۴۰۵"
+        },
+        {
+          "value": "2026-10-28T14:30:00.000Z",
+          "text": "۶ آبان ۱۴۰۵"
+        },
+        {
+          "value": "2026-10-29T14:30:00.000Z",
+          "text": "۷ آبان ۱۴۰۵"
+        }
+      ],
+      "selected": "2026-10-27T14:30:00.000Z"
+    },
+    {
+      "check": "quote_discount_delivery",
+      "result": "PASS",
+      "review": "خلاصهٔ سفارش\n\nژامبون قارچ و مرغ\n× ۱\n\nکد تخفیف نمونه\n۱۰٪ تخفیف نمونه، تا ۱۰۰٬۰۰۰ تومان\nجمع محصولات\n۱٬۵۰۰٬۰۰۰ تومان\nتخفیف\n۱۰۰٬۰۰۰ تومان\nارسال\n۵۰٬۰۰۰ تومان\nمبلغ کل\n۱٬۴۵۰٬۰۰۰ تومان\n\nفاکتور آزمایشی تا ۱۰ دقیقه و حداکثر تا پایان اعتبار نرخ معتبر است. تغییر اطلاعات، بررسی مجدد می‌خواهد.\n\nساخت فاکتور آزمایشی\n\nاین آزمایش فقط در مرورگر شما ذخیره می‌شود. پرداخت، آماده‌سازی یا ارسال واقعی انجام نمی‌شود.\n\nویرایش سبد"
+    },
+    {
+      "check": "simulated_payment",
+      "result": "PASS",
+      "order": {
+        "trackingCode": "DEMO-A584DA5FEE1C",
+        "createdAt": "2026-10-24T22:26:40.075Z",
+        "country": "IR",
+        "method": "DOMESTIC_CARD",
+        "deliveryAt": "2026-10-27T14:30:00.000Z",
+        "deliverySlot": "18–21",
+        "subtotal": 1500000,
+        "discount": 100000,
+        "shipping": 50000,
+        "total": 1450000,
+        "paymentState": "SIMULATED_PAID",
+        "status": "PENDING",
+        "items": [
+          {
+            "productId": "cmvjxswee0008is8pwcuc303x",
+            "quantity": 1,
+            "lineTotal": 1500000
+          }
+        ],
+        "history": [
+          {
+            "event": "CREATED",
+            "at": "2026-10-24T22:26:40.075Z"
+          },
+          {
+            "event": "SIMULATED_PAID",
+            "at": "2026-10-24T22:26:40.235Z"
+          }
+        ]
+      }
+    },
+    {
+      "check": "tracking_and_reload",
+      "result": "PASS",
+      "tracking": "پیگیری سفارش\n\nبدون ساخت حساب کاربری، با کد پیگیری و شماره موبایل سفارش وضعیت آن را ببینید.\n\nپیگیری سفارش آزمایشی\n\nفقط سفارش‌های ساخته‌شده در همین مرورگر نمایش داده می‌شوند.\n\nکد پیگیری\nموبایل گیرنده\nپیگیری نمونه\nسفارش‌های آزمایشی اخیر\nDEMO-A584DA5FEE1C\nDEMO-C4252B688580\n\nسفارش نمونه · بدون پرداخت واقعی\n\nدر انتظار بررسی\n\nپرداخت موفق شبیه‌سازی شد\n\nکارت بانکی ایران\n\n۱٬۴۵۰٬۰۰۰ تومان\n\nتحویل نمونه: ۵ آبان ۱۴۰۵ · 18–21\n\nژامبون قارچ و مرغ × ۱\n۱٬۵۰۰٬۰۰۰ تومان\n\nتاریخچه آزمایشی\n\nسفارش آزمایشی ایجاد شد\n\n۳ آبان ۱۴۰۵ · ۰۱:۵۶\n\nپرداخت موفق شبیه‌سازی شد\n\n۳ آبان ۱۴۰۵ · ۰۱:۵۶"
+    }
+  ],
+  "events": [],
+  "requests": "All non-GET/HEAD requests were blocked by the harness; none were attempted."
+}
