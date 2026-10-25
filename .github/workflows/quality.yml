@@ -29,6 +29,12 @@ jobs:
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
       - uses: actions/checkout@v4
+      - name: Check operational script syntax
+        run: |
+          python3 -m py_compile deploy/inspect-amir-disk.py
+          for roya_script in deploy/*.sh; do
+            bash -n "$roya_script"
+          done
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
