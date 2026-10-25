@@ -63,3 +63,12 @@ DNS سیستم برای GitHub، jsDelivr و npm نشانی‌های IPv4 برگ
 خواندن OUTPUT در هر سه جدول filter، nat و mangle موفق شد؛ هر سه chain خالی و policy=ACCEPT بودند. در این سه زنجیره DROP/REJECT یا REDIRECT دیده نشد و هیچ تغییری روی آن‌ها انجام نشد. این خروجی به‌تنهایی وضعیت INPUT، جدول raw یا ruleهای متعلق به backend دیگر را ثابت نمی‌کند و دلیل کافی برای توقف redsocks نیست.
 
 بررسی بعدی فقط‌خواندنی، backend نسخهٔ iptables و snapshot کامل قواعد موجود با iptables-save، همراه route get برای دو IPv4 مشاهده‌شدهٔ GitHub/npm است؛ هدف تفکیک وضعیت میزبان از مسیر بیرونی است. خطای TCP مستقیم GitHub/npm و سلامت نمونهٔ نوبیتکس طبق مشاهدات قبلی حفظ‌اند؛ علت دقیق هنوز تعیین نشده، runtime جدید نصب نشده و شمارش تسک‌ها تغییر نکرد.
+
+
+## snapshot سازگاری nft و انتخاب نحوهٔ sudo — خروجی بعدی اپراتور
+
+نسخهٔ ابزار iptables v1.8.9 (nf_tables) بود و iptables-save هیچ قاعده‌ای چاپ نکرد. route get برای GitHub 140.82.121.4 و نمونهٔ npm 104.16.2.34 هر دو via 87.107.54.1 dev eth0 src 87.107.54.244 uid 1001 بودند. این انتخاب مسیر سیستم است، نه اثبات عبور بسته از شبکهٔ بیرونی.
+
+فهرست سازگاری iptables-nft، نتیجهٔ backend مستقل legacy یا تمام قواعد مستقیم nftables نیست. [ابزارهای legacy در Netfilter](https://wiki.nftables.org/wiki-nftables/index.php/Legacy_xtables_tools)، [بستهٔ Bookworm](https://packages.debian.org/bookworm/iptables) و [list ruleset در nft](https://netfilter.org/projects/nftables/manpage.html) مبنای انتخاب ابزارهای خواندن‌اند. بررسی بعدی deploy/inspect-firewall-backends.sh فقط iptables-legacy-save و nft list ruleset را، در صورت موجودبودن، می‌خواند؛ نبود ابزار، نبود قواعد فرض نمی‌شود. این بررسی هنوز اجرا نشده و علت timeout خارجی همچنان تعیین نشده است.
+
+ترجیح تازهٔ امیر: sudo در همان بلوک دستور، هنگام نیاز در ترمینال سرور رمز بخواهد. ابزار جدید و diagnose-egress.sh در ابتدای بلوک sudo -v از /dev/tty اجرا می‌کنند و خواندن‌های بعدی non-interactive هستند؛ رمز به چت، فایل یا سورس وارد نمی‌شود. هیچ سرویس، فایروال، گزینهٔ alternatives، DNS یا route تغییر نکرد و هیچ بسته‌ای نصب نشد. تغییرها فقط ops/مستندات‌اند؛ runtime روی VPS همچنان 321f892 و هدف آمادهٔ نصب b7c803d است.

@@ -7,6 +7,8 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 test "$(id -un)" = amir || exit 1
 test -f /opt/roya/preview-current/.roya-release || exit 1
 
+sudo -v </dev/tty || exit 1
+
 printf '\n--- PROXY VARIABLES (PRESENCE ONLY) ---\n'
 for roya_proxy_key in HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy NODE_USE_ENV_PROXY; do
   if printenv "$roya_proxy_key" >/dev/null; then
