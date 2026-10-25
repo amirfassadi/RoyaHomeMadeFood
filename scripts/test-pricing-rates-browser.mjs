@@ -52,6 +52,7 @@ try{
   const page=await context.newPage();await page.clock.install({time:new Date(base)});
   await page.goto(origin+'/fixture/?country=DE&locale=en');
   const state=()=>page.getByTestId('pricing-state').evaluate(e=>JSON.parse(e.textContent));
+  await page.getByTestId('pricing-state').waitFor({state:'attached'});
   await page.waitForFunction(()=>JSON.parse(document.querySelector('[data-testid=pricing-state]').textContent).rates!==null);
   assert.equal(await page.evaluate(()=>document.characterSet),'UTF-8');
   await page.getByText('USD derived from Tether',{exact:true}).waitFor();
