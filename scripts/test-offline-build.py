@@ -142,8 +142,8 @@ def integration():
             'ROYA_ACCEPT_ORDERS': '0', 'ROYA_SEND_SMS': '0', 'NEXTAUTH_URL': 'https://royahealthyfood.ir',
             'NEXT_PUBLIC_SITE_URL': 'https://royahealthyfood.ir', 'NODE_OPTIONS': '--max-old-space-size=1536'})
         run(['node', str(ROOT / 'deploy/check-offline-native.mjs')], cwd=candidate, env=env)
-        run(['npm', 'test'], cwd=candidate, env=env)
         run(['npm', 'run', 'build:app'], cwd=candidate, env=env)
+        run(['npm', 'test'], cwd=candidate, env=env)
         stage = candidate / '.roya-domain-stage'
         shutil.copytree(candidate / '.next/standalone', stage)
         shutil.copytree(candidate / 'public', stage / 'public')
@@ -182,7 +182,7 @@ def integration():
                     server.wait(timeout=5)
         if hashlib.sha256((candidate / 'package-lock.json').read_bytes()).hexdigest() != inputs.LOCK_SHA256:
             raise RuntimeError('Offline install changed the application lock.')
-        print('OFFLINE_NPM_INSTALL_BUILD_AND_HTTP_PASS: exact 251-good/3-missing cache; native dependencies, 107 tests, build, FA/EN and application guards.')
+        print('OFFLINE_NPM_INSTALL_BUILD_AND_HTTP_PASS: exact 251-good/3-missing cache; native dependencies, selected application tests, build, FA/EN and application guards.')
 
 
 if __name__ == '__main__':
