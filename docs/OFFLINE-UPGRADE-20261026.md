@@ -25,6 +25,15 @@ bash deploy/upgrade-private-domain.sh --offline
 
 ## آزمون و نشانهٔ پایان
 
-پنج آزمون محلی ورودی‌های سالم/مخدوش و خروج مسیر موتور، به‌علاوهٔ seed/install واقعی fast-uri در کش خالی بدون شبکه موفق‌اند؛ یازده آزمون موجود upgrade/compaction نیز موفق‌اند. CI تازه، یک کش موقت دقیق با ۲۵۱ tarball سالم و همان سه مورد مفقود می‌سازد؛ پس از seed تنها fast-uri، npm ci آفلاین، نبود واقعی دو WASM، native binaryها، تست‌های سورس منتخب، build و HTTP برنامه را بررسی می‌کند. تا نتیجهٔ CI تازه ثبت نشود، آزمایش کامل بسته موفق اعلام نمی‌شود.
+CI کامل [40285392459](https://github.com/amirfassadi/RoyaHomeMadeFood/actions/runs/40285392459) روی commit 258bd4f663a95795754c9b55e0fe35454b8dac9d با completed/success پایان یافت. پنج آزمون ورودی‌ها و seed واقعی کش خالی موفق‌اند. داستان مستقل offline، همان کش واقعیِ ۲۵۱ tarball سالم و سه مورد مفقود را بازسازی کرد؛ پس از افزودن فقط fast-uri، npm ci --offline تعداد ۲۵۲ بسته نصب کرد و دو WASM غایب ماندند. esbuild/SWC/Sharp، build با موتور موجود و بدون دانلود موتور، ۱۰۴ تست سورس منتخب (۷۰+۳۴)، HTTP صفحات FA/EN و guardهای ادمین/عملیات واقعی موفق شدند. مجموعهٔ کامل ریپو جداگانه ۱۰۷ تست (۷۳+۳۴)، ۲۱ تشخیص، هفت یکپارچهٔ PostgreSQL، مرورگرها، native HTTPS/نشست/rollback، backup/restore و audit با صفر آسیب‌پذیری را گذراند.
+
+آرشیو نصب pinned:
+
+- commit: `258bd4f663a95795754c9b55e0fe35454b8dac9d`
+- tree: `9c0de0001b8b0e7009ce08b8957cace32af0b34e`
+- URL: https://codeload.github.com/amirfassadi/RoyaHomeMadeFood/tar.gz/258bd4f663a95795754c9b55e0fe35454b8dac9d
+- SHA-256 تأییدشده در همان CI: `c069d3e1258a0c992bb0d38483e649da9a8d6258e6a693716ee36212a83570e4`
+
+هر ۲۴۴ blob برنامه و blob باینری همراه با tree گیت‌هاب تطبیق داده شدند؛ اصلاح بعدی در 258bd4f فقط ترتیب تست و شرح تعداد تست‌های منتخب را درست کرد. این شواهد نصب تازه روی VPS نیستند. اجرای ناموفق قبلی 40284991426 که تست‌ها را پیش از تولید Prisma client اجرا کرده بود، نتیجهٔ موفق نهایی محسوب نشد.
 
 پس از نصب واقعی، پیام PUBLIC PREVIEW FINALIZATION UPGRADE READY و marker دقیق b7c803d9888b6ca9d46b3a382900f136b63865f1 انتظار می‌رود. مسیر پشتیبان و دستور restore را همان اجرا چاپ می‌کند؛ مسیر تازه پیشاپیش ساخته یا فرض نمی‌شود. snapshot و آزمون نهایی رابط/ادمین همچنان جدا لازم‌اند. main، Sites و Vercel در این مسیر تغییر نمی‌کنند.
