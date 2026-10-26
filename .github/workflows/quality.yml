@@ -29,9 +29,19 @@ jobs:
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
       - uses: actions/checkout@v4
+      - name: Record pinned operator source archive digest
+        env:
+          ROYA_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          curl --proto '=https' --fail --location --retry 1 \
+            --connect-timeout 10 --max-time 90 \
+            -o "$RUNNER_TEMP/roya-source.tar.gz" \
+            "https://codeload.github.com/$GITHUB_REPOSITORY/tar.gz/$ROYA_SOURCE_COMMIT"
+          printf 'ROYA_SOURCE_COMMIT=%s\n' "$ROYA_SOURCE_COMMIT"
+          sha256sum "$RUNNER_TEMP/roya-source.tar.gz"
       - name: Check operational script syntax
         run: |
-          python3 -m py_compile deploy/inspect-amir-disk.py
+          python3 -m py_compile deploy/inspect-amir-disk.py deploy/inspect-offline-cache.py deploy/offline-build-inputs.py
           for roya_script in deploy/*.sh; do
             bash -n "$roya_script"
           done
@@ -40,6 +50,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Verify offline input integrity and real cache seeding
+        run: python3 scripts/test-offline-build.py
       - run: npm run db:validate
       - run: npm run db:deploy
       - run: npm run db:seed
@@ -63,6 +75,9 @@ jobs:
           python3 scripts/test-domain-dns-native.py
           sudo python3 scripts/test-domain-tls-native.py
       - run: npm run test:integration
+      - name: Reproduce VPS cache and verify offline install build and HTTP guards
+        timeout-minutes: 5
+        run: python3 scripts/test-offline-build.py --integration
       - name: Build VPS application
         run: npm run build:app
         env:
