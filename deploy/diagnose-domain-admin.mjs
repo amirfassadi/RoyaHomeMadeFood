@@ -9,7 +9,7 @@ import {pathToFileURL} from 'node:url';
 import {inspectionSql,probeLogin,ProbeError} from './diagnose-vps-admin.mjs';
 
 export const ORIGIN='https://royahealthyfood.ir';
-const RELEASES=['bd69388bdfea903b892ad2a5430be8382c0fe012','26b04f0f882a811604b720aa069660e7c58201ed','3f6a74cef79ac602d6b9f34f57eca7ed0989a54d','8f272a29a383ccc64b88964eea7e7dde0bd9db39','321f8929648c9fcf2bdcfda3e270352b0b9d2174','a0b38ea170bc2506804a865e46bf1c7e0506037e','b7c803d9888b6ca9d46b3a382900f136b63865f1'];
+const RELEASES=['bd69388bdfea903b892ad2a5430be8382c0fe012','26b04f0f882a811604b720aa069660e7c58201ed','3f6a74cef79ac602d6b9f34f57eca7ed0989a54d','8f272a29a383ccc64b88964eea7e7dde0bd9db39','321f8929648c9fcf2bdcfda3e270352b0b9d2174','a0b38ea170bc2506804a865e46bf1c7e0506037e','b7c803d9888b6ca9d46b3a382900f136b63865f1','22ce6679b45e2a32ee347999b1b98a1b1687ad07'];
 
 export function secureCookies(headers){
  for(const text of headers.getSetCookie()){

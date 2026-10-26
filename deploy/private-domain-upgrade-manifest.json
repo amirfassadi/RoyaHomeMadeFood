@@ -1,5 +1,5 @@
 {
-  "baseRelease": "321f8929648c9fcf2bdcfda3e270352b0b9d2174",
+  "baseRelease": "b7c803d9888b6ca9d46b3a382900f136b63865f1",
   "files": {
     ".gitignore": "8d341f5c128c2dde1c62b67be2cba7a0b3cd2589d75e04f341fc1efde3b18f7e",
     "README.md": "696158461010b1bf69a248effe5552206ae345f450c5455105a914176ac10ded",
@@ -119,7 +119,7 @@
     "src/components/admin/shared.tsx": "84f8532034652967e8dd1585bd07f89326a6848033e1e4b385e886fb40f48928",
     "src/components/admin/shell.tsx": "3a6cc69d55972905cc66fceb4b2b8609a55840051a3b9e711427dd00314bea9f",
     "src/components/admin/workspace.tsx": "9edd74087e61a7196380f325864bbe1960271beacd92d8ba03c809f86429ea5f",
-    "src/components/brand/logo.tsx": "3fb33d852eba29300cb205717e84d7715fcc92717f8a5a9ba24203d46199a62f",
+    "src/components/brand/logo.tsx": "2ccaa1fde91ec16412569f763ef13c2b5983e1696e5915bf453850000fb01901",
     "src/components/design-examples.tsx": "19a8af02fb5d12d1dd0589522eee8ccd2afa6b540d2aca9bcc90e0257bd49c21",
     "src/components/store/cart-page.tsx": "d75c11f4886ebc586ef66346ab8e5b5e0a1237ec09e2f2e225600e9fbfc2b49b",
     "src/components/store/cart-provider.tsx": "b5856b2e4b9261ff5fc6e90d791a61f4b341b2ee11ccd33c0f0544bf5cbe792a",
@@ -130,7 +130,7 @@
     "src/components/store/currency-rates.tsx": "61defd3ff6503e4fb80c492af2688d7ca34c61d81e2b4e33b72134b77131b476",
     "src/components/store/customer-account.tsx": "739af5d396a7d684707bdbcf535cddae5f8d5c0404211b03271c7a254774493f",
     "src/components/store/footer.tsx": "89195457d1c469e3e217e89903c7ac40b7218a8153923e5e22b3a101a4238eea",
-    "src/components/store/header.tsx": "6d510362f26342afb8b4ea3ae2c8f8ceee86f616d78e69dbb6374efa2f2d5e86",
+    "src/components/store/header.tsx": "8de625fc9b47c9a4f3892c0c01b887b6fcebdee35369f82eb23f0e9f1f3b8ad4",
     "src/components/store/international-banner.tsx": "46cdb2fb86403219e5158598f9cb37b516ca405ef55428126aeac02056d5f01b",
     "src/components/store/page-shell.tsx": "00d005b7e08824ce578d348cbe454867bc44ec7e5ab5b5cd755069d499f41cbe",
     "src/components/store/payment-result.tsx": "69120bf0a65b6771192b97d87428d01dc916476387765845bf84d28f4fe377ec",
@@ -248,5 +248,5 @@
   },
   "format": 1,
   "origin": "https://royahealthyfood.ir",
-  "sourceRelease": "daaad0f432a44df749a00fb1f0fc09ec90307c03"
+  "sourceRelease": "a27de656167ed5c624d95da6b9d1ba2616d7fb53"
 }

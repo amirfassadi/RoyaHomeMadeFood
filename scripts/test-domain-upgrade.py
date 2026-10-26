@@ -25,16 +25,16 @@ def module():
 
 
 class Sources(unittest.TestCase):
-    def test_upgrade_manifest_adds_tracking_recovery_and_fast_uri_patch(self):
+    def test_upgrade_changes_only_the_responsive_header_and_logo(self):
         m = module()
         manifest = json.loads((ROOT / 'deploy/private-domain-upgrade-manifest.json').read_text())
-        previous = json.loads((ROOT / 'deploy/private-domain-upgrade-base-manifest.json').read_text())
-        self.assertEqual(previous['sourceRelease'], 'e500aeab698926995bbbb853e02851ecb694cc11')
+        previous = json.loads((ROOT / 'deploy/private-domain-header-base-manifest.json').read_text())
+        self.assertEqual(previous['sourceRelease'], 'daaad0f432a44df749a00fb1f0fc09ec90307c03')
         self.assertEqual(hashlib.sha1(json.dumps(previous['files'], sort_keys=True).encode()).hexdigest(), previous['sourceRelease'])
-        self.assertEqual(manifest['baseRelease'], '321f8929648c9fcf2bdcfda3e270352b0b9d2174')
-        self.assertEqual(m.release_id(), 'b7c803d9888b6ca9d46b3a382900f136b63865f1')
+        self.assertEqual(manifest['baseRelease'], 'b7c803d9888b6ca9d46b3a382900f136b63865f1')
+        self.assertEqual(m.release_id(), '22ce6679b45e2a32ee347999b1b98a1b1687ad07')
         changed = {n for n, digest in manifest['files'].items() if previous['files'].get(n) != digest}
-        self.assertEqual(changed, {'tests/browser/storefront-navigation.ts', 'src/components/store/prototype-mobile-recovery.tsx', 'src/components/store/prototype-tracking.tsx', 'tests/browser/storefront-fixture.tsx', 'tests/prototype-recovery.test.ts', 'src/lib/prototype-recovery.ts', 'scripts/test-admin-duration.mjs', 'scripts/test-admin-content.mjs', 'package-lock.json'})
+        self.assertEqual(changed, {'src/components/brand/logo.tsx', 'src/components/store/header.tsx'})
         for name, digest in manifest['files'].items():
             self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(), digest, name)
 

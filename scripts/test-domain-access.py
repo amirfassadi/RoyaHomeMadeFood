@@ -191,6 +191,17 @@ class Access(unittest.TestCase):
         self.assertIn('PUBLIC TEST PREVIEW READY', self.change(True))
         self.assertEqual(self.m.release_id(), release)
 
+    def test_header_release_is_supported_with_the_existing_access_guards(self):
+        release = '22ce6679b45e2a32ee347999b1b98a1b1687ad07'
+        target = self.map(self.m.RELEASE_ROOT, release)
+        target.mkdir()
+        (target / '.roya-release').write_text(release + '\n')
+        Path(self.m.LINK).unlink()
+        Path(self.m.LINK).symlink_to(target)
+        self.assertEqual(self.a.installed(), release)
+        self.assertIn('PUBLIC TEST PREVIEW READY', self.change(True))
+        self.assertEqual(self.m.release_id(), release)
+
     def test_corrupt_backup_and_later_operator_edits_prevent_partial_rollback(self):
         self.change(True)
         directory = self.backups()[0]
