@@ -1,0 +1,3175 @@
+{
+  "checkedAt": "2026-10-26T21:17:13.148Z",
+  "scope": "Public real-domain read-only browser; no login or state injection; GET/HEAD only",
+  "result": "PASS",
+  "observations": [
+    {
+      "path": "/fa/",
+      "title": "فینگر فود و طعم‌های خانگی | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "مزه‌های خانگی،\nبرای مهمانی شما.",
+      "images": [
+        {
+          "src": "https://royahealthyfood.ir/_next/image/?url=%2Fimages%2Froya-party-spread.webp&w=750&q=75",
+          "loaded": true
+        }
+      ],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 1113.109375,
+          "right": 1320
+        },
+        {
+          "text": "خانه",
+          "left": 986.828125,
+          "right": 1011.640625
+        },
+        {
+          "text": "محصولات",
+          "left": 915.34375,
+          "right": 970.828125
+        },
+        {
+          "text": "نرخ ارز",
+          "left": 864.1875,
+          "right": 899.34375
+        },
+        {
+          "text": "دربارهٔ رویا",
+          "left": 796.421875,
+          "right": 848.1875
+        },
+        {
+          "text": "پرسش‌های متداول",
+          "left": 677.53125,
+          "right": 780.421875
+        },
+        {
+          "text": "تماس با ما",
+          "left": 602.5625,
+          "right": 661.53125
+        },
+        {
+          "text": "پیگیری سفارش",
+          "left": 502.96875,
+          "right": 586.5625
+        },
+        {
+          "text": "ورود / عضویت",
+          "left": 407.015625,
+          "right": 486.96875
+        },
+        {
+          "text": "سبد خرید",
+          "left": 195.953125,
+          "right": 305.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 120,
+          "right": 187.953125
+        }
+      ],
+      "links": [
+        {
+          "text": "خرید محصولات",
+          "href": "/fa/catalog/"
+        },
+        {
+          "text": "ثبت سفارش",
+          "href": "/fa/checkout/"
+        },
+        {
+          "text": "همهٔ محصولات",
+          "href": "/fa/catalog/"
+        },
+        {
+          "text": "بیشتر دربارهٔ رویا",
+          "href": "/fa/about/"
+        },
+        {
+          "text": "مشاهدهٔ محصولات",
+          "href": "/fa/catalog/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/catalog/",
+      "title": "خرید محصولات خانگی | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "محصولات رویا",
+      "images": [],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 1113.109375,
+          "right": 1320
+        },
+        {
+          "text": "خانه",
+          "left": 987.421875,
+          "right": 1011.71875
+        },
+        {
+          "text": "محصولات",
+          "left": 915.28125,
+          "right": 971.421875
+        },
+        {
+          "text": "نرخ ارز",
+          "left": 864.125,
+          "right": 899.28125
+        },
+        {
+          "text": "دربارهٔ رویا",
+          "left": 796.359375,
+          "right": 848.125
+        },
+        {
+          "text": "پرسش‌های متداول",
+          "left": 677.46875,
+          "right": 780.359375
+        },
+        {
+          "text": "تماس با ما",
+          "left": 602.5,
+          "right": 661.46875
+        },
+        {
+          "text": "پیگیری سفارش",
+          "left": 502.90625,
+          "right": 586.5
+        },
+        {
+          "text": "ورود / عضویت",
+          "left": 406.953125,
+          "right": 486.90625
+        },
+        {
+          "text": "سبد خرید",
+          "left": 195.953125,
+          "right": 305.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 120,
+          "right": 187.953125
+        }
+      ],
+      "links": [
+        {
+          "text": "تصویر محصول به‌زودی\nموجود\nژامبون قارچ و مرغ\n\nبرای ۱ کیلوگرم\n\n۱٬۵۰۰٬۰۰۰ تومان\nمشاهدهٔ محصول",
+          "href": "/fa/products/chicken-mushroom-cold-cuts/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/products/chicken-mushroom-cold-cuts/",
+      "title": "ژامبون قارچ و مرغ | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "ژامبون قارچ و مرغ",
+      "images": [],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 1113.109375,
+          "right": 1320
+        },
+        {
+          "text": "خانه",
+          "left": 987.09375,
+          "right": 1011.390625
+        },
+        {
+          "text": "محصولات",
+          "left": 915.609375,
+          "right": 971.09375
+        },
+        {
+          "text": "نرخ ارز",
+          "left": 864.453125,
+          "right": 899.609375
+        },
+        {
+          "text": "دربارهٔ رویا",
+          "left": 796.6875,
+          "right": 848.453125
+        },
+        {
+          "text": "پرسش‌های متداول",
+          "left": 677.796875,
+          "right": 780.6875
+        },
+        {
+          "text": "تماس با ما",
+          "left": 602.828125,
+          "right": 661.796875
+        },
+        {
+          "text": "پیگیری سفارش",
+          "left": 503.234375,
+          "right": 586.828125
+        },
+        {
+          "text": "ورود / عضویت",
+          "left": 407.28125,
+          "right": 487.234375
+        },
+        {
+          "text": "سبد خرید",
+          "left": 195.953125,
+          "right": 305.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 120,
+          "right": 187.953125
+        }
+      ],
+      "links": [
+        {
+          "text": "بازگشت به محصولات",
+          "href": "/fa/catalog/"
+        },
+        {
+          "text": "پرسشی دربارهٔ این محصول دارید؟ تماس با رویا",
+          "href": "/fa/contact/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/rates/",
+      "title": "نرخ ارز و قیمت‌گذاری | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "نرخ ارز و قیمت خرید شما",
+      "images": [],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 1113.109375,
+          "right": 1320
+        },
+        {
+          "text": "خانه",
+          "left": 987.578125,
+          "right": 1011.875
+        },
+        {
+          "text": "محصولات",
+          "left": 916.09375,
+          "right": 971.578125
+        },
+        {
+          "text": "نرخ ارز",
+          "left": 863.953125,
+          "right": 900.09375
+        },
+        {
+          "text": "دربارهٔ رویا",
+          "left": 796.1875,
+          "right": 847.953125
+        },
+        {
+          "text": "پرسش‌های متداول",
+          "left": 677.296875,
+          "right": 780.1875
+        },
+        {
+          "text": "تماس با ما",
+          "left": 602.328125,
+          "right": 661.296875
+        },
+        {
+          "text": "پیگیری سفارش",
+          "left": 502.734375,
+          "right": 586.328125
+        },
+        {
+          "text": "ورود / عضویت",
+          "left": 406.78125,
+          "right": 486.734375
+        },
+        {
+          "text": "سبد خرید",
+          "left": 195.953125,
+          "right": 305.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 120,
+          "right": 187.953125
+        }
+      ],
+      "links": [
+        {
+          "text": "منبع تتر: نوبیتکس",
+          "href": "https://apidocs.nobitex.ir/"
+        },
+        {
+          "text": "تبدیل ارز: Currency API",
+          "href": "https://github.com/fawazahmed0/exchange-api"
+        },
+        {
+          "text": "تبدیل USD/EUR در گوگل",
+          "href": "https://www.google.com/search?q=1%20USD%20to%20EUR"
+        },
+        {
+          "text": "XE",
+          "href": "https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=EUR"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/about/",
+      "title": "طعم خانه، با خیال آسوده. | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "طعم خانه، با خیال آسوده.",
+      "images": [
+        {
+          "src": "https://royahealthyfood.ir/_next/image/?url=%2Fimages%2Froya-party-spread.webp&w=750&q=75",
+          "loaded": true
+        }
+      ],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 1113.109375,
+          "right": 1320
+        },
+        {
+          "text": "خانه",
+          "left": 987.90625,
+          "right": 1012.203125
+        },
+        {
+          "text": "محصولات",
+          "left": 916.421875,
+          "right": 971.90625
+        },
+        {
+          "text": "نرخ ارز",
+          "left": 865.265625,
+          "right": 900.421875
+        },
+        {
+          "text": "دربارهٔ رویا",
+          "left": 795.875,
+          "right": 849.265625
+        },
+        {
+          "text": "پرسش‌های متداول",
+          "left": 676.984375,
+          "right": 779.875
+        },
+        {
+          "text": "تماس با ما",
+          "left": 602.015625,
+          "right": 660.984375
+        },
+        {
+          "text": "پیگیری سفارش",
+          "left": 502.421875,
+          "right": 586.015625
+        },
+        {
+          "text": "ورود / عضویت",
+          "left": 406.46875,
+          "right": 486.421875
+        },
+        {
+          "text": "سبد خرید",
+          "left": 195.953125,
+          "right": 305.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 120,
+          "right": 187.953125
+        }
+      ],
+      "links": [
+        {
+          "text": "محصولات را ببینید",
+          "href": "/fa/catalog/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/faq/",
+      "title": "پرسش‌های متداول | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "پرسش‌های متداول",
+      "images": [],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 1113.109375,
+          "right": 1320
+        },
+        {
+          "text": "خانه",
+          "left": 987.921875,
+          "right": 1012.21875
+        },
+        {
+          "text": "محصولات",
+          "left": 916.4375,
+          "right": 971.921875
+        },
+        {
+          "text": "نرخ ارز",
+          "left": 865.28125,
+          "right": 900.4375
+        },
+        {
+          "text": "دربارهٔ رویا",
+          "left": 797.515625,
+          "right": 849.28125
+        },
+        {
+          "text": "پرسش‌های متداول",
+          "left": 676.953125,
+          "right": 781.515625
+        },
+        {
+          "text": "تماس با ما",
+          "left": 601.984375,
+          "right": 660.953125
+        },
+        {
+          "text": "پیگیری سفارش",
+          "left": 502.390625,
+          "right": 585.984375
+        },
+        {
+          "text": "ورود / عضویت",
+          "left": 406.4375,
+          "right": 486.390625
+        },
+        {
+          "text": "سبد خرید",
+          "left": 195.953125,
+          "right": 305.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 120,
+          "right": 187.953125
+        }
+      ],
+      "links": [
+        {
+          "text": "با ما در ارتباط باشید",
+          "href": "/fa/contact/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/contact/",
+      "title": "تماس با رویا | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "از شما می‌شنویم.",
+      "images": [],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 1113.109375,
+          "right": 1320
+        },
+        {
+          "text": "خانه",
+          "left": 987.40625,
+          "right": 1011.703125
+        },
+        {
+          "text": "محصولات",
+          "left": 915.921875,
+          "right": 971.40625
+        },
+        {
+          "text": "نرخ ارز",
+          "left": 864.765625,
+          "right": 899.921875
+        },
+        {
+          "text": "دربارهٔ رویا",
+          "left": 797,
+          "right": 848.765625
+        },
+        {
+          "text": "پرسش‌های متداول",
+          "left": 678.109375,
+          "right": 781
+        },
+        {
+          "text": "تماس با ما",
+          "left": 602.515625,
+          "right": 662.109375
+        },
+        {
+          "text": "پیگیری سفارش",
+          "left": 502.921875,
+          "right": 586.515625
+        },
+        {
+          "text": "ورود / عضویت",
+          "left": 406.96875,
+          "right": 486.921875
+        },
+        {
+          "text": "سبد خرید",
+          "left": 195.953125,
+          "right": 305.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 120,
+          "right": 187.953125
+        }
+      ],
+      "links": [
+        {
+          "text": "پرسش‌های متداول",
+          "href": "/fa/faq/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/tracking/",
+      "title": "پیگیری سفارش | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "پیگیری سفارش",
+      "images": [],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 1113.109375,
+          "right": 1320
+        },
+        {
+          "text": "خانه",
+          "left": 987.546875,
+          "right": 1011.84375
+        },
+        {
+          "text": "محصولات",
+          "left": 916.0625,
+          "right": 971.546875
+        },
+        {
+          "text": "نرخ ارز",
+          "left": 864.90625,
+          "right": 900.0625
+        },
+        {
+          "text": "دربارهٔ رویا",
+          "left": 797.140625,
+          "right": 848.90625
+        },
+        {
+          "text": "پرسش‌های متداول",
+          "left": 678.25,
+          "right": 781.140625
+        },
+        {
+          "text": "تماس با ما",
+          "left": 603.28125,
+          "right": 662.25
+        },
+        {
+          "text": "پیگیری سفارش",
+          "left": 502.78125,
+          "right": 587.28125
+        },
+        {
+          "text": "ورود / عضویت",
+          "left": 406.828125,
+          "right": 486.78125
+        },
+        {
+          "text": "سبد خرید",
+          "left": 195.953125,
+          "right": 305.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 120,
+          "right": 187.953125
+        }
+      ],
+      "links": [
+        {
+          "text": "انتخاب محصولات",
+          "href": "/fa/catalog/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/account/",
+      "title": "باشگاه مشتریان | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "باشگاه مشتریان رویا",
+      "images": [],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 1113.109375,
+          "right": 1320
+        },
+        {
+          "text": "خانه",
+          "left": 987.328125,
+          "right": 1011.625
+        },
+        {
+          "text": "محصولات",
+          "left": 915.84375,
+          "right": 971.328125
+        },
+        {
+          "text": "نرخ ارز",
+          "left": 864.6875,
+          "right": 899.84375
+        },
+        {
+          "text": "دربارهٔ رویا",
+          "left": 796.921875,
+          "right": 848.6875
+        },
+        {
+          "text": "پرسش‌های متداول",
+          "left": 678.03125,
+          "right": 780.921875
+        },
+        {
+          "text": "تماس با ما",
+          "left": 603.0625,
+          "right": 662.03125
+        },
+        {
+          "text": "پیگیری سفارش",
+          "left": 503.46875,
+          "right": 587.0625
+        },
+        {
+          "text": "ورود / عضویت",
+          "left": 407.046875,
+          "right": 487.46875
+        },
+        {
+          "text": "سبد خرید",
+          "left": 195.953125,
+          "right": 305.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 120,
+          "right": 187.953125
+        }
+      ],
+      "links": [
+        {
+          "text": "ادامه خرید بدون ثبت‌نام",
+          "href": "/fa/checkout/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/cart/",
+      "title": "سبد خرید | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "سبد خرید",
+      "images": [],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 1113.109375,
+          "right": 1320
+        },
+        {
+          "text": "خانه",
+          "left": 987.09375,
+          "right": 1011.390625
+        },
+        {
+          "text": "محصولات",
+          "left": 915.609375,
+          "right": 971.09375
+        },
+        {
+          "text": "نرخ ارز",
+          "left": 864.453125,
+          "right": 899.609375
+        },
+        {
+          "text": "دربارهٔ رویا",
+          "left": 796.6875,
+          "right": 848.453125
+        },
+        {
+          "text": "پرسش‌های متداول",
+          "left": 677.796875,
+          "right": 780.6875
+        },
+        {
+          "text": "تماس با ما",
+          "left": 602.828125,
+          "right": 661.796875
+        },
+        {
+          "text": "پیگیری سفارش",
+          "left": 503.234375,
+          "right": 586.828125
+        },
+        {
+          "text": "ورود / عضویت",
+          "left": 407.28125,
+          "right": 487.234375
+        },
+        {
+          "text": "سبد خرید",
+          "left": 195.953125,
+          "right": 305.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 120,
+          "right": 187.953125
+        }
+      ],
+      "links": [
+        {
+          "text": "انتخاب محصولات",
+          "href": "/fa/catalog/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/",
+      "title": "فینگر فود و طعم‌های خانگی | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "مزه‌های خانگی،\nبرای مهمانی شما.",
+      "images": [
+        {
+          "src": "https://royahealthyfood.ir/_next/image/?url=%2Fimages%2Froya-party-spread.webp&w=384&q=75",
+          "loaded": true
+        }
+      ],
+      "controls": [
+        {
+          "text": "رویا",
+          "left": 277.640625,
+          "right": 355
+        },
+        {
+          "text": "سبد خرید",
+          "left": 127.953125,
+          "right": 189.859375
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 68,
+          "right": 123.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "خرید محصولات",
+          "href": "/fa/catalog/"
+        },
+        {
+          "text": "ثبت سفارش",
+          "href": "/fa/checkout/"
+        },
+        {
+          "text": "همهٔ محصولات",
+          "href": "/fa/catalog/"
+        },
+        {
+          "text": "بیشتر دربارهٔ رویا",
+          "href": "/fa/about/"
+        },
+        {
+          "text": "مشاهدهٔ محصولات",
+          "href": "/fa/catalog/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/catalog/",
+      "title": "خرید محصولات خانگی | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "محصولات رویا",
+      "images": [],
+      "controls": [
+        {
+          "text": "رویا",
+          "left": 277.640625,
+          "right": 355
+        },
+        {
+          "text": "سبد خرید",
+          "left": 127.953125,
+          "right": 189.859375
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 68,
+          "right": 123.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "تصویر محصول به‌زودی\nموجود\nژامبون قارچ و مرغ\n\nبرای ۱ کیلوگرم\n\n۱٬۵۰۰٬۰۰۰ تومان\nمشاهدهٔ محصول",
+          "href": "/fa/products/chicken-mushroom-cold-cuts/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/products/chicken-mushroom-cold-cuts/",
+      "title": "ژامبون قارچ و مرغ | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "ژامبون قارچ و مرغ",
+      "images": [],
+      "controls": [
+        {
+          "text": "رویا",
+          "left": 277.640625,
+          "right": 355
+        },
+        {
+          "text": "سبد خرید",
+          "left": 127.953125,
+          "right": 189.859375
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 68,
+          "right": 123.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "بازگشت به محصولات",
+          "href": "/fa/catalog/"
+        },
+        {
+          "text": "پرسشی دربارهٔ این محصول دارید؟ تماس با رویا",
+          "href": "/fa/contact/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/rates/",
+      "title": "نرخ ارز و قیمت‌گذاری | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "نرخ ارز و قیمت خرید شما",
+      "images": [],
+      "controls": [
+        {
+          "text": "رویا",
+          "left": 277.640625,
+          "right": 355
+        },
+        {
+          "text": "سبد خرید",
+          "left": 127.953125,
+          "right": 189.859375
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 68,
+          "right": 123.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "منبع تتر: نوبیتکس",
+          "href": "https://apidocs.nobitex.ir/"
+        },
+        {
+          "text": "تبدیل ارز: Currency API",
+          "href": "https://github.com/fawazahmed0/exchange-api"
+        },
+        {
+          "text": "تبدیل USD/EUR در گوگل",
+          "href": "https://www.google.com/search?q=1%20USD%20to%20EUR"
+        },
+        {
+          "text": "XE",
+          "href": "https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=EUR"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/about/",
+      "title": "طعم خانه، با خیال آسوده. | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "طعم خانه، با خیال آسوده.",
+      "images": [
+        {
+          "src": "https://royahealthyfood.ir/_next/image/?url=%2Fimages%2Froya-party-spread.webp&w=384&q=75",
+          "loaded": true
+        }
+      ],
+      "controls": [
+        {
+          "text": "رویا",
+          "left": 277.640625,
+          "right": 355
+        },
+        {
+          "text": "سبد خرید",
+          "left": 127.953125,
+          "right": 189.859375
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 68,
+          "right": 123.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "محصولات را ببینید",
+          "href": "/fa/catalog/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/faq/",
+      "title": "پرسش‌های متداول | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "پرسش‌های متداول",
+      "images": [],
+      "controls": [
+        {
+          "text": "رویا",
+          "left": 277.640625,
+          "right": 355
+        },
+        {
+          "text": "سبد خرید",
+          "left": 127.953125,
+          "right": 189.859375
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 68,
+          "right": 123.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "با ما در ارتباط باشید",
+          "href": "/fa/contact/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/contact/",
+      "title": "تماس با رویا | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "از شما می‌شنویم.",
+      "images": [],
+      "controls": [
+        {
+          "text": "رویا",
+          "left": 277.640625,
+          "right": 355
+        },
+        {
+          "text": "سبد خرید",
+          "left": 127.953125,
+          "right": 189.859375
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 68,
+          "right": 123.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "پرسش‌های متداول",
+          "href": "/fa/faq/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/tracking/",
+      "title": "پیگیری سفارش | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "پیگیری سفارش",
+      "images": [],
+      "controls": [
+        {
+          "text": "رویا",
+          "left": 277.640625,
+          "right": 355
+        },
+        {
+          "text": "سبد خرید",
+          "left": 127.953125,
+          "right": 189.859375
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 68,
+          "right": 123.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "انتخاب محصولات",
+          "href": "/fa/catalog/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/account/",
+      "title": "باشگاه مشتریان | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "باشگاه مشتریان رویا",
+      "images": [],
+      "controls": [
+        {
+          "text": "رویا",
+          "left": 277.640625,
+          "right": 355
+        },
+        {
+          "text": "سبد خرید",
+          "left": 127.953125,
+          "right": 189.859375
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 68,
+          "right": 123.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "ادامه خرید بدون ثبت‌نام",
+          "href": "/fa/checkout/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/cart/",
+      "title": "سبد خرید | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "سبد خرید",
+      "images": [],
+      "controls": [
+        {
+          "text": "رویا",
+          "left": 277.640625,
+          "right": 355
+        },
+        {
+          "text": "سبد خرید",
+          "left": 127.953125,
+          "right": 189.859375
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 68,
+          "right": 123.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "انتخاب محصولات",
+          "href": "/fa/catalog/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/",
+      "title": "Fresh homemade food | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Homemade bites,\nfor your gathering.",
+      "images": [
+        {
+          "src": "https://royahealthyfood.ir/_next/image/?url=%2Fimages%2Froya-party-spread.webp&w=750&q=75",
+          "loaded": true
+        }
+      ],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 120,
+          "right": 338.453125
+        },
+        {
+          "text": "Home",
+          "left": 420.625,
+          "right": 458.15625
+        },
+        {
+          "text": "Products",
+          "left": 474.15625,
+          "right": 530.328125
+        },
+        {
+          "text": "Exchange rates",
+          "left": 546.328125,
+          "right": 641.84375
+        },
+        {
+          "text": "About Roya",
+          "left": 657.84375,
+          "right": 729.53125
+        },
+        {
+          "text": "FAQ",
+          "left": 745.53125,
+          "right": 770.796875
+        },
+        {
+          "text": "Contact",
+          "left": 786.796875,
+          "right": 835.734375
+        },
+        {
+          "text": "Track order",
+          "left": 851.734375,
+          "right": 922.515625
+        },
+        {
+          "text": "Account / join",
+          "left": 938.515625,
+          "right": 1026.078125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 1108.234375,
+          "right": 1251.9375
+        },
+        {
+          "text": "Change language",
+          "left": 1259.9375,
+          "right": 1320
+        }
+      ],
+      "links": [
+        {
+          "text": "Shop products",
+          "href": "/en/catalog/"
+        },
+        {
+          "text": "Place an order",
+          "href": "/en/checkout/"
+        },
+        {
+          "text": "All products",
+          "href": "/en/catalog/"
+        },
+        {
+          "text": "More about Roya",
+          "href": "/en/about/"
+        },
+        {
+          "text": "Explore products",
+          "href": "/en/catalog/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/catalog/",
+      "title": "Shop homemade food | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Roya products",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 120,
+          "right": 338.453125
+        },
+        {
+          "text": "Home",
+          "left": 420.265625,
+          "right": 457.953125
+        },
+        {
+          "text": "Products",
+          "left": 473.953125,
+          "right": 530.671875
+        },
+        {
+          "text": "Exchange rates",
+          "left": 546.671875,
+          "right": 642.1875
+        },
+        {
+          "text": "About Roya",
+          "left": 658.1875,
+          "right": 729.875
+        },
+        {
+          "text": "FAQ",
+          "left": 745.875,
+          "right": 771.140625
+        },
+        {
+          "text": "Contact",
+          "left": 787.140625,
+          "right": 836.078125
+        },
+        {
+          "text": "Track order",
+          "left": 852.078125,
+          "right": 922.859375
+        },
+        {
+          "text": "Account / join",
+          "left": 938.859375,
+          "right": 1026.421875
+        },
+        {
+          "text": "Shopping bag",
+          "left": 1108.234375,
+          "right": 1251.9375
+        },
+        {
+          "text": "Change language",
+          "left": 1259.9375,
+          "right": 1320
+        }
+      ],
+      "links": [
+        {
+          "text": "Product photo coming soon\nAvailable\nChicken and Mushroom Cold Cuts\n\nPer 1 kg\n\n1,500,000 Toman\nView product",
+          "href": "/en/products/chicken-mushroom-cold-cuts/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/products/chicken-mushroom-cold-cuts/",
+      "title": "Chicken and Mushroom Cold Cuts | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Chicken and Mushroom Cold Cuts",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 120,
+          "right": 338.453125
+        },
+        {
+          "text": "Home",
+          "left": 420.546875,
+          "right": 458.234375
+        },
+        {
+          "text": "Products",
+          "left": 474.234375,
+          "right": 530.40625
+        },
+        {
+          "text": "Exchange rates",
+          "left": 546.40625,
+          "right": 641.921875
+        },
+        {
+          "text": "About Roya",
+          "left": 657.921875,
+          "right": 729.609375
+        },
+        {
+          "text": "FAQ",
+          "left": 745.609375,
+          "right": 770.875
+        },
+        {
+          "text": "Contact",
+          "left": 786.875,
+          "right": 835.8125
+        },
+        {
+          "text": "Track order",
+          "left": 851.8125,
+          "right": 922.59375
+        },
+        {
+          "text": "Account / join",
+          "left": 938.59375,
+          "right": 1026.15625
+        },
+        {
+          "text": "Shopping bag",
+          "left": 1108.234375,
+          "right": 1251.9375
+        },
+        {
+          "text": "Change language",
+          "left": 1259.9375,
+          "right": 1320
+        }
+      ],
+      "links": [
+        {
+          "text": "Back to products",
+          "href": "/en/catalog/"
+        },
+        {
+          "text": "Have a question about this product? Contact Roya",
+          "href": "/en/contact/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/rates/",
+      "title": "Exchange rates & pricing | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Exchange rates & your prices",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 120,
+          "right": 338.453125
+        },
+        {
+          "text": "Home",
+          "left": 420.25,
+          "right": 457.9375
+        },
+        {
+          "text": "Products",
+          "left": 473.9375,
+          "right": 530.109375
+        },
+        {
+          "text": "Exchange rates",
+          "left": 546.109375,
+          "right": 642.203125
+        },
+        {
+          "text": "About Roya",
+          "left": 658.203125,
+          "right": 729.890625
+        },
+        {
+          "text": "FAQ",
+          "left": 745.890625,
+          "right": 771.15625
+        },
+        {
+          "text": "Contact",
+          "left": 787.15625,
+          "right": 836.09375
+        },
+        {
+          "text": "Track order",
+          "left": 852.09375,
+          "right": 922.875
+        },
+        {
+          "text": "Account / join",
+          "left": 938.875,
+          "right": 1026.4375
+        },
+        {
+          "text": "Shopping bag",
+          "left": 1108.234375,
+          "right": 1251.9375
+        },
+        {
+          "text": "Change language",
+          "left": 1259.9375,
+          "right": 1320
+        }
+      ],
+      "links": [
+        {
+          "text": "Tether source: Nobitex",
+          "href": "https://apidocs.nobitex.ir/"
+        },
+        {
+          "text": "FX conversion: Currency API",
+          "href": "https://github.com/fawazahmed0/exchange-api"
+        },
+        {
+          "text": "Compare USD/EUR on Google",
+          "href": "https://www.google.com/search?q=1%20USD%20to%20EUR"
+        },
+        {
+          "text": "XE",
+          "href": "https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=EUR"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/about/",
+      "title": "A taste of home, with care. | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "A taste of home, with care.",
+      "images": [
+        {
+          "src": "https://royahealthyfood.ir/_next/image/?url=%2Fimages%2Froya-party-spread.webp&w=750&q=75",
+          "loaded": true
+        }
+      ],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 120,
+          "right": 338.453125
+        },
+        {
+          "text": "Home",
+          "left": 420.21875,
+          "right": 457.90625
+        },
+        {
+          "text": "Products",
+          "left": 473.90625,
+          "right": 530.078125
+        },
+        {
+          "text": "Exchange rates",
+          "left": 546.078125,
+          "right": 641.59375
+        },
+        {
+          "text": "About Roya",
+          "left": 657.59375,
+          "right": 729.921875
+        },
+        {
+          "text": "FAQ",
+          "left": 745.921875,
+          "right": 771.1875
+        },
+        {
+          "text": "Contact",
+          "left": 787.1875,
+          "right": 836.125
+        },
+        {
+          "text": "Track order",
+          "left": 852.125,
+          "right": 922.90625
+        },
+        {
+          "text": "Account / join",
+          "left": 938.90625,
+          "right": 1026.46875
+        },
+        {
+          "text": "Shopping bag",
+          "left": 1108.234375,
+          "right": 1251.9375
+        },
+        {
+          "text": "Change language",
+          "left": 1259.9375,
+          "right": 1320
+        }
+      ],
+      "links": [
+        {
+          "text": "Explore products",
+          "href": "/en/catalog/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/faq/",
+      "title": "Frequently asked questions | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Frequently asked questions",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 120,
+          "right": 338.453125
+        },
+        {
+          "text": "Home",
+          "left": 420.4375,
+          "right": 458.125
+        },
+        {
+          "text": "Products",
+          "left": 474.125,
+          "right": 530.296875
+        },
+        {
+          "text": "Exchange rates",
+          "left": 546.296875,
+          "right": 641.8125
+        },
+        {
+          "text": "About Roya",
+          "left": 657.8125,
+          "right": 729.5
+        },
+        {
+          "text": "FAQ",
+          "left": 745.5,
+          "right": 770.96875
+        },
+        {
+          "text": "Contact",
+          "left": 786.96875,
+          "right": 835.90625
+        },
+        {
+          "text": "Track order",
+          "left": 851.90625,
+          "right": 922.6875
+        },
+        {
+          "text": "Account / join",
+          "left": 938.6875,
+          "right": 1026.25
+        },
+        {
+          "text": "Shopping bag",
+          "left": 1108.234375,
+          "right": 1251.9375
+        },
+        {
+          "text": "Change language",
+          "left": 1259.9375,
+          "right": 1320
+        }
+      ],
+      "links": [
+        {
+          "text": "Get in touch",
+          "href": "/en/contact/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/contact/",
+      "title": "Contact Roya | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "We are listening.",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 120,
+          "right": 338.453125
+        },
+        {
+          "text": "Home",
+          "left": 420.453125,
+          "right": 458.140625
+        },
+        {
+          "text": "Products",
+          "left": 474.140625,
+          "right": 530.3125
+        },
+        {
+          "text": "Exchange rates",
+          "left": 546.3125,
+          "right": 641.828125
+        },
+        {
+          "text": "About Roya",
+          "left": 657.828125,
+          "right": 729.515625
+        },
+        {
+          "text": "FAQ",
+          "left": 745.515625,
+          "right": 770.78125
+        },
+        {
+          "text": "Contact",
+          "left": 786.78125,
+          "right": 835.90625
+        },
+        {
+          "text": "Track order",
+          "left": 851.90625,
+          "right": 922.6875
+        },
+        {
+          "text": "Account / join",
+          "left": 938.6875,
+          "right": 1026.25
+        },
+        {
+          "text": "Shopping bag",
+          "left": 1108.234375,
+          "right": 1251.9375
+        },
+        {
+          "text": "Change language",
+          "left": 1259.9375,
+          "right": 1320
+        }
+      ],
+      "links": [
+        {
+          "text": "Frequently asked questions",
+          "href": "/en/faq/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/tracking/",
+      "title": "Track order | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Track order",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 120,
+          "right": 338.453125
+        },
+        {
+          "text": "Home",
+          "left": 419.96875,
+          "right": 457.65625
+        },
+        {
+          "text": "Products",
+          "left": 473.65625,
+          "right": 529.828125
+        },
+        {
+          "text": "Exchange rates",
+          "left": 545.828125,
+          "right": 641.34375
+        },
+        {
+          "text": "About Roya",
+          "left": 657.34375,
+          "right": 729.03125
+        },
+        {
+          "text": "FAQ",
+          "left": 745.03125,
+          "right": 770.296875
+        },
+        {
+          "text": "Contact",
+          "left": 786.296875,
+          "right": 835.234375
+        },
+        {
+          "text": "Track order",
+          "left": 851.234375,
+          "right": 923.171875
+        },
+        {
+          "text": "Account / join",
+          "left": 939.171875,
+          "right": 1026.734375
+        },
+        {
+          "text": "Shopping bag",
+          "left": 1108.234375,
+          "right": 1251.9375
+        },
+        {
+          "text": "Change language",
+          "left": 1259.9375,
+          "right": 1320
+        }
+      ],
+      "links": [
+        {
+          "text": "Browse products",
+          "href": "/en/catalog/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/account/",
+      "title": "Customer club | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Roya customer club",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 120,
+          "right": 338.453125
+        },
+        {
+          "text": "Home",
+          "left": 420.5,
+          "right": 458.1875
+        },
+        {
+          "text": "Products",
+          "left": 474.1875,
+          "right": 530.359375
+        },
+        {
+          "text": "Exchange rates",
+          "left": 546.359375,
+          "right": 641.875
+        },
+        {
+          "text": "About Roya",
+          "left": 657.875,
+          "right": 729.5625
+        },
+        {
+          "text": "FAQ",
+          "left": 745.5625,
+          "right": 770.828125
+        },
+        {
+          "text": "Contact",
+          "left": 786.828125,
+          "right": 835.765625
+        },
+        {
+          "text": "Track order",
+          "left": 851.765625,
+          "right": 922.546875
+        },
+        {
+          "text": "Account / join",
+          "left": 938.546875,
+          "right": 1026.203125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 1108.234375,
+          "right": 1251.9375
+        },
+        {
+          "text": "Change language",
+          "left": 1259.9375,
+          "right": 1320
+        }
+      ],
+      "links": [
+        {
+          "text": "Continue as guest",
+          "href": "/en/checkout/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/cart/",
+      "title": "Shopping bag | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 1440,
+      "scroll": 1440,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Shopping bag",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 120,
+          "right": 338.453125
+        },
+        {
+          "text": "Home",
+          "left": 420.546875,
+          "right": 458.234375
+        },
+        {
+          "text": "Products",
+          "left": 474.234375,
+          "right": 530.40625
+        },
+        {
+          "text": "Exchange rates",
+          "left": 546.40625,
+          "right": 641.921875
+        },
+        {
+          "text": "About Roya",
+          "left": 657.921875,
+          "right": 729.609375
+        },
+        {
+          "text": "FAQ",
+          "left": 745.609375,
+          "right": 770.875
+        },
+        {
+          "text": "Contact",
+          "left": 786.875,
+          "right": 835.8125
+        },
+        {
+          "text": "Track order",
+          "left": 851.8125,
+          "right": 922.59375
+        },
+        {
+          "text": "Account / join",
+          "left": 938.59375,
+          "right": 1026.15625
+        },
+        {
+          "text": "Shopping bag",
+          "left": 1108.234375,
+          "right": 1251.9375
+        },
+        {
+          "text": "Change language",
+          "left": 1259.9375,
+          "right": 1320
+        }
+      ],
+      "links": [
+        {
+          "text": "Browse products",
+          "href": "/en/catalog/"
+        }
+      ],
+      "viewport": 1440,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/",
+      "title": "Fresh homemade food | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Homemade bites,\nfor your gathering.",
+      "images": [
+        {
+          "src": "https://royahealthyfood.ir/_next/image/?url=%2Fimages%2Froya-party-spread.webp&w=384&q=75",
+          "loaded": true
+        }
+      ],
+      "controls": [
+        {
+          "text": "Roya",
+          "left": 20,
+          "right": 112.125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 191.0625,
+          "right": 254.9375
+        },
+        {
+          "text": "Change language",
+          "left": 258.9375,
+          "right": 307
+        },
+        {
+          "text": "Open menu",
+          "left": 311,
+          "right": 355
+        }
+      ],
+      "links": [
+        {
+          "text": "Shop products",
+          "href": "/en/catalog/"
+        },
+        {
+          "text": "Place an order",
+          "href": "/en/checkout/"
+        },
+        {
+          "text": "All products",
+          "href": "/en/catalog/"
+        },
+        {
+          "text": "More about Roya",
+          "href": "/en/about/"
+        },
+        {
+          "text": "Explore products",
+          "href": "/en/catalog/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/catalog/",
+      "title": "Shop homemade food | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Roya products",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya",
+          "left": 20,
+          "right": 112.125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 191.0625,
+          "right": 254.9375
+        },
+        {
+          "text": "Change language",
+          "left": 258.9375,
+          "right": 307
+        },
+        {
+          "text": "Open menu",
+          "left": 311,
+          "right": 355
+        }
+      ],
+      "links": [
+        {
+          "text": "Product photo coming soon\nAvailable\nChicken and Mushroom Cold Cuts\n\nPer 1 kg\n\n1,500,000 Toman\nView product",
+          "href": "/en/products/chicken-mushroom-cold-cuts/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/products/chicken-mushroom-cold-cuts/",
+      "title": "Chicken and Mushroom Cold Cuts | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Chicken and Mushroom Cold Cuts",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya",
+          "left": 20,
+          "right": 112.125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 191.0625,
+          "right": 254.9375
+        },
+        {
+          "text": "Change language",
+          "left": 258.9375,
+          "right": 307
+        },
+        {
+          "text": "Open menu",
+          "left": 311,
+          "right": 355
+        }
+      ],
+      "links": [
+        {
+          "text": "Back to products",
+          "href": "/en/catalog/"
+        },
+        {
+          "text": "Have a question about this product? Contact Roya",
+          "href": "/en/contact/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/rates/",
+      "title": "Exchange rates & pricing | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Exchange rates & your prices",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya",
+          "left": 20,
+          "right": 112.125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 191.0625,
+          "right": 254.9375
+        },
+        {
+          "text": "Change language",
+          "left": 258.9375,
+          "right": 307
+        },
+        {
+          "text": "Open menu",
+          "left": 311,
+          "right": 355
+        }
+      ],
+      "links": [
+        {
+          "text": "Tether source: Nobitex",
+          "href": "https://apidocs.nobitex.ir/"
+        },
+        {
+          "text": "FX conversion: Currency API",
+          "href": "https://github.com/fawazahmed0/exchange-api"
+        },
+        {
+          "text": "Compare USD/EUR on Google",
+          "href": "https://www.google.com/search?q=1%20USD%20to%20EUR"
+        },
+        {
+          "text": "XE",
+          "href": "https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=EUR"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/about/",
+      "title": "A taste of home, with care. | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "A taste of home, with care.",
+      "images": [
+        {
+          "src": "https://royahealthyfood.ir/_next/image/?url=%2Fimages%2Froya-party-spread.webp&w=384&q=75",
+          "loaded": true
+        }
+      ],
+      "controls": [
+        {
+          "text": "Roya",
+          "left": 20,
+          "right": 112.125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 191.0625,
+          "right": 254.9375
+        },
+        {
+          "text": "Change language",
+          "left": 258.9375,
+          "right": 307
+        },
+        {
+          "text": "Open menu",
+          "left": 311,
+          "right": 355
+        }
+      ],
+      "links": [
+        {
+          "text": "Explore products",
+          "href": "/en/catalog/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/faq/",
+      "title": "Frequently asked questions | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Frequently asked questions",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya",
+          "left": 20,
+          "right": 112.125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 191.0625,
+          "right": 254.9375
+        },
+        {
+          "text": "Change language",
+          "left": 258.9375,
+          "right": 307
+        },
+        {
+          "text": "Open menu",
+          "left": 311,
+          "right": 355
+        }
+      ],
+      "links": [
+        {
+          "text": "Get in touch",
+          "href": "/en/contact/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/contact/",
+      "title": "Contact Roya | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "We are listening.",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya",
+          "left": 20,
+          "right": 112.125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 191.0625,
+          "right": 254.9375
+        },
+        {
+          "text": "Change language",
+          "left": 258.9375,
+          "right": 307
+        },
+        {
+          "text": "Open menu",
+          "left": 311,
+          "right": 355
+        }
+      ],
+      "links": [
+        {
+          "text": "Frequently asked questions",
+          "href": "/en/faq/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/tracking/",
+      "title": "Track order | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Track order",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya",
+          "left": 20,
+          "right": 112.125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 191.0625,
+          "right": 254.9375
+        },
+        {
+          "text": "Change language",
+          "left": 258.9375,
+          "right": 307
+        },
+        {
+          "text": "Open menu",
+          "left": 311,
+          "right": 355
+        }
+      ],
+      "links": [
+        {
+          "text": "Browse products",
+          "href": "/en/catalog/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/account/",
+      "title": "Customer club | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Roya customer club",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya",
+          "left": 20,
+          "right": 112.125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 191.0625,
+          "right": 254.9375
+        },
+        {
+          "text": "Change language",
+          "left": 258.9375,
+          "right": 307
+        },
+        {
+          "text": "Open menu",
+          "left": 311,
+          "right": 355
+        }
+      ],
+      "links": [
+        {
+          "text": "Continue as guest",
+          "href": "/en/checkout/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/cart/",
+      "title": "Shopping bag | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 375,
+      "scroll": 375,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Shopping bag",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya",
+          "left": 20,
+          "right": 112.125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 191.0625,
+          "right": 254.9375
+        },
+        {
+          "text": "Change language",
+          "left": 258.9375,
+          "right": 307
+        },
+        {
+          "text": "Open menu",
+          "left": 311,
+          "right": 355
+        }
+      ],
+      "links": [
+        {
+          "text": "Browse products",
+          "href": "/en/catalog/"
+        }
+      ],
+      "viewport": 375,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/catalog/",
+      "title": "خرید محصولات خانگی | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 320,
+      "scroll": 320,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "محصولات رویا",
+      "images": [],
+      "controls": [
+        {
+          "text": "رویا",
+          "left": 222.640625,
+          "right": 300
+        },
+        {
+          "text": "سبد خرید",
+          "left": 127.953125,
+          "right": 189.859375
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 68,
+          "right": 123.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "تصویر محصول به‌زودی\nموجود\nژامبون قارچ و مرغ\n\nبرای ۱ کیلوگرم\n\n۱٬۵۰۰٬۰۰۰ تومان\nمشاهدهٔ محصول",
+          "href": "/fa/products/chicken-mushroom-cold-cuts/"
+        }
+      ],
+      "viewport": 320,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/rates/",
+      "title": "نرخ ارز و قیمت‌گذاری | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 320,
+      "scroll": 320,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "نرخ ارز و قیمت خرید شما",
+      "images": [],
+      "controls": [
+        {
+          "text": "رویا",
+          "left": 222.640625,
+          "right": 300
+        },
+        {
+          "text": "سبد خرید",
+          "left": 127.953125,
+          "right": 189.859375
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 68,
+          "right": 123.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "منبع تتر: نوبیتکس",
+          "href": "https://apidocs.nobitex.ir/"
+        },
+        {
+          "text": "تبدیل ارز: Currency API",
+          "href": "https://github.com/fawazahmed0/exchange-api"
+        },
+        {
+          "text": "تبدیل USD/EUR در گوگل",
+          "href": "https://www.google.com/search?q=1%20USD%20to%20EUR"
+        },
+        {
+          "text": "XE",
+          "href": "https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=EUR"
+        }
+      ],
+      "viewport": 320,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/catalog/",
+      "title": "خرید محصولات خانگی | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 640,
+      "scroll": 640,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "محصولات رویا",
+      "images": [],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 413.109375,
+          "right": 620
+        },
+        {
+          "text": "سبد خرید",
+          "left": 147.953125,
+          "right": 257.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 72,
+          "right": 139.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "تصویر محصول به‌زودی\nموجود\nژامبون قارچ و مرغ\n\nبرای ۱ کیلوگرم\n\n۱٬۵۰۰٬۰۰۰ تومان\nمشاهدهٔ محصول",
+          "href": "/fa/products/chicken-mushroom-cold-cuts/"
+        }
+      ],
+      "viewport": 640,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/rates/",
+      "title": "نرخ ارز و قیمت‌گذاری | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 640,
+      "scroll": 640,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "نرخ ارز و قیمت خرید شما",
+      "images": [],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 413.109375,
+          "right": 620
+        },
+        {
+          "text": "سبد خرید",
+          "left": 147.953125,
+          "right": 257.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 72,
+          "right": 139.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 20,
+          "right": 64
+        }
+      ],
+      "links": [
+        {
+          "text": "منبع تتر: نوبیتکس",
+          "href": "https://apidocs.nobitex.ir/"
+        },
+        {
+          "text": "تبدیل ارز: Currency API",
+          "href": "https://github.com/fawazahmed0/exchange-api"
+        },
+        {
+          "text": "تبدیل USD/EUR در گوگل",
+          "href": "https://www.google.com/search?q=1%20USD%20to%20EUR"
+        },
+        {
+          "text": "XE",
+          "href": "https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=EUR"
+        }
+      ],
+      "viewport": 640,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/catalog/",
+      "title": "خرید محصولات خانگی | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 768,
+      "scroll": 768,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "محصولات رویا",
+      "images": [],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 521.109375,
+          "right": 728
+        },
+        {
+          "text": "سبد خرید",
+          "left": 167.953125,
+          "right": 277.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 92,
+          "right": 159.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 40,
+          "right": 84
+        }
+      ],
+      "links": [
+        {
+          "text": "تصویر محصول به‌زودی\nموجود\nژامبون قارچ و مرغ\n\nبرای ۱ کیلوگرم\n\n۱٬۵۰۰٬۰۰۰ تومان\nمشاهدهٔ محصول",
+          "href": "/fa/products/chicken-mushroom-cold-cuts/"
+        }
+      ],
+      "viewport": 768,
+      "result": "PASS"
+    },
+    {
+      "path": "/fa/rates/",
+      "title": "نرخ ارز و قیمت‌گذاری | محصولات غذایی رویا",
+      "lang": "fa",
+      "dir": "rtl",
+      "client": 768,
+      "scroll": 768,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "نرخ ارز و قیمت خرید شما",
+      "images": [],
+      "controls": [
+        {
+          "text": "محصولات غذایی رویا\nROYA FOOD PRODUCTS",
+          "left": 521.109375,
+          "right": 728
+        },
+        {
+          "text": "سبد خرید",
+          "left": 167.953125,
+          "right": 277.5625
+        },
+        {
+          "text": "تغییر زبان",
+          "left": 92,
+          "right": 159.953125
+        },
+        {
+          "text": "باز کردن منو",
+          "left": 40,
+          "right": 84
+        }
+      ],
+      "links": [
+        {
+          "text": "منبع تتر: نوبیتکس",
+          "href": "https://apidocs.nobitex.ir/"
+        },
+        {
+          "text": "تبدیل ارز: Currency API",
+          "href": "https://github.com/fawazahmed0/exchange-api"
+        },
+        {
+          "text": "تبدیل USD/EUR در گوگل",
+          "href": "https://www.google.com/search?q=1%20USD%20to%20EUR"
+        },
+        {
+          "text": "XE",
+          "href": "https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=EUR"
+        }
+      ],
+      "viewport": 768,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/catalog/",
+      "title": "Shop homemade food | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 320,
+      "scroll": 320,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Roya products",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya",
+          "left": 20,
+          "right": 112.125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 136.0625,
+          "right": 199.9375
+        },
+        {
+          "text": "Change language",
+          "left": 203.9375,
+          "right": 252
+        },
+        {
+          "text": "Open menu",
+          "left": 256,
+          "right": 300
+        }
+      ],
+      "links": [
+        {
+          "text": "Product photo coming soon\nAvailable\nChicken and Mushroom Cold Cuts\n\nPer 1 kg\n\n1,500,000 Toman\nView product",
+          "href": "/en/products/chicken-mushroom-cold-cuts/"
+        }
+      ],
+      "viewport": 320,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/rates/",
+      "title": "Exchange rates & pricing | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 320,
+      "scroll": 320,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Exchange rates & your prices",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya",
+          "left": 20,
+          "right": 112.125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 136.0625,
+          "right": 199.9375
+        },
+        {
+          "text": "Change language",
+          "left": 203.9375,
+          "right": 252
+        },
+        {
+          "text": "Open menu",
+          "left": 256,
+          "right": 300
+        }
+      ],
+      "links": [
+        {
+          "text": "Tether source: Nobitex",
+          "href": "https://apidocs.nobitex.ir/"
+        },
+        {
+          "text": "FX conversion: Currency API",
+          "href": "https://github.com/fawazahmed0/exchange-api"
+        },
+        {
+          "text": "Compare USD/EUR on Google",
+          "href": "https://www.google.com/search?q=1%20USD%20to%20EUR"
+        },
+        {
+          "text": "XE",
+          "href": "https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=EUR"
+        }
+      ],
+      "viewport": 320,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/catalog/",
+      "title": "Shop homemade food | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 640,
+      "scroll": 640,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Roya products",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 20,
+          "right": 238.453125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 356.234375,
+          "right": 499.9375
+        },
+        {
+          "text": "Change language",
+          "left": 507.9375,
+          "right": 568
+        },
+        {
+          "text": "Open menu",
+          "left": 576,
+          "right": 620
+        }
+      ],
+      "links": [
+        {
+          "text": "Product photo coming soon\nAvailable\nChicken and Mushroom Cold Cuts\n\nPer 1 kg\n\n1,500,000 Toman\nView product",
+          "href": "/en/products/chicken-mushroom-cold-cuts/"
+        }
+      ],
+      "viewport": 640,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/rates/",
+      "title": "Exchange rates & pricing | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 640,
+      "scroll": 640,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Exchange rates & your prices",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 20,
+          "right": 238.453125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 356.234375,
+          "right": 499.9375
+        },
+        {
+          "text": "Change language",
+          "left": 507.9375,
+          "right": 568
+        },
+        {
+          "text": "Open menu",
+          "left": 576,
+          "right": 620
+        }
+      ],
+      "links": [
+        {
+          "text": "Tether source: Nobitex",
+          "href": "https://apidocs.nobitex.ir/"
+        },
+        {
+          "text": "FX conversion: Currency API",
+          "href": "https://github.com/fawazahmed0/exchange-api"
+        },
+        {
+          "text": "Compare USD/EUR on Google",
+          "href": "https://www.google.com/search?q=1%20USD%20to%20EUR"
+        },
+        {
+          "text": "XE",
+          "href": "https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=EUR"
+        }
+      ],
+      "viewport": 640,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/catalog/",
+      "title": "Shop homemade food | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 768,
+      "scroll": 768,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Roya products",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 40,
+          "right": 258.453125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 464.234375,
+          "right": 607.9375
+        },
+        {
+          "text": "Change language",
+          "left": 615.9375,
+          "right": 676
+        },
+        {
+          "text": "Open menu",
+          "left": 684,
+          "right": 728
+        }
+      ],
+      "links": [
+        {
+          "text": "Product photo coming soon\nAvailable\nChicken and Mushroom Cold Cuts\n\nPer 1 kg\n\n1,500,000 Toman\nView product",
+          "href": "/en/products/chicken-mushroom-cold-cuts/"
+        }
+      ],
+      "viewport": 768,
+      "result": "PASS"
+    },
+    {
+      "path": "/en/rates/",
+      "title": "Exchange rates & pricing | Roya Food Products",
+      "lang": "en",
+      "dir": "ltr",
+      "client": 768,
+      "scroll": 768,
+      "font": "\"Vazirmatn Variable\", sans-serif",
+      "fonts": "loaded",
+      "heading": "Exchange rates & your prices",
+      "images": [],
+      "controls": [
+        {
+          "text": "Roya Food Products\nROYA FOOD PRODUCTS",
+          "left": 40,
+          "right": 258.453125
+        },
+        {
+          "text": "Shopping bag",
+          "left": 464.234375,
+          "right": 607.9375
+        },
+        {
+          "text": "Change language",
+          "left": 615.9375,
+          "right": 676
+        },
+        {
+          "text": "Open menu",
+          "left": 684,
+          "right": 728
+        }
+      ],
+      "links": [
+        {
+          "text": "Tether source: Nobitex",
+          "href": "https://apidocs.nobitex.ir/"
+        },
+        {
+          "text": "FX conversion: Currency API",
+          "href": "https://github.com/fawazahmed0/exchange-api"
+        },
+        {
+          "text": "Compare USD/EUR on Google",
+          "href": "https://www.google.com/search?q=1%20USD%20to%20EUR"
+        },
+        {
+          "text": "XE",
+          "href": "https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=EUR"
+        }
+      ],
+      "viewport": 768,
+      "result": "PASS"
+    }
+  ],
+  "api": [
+    {
+      "path": "/api/health/",
+      "status": 200,
+      "noindex": "noindex, nofollow",
+      "cache": "no-store, no-store",
+      "stage": "public-preview-v1"
+    },
+    {
+      "path": "/api/admin/data/?section=settings",
+      "status": 401,
+      "noindex": "noindex, nofollow",
+      "cache": "no-store, no-store",
+      "stage": "public-preview-v1"
+    },
+    {
+      "path": "/api/shop/rates/",
+      "status": 200,
+      "noindex": "noindex, nofollow",
+      "cache": "no-store, no-store",
+      "stage": "public-preview-v1",
+      "sources": {
+        "nobitex": {
+          "state": "fresh",
+          "fetchedAt": "2026-10-26T21:16:36.204Z",
+          "refreshFailed": false
+        },
+        "fx": {
+          "state": "fresh",
+          "fetchedAt": "2026-10-26T21:15:25.571Z",
+          "refreshFailed": true
+        }
+      }
+    },
+    {
+      "path": "/robots.txt",
+      "status": 200,
+      "noindex": "noindex, nofollow",
+      "cache": "public, max-age=0, must-revalidate, no-store",
+      "stage": "public-preview-v1"
+    }
+  ],
+  "network": [],
+  "errors": []
+}
