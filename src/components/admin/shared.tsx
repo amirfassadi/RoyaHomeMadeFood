@@ -1,7 +1,7 @@
 'use client';
 import type {InputHTMLAttributes,ReactNode} from 'react';
-export const fieldClass='min-h-11 w-full rounded-xl border border-roya-line bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-roya-leaf';
-export function Field({label,...props}:InputHTMLAttributes<HTMLInputElement>&{label:string}){return <label className="grid gap-2 text-sm"><span>{label}</span><input className={fieldClass} {...props}/></label>;}
+export const fieldClass='min-w-0 min-h-11 w-full rounded-xl border border-roya-line bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-roya-leaf';
+export function Field({label,...props}:InputHTMLAttributes<HTMLInputElement>&{label:string}){return <label className="grid min-w-0 grid-cols-1 gap-2 text-sm"><span>{label}</span><input className={fieldClass} {...props}/></label>;}
 export function Panel({children,title}:{children:ReactNode;title?:string}){return <section className="rounded-2xl border border-roya-line bg-white p-5 shadow-card md:p-7">{title && <h2 className="mb-6 text-lg font-bold">{title}</h2>}{children}</section>;}
 export const statusLabels:Record<string,string>={PENDING:'در انتظار',PREPARING:'در حال آماده‌سازی',SHIPPED:'ارسال شده',DELIVERED:'تحویل شده',CANCELLED:'لغو شده',PAID:'تأیید پرداخت',UNPAID:'پرداخت نشده',FAILED:'ناموفق',REFUNDED:'بازپرداخت شده'};
 export const unitLabels:Record<string,string>={GRAM:'گرم',KG:'کیلوگرم',PIECE:'عدد',PACK:'بسته'};

@@ -10,10 +10,15 @@ import type {Locale} from '@/i18n/routing';
 import {internationalCheckoutSchema,domesticCheckoutSchema,type CheckoutInput} from '@/lib/validation/checkout';
 import {formatUsd} from '@/lib/international';
 import {calculateLineTotal,estimateDelivery} from '@/lib/domain/order';
+import {PrototypeCheckout} from './prototype-checkout';
 type Quote={amountUsdCents?:number;tomanPerUsd?:number;rateExpiresAt?:string;subtotalToman:number;discountToman:number;deliveryFeeToman:number;totalToman:number;estimatedDeliveryAt:string};
 export type Receipt={amountUsdCents?:number;trackingCode:string;totalToman:number;estimatedDeliveryAt:string;paymentMethod:string;paymentStatus:string;paymentUrl:string|null};
 const inputClass='min-h-12 w-full rounded-xl border border-roya-line bg-white px-4 py-3 text-sm focus:border-roya-green focus:outline-none focus:ring-2 focus:ring-roya-leaf';
 export function CheckoutForm({zones,international=false}:{zones:ZoneView[];international?:boolean}){
+ const c=useCart();
+ return c.catalog.isDemo?<PrototypeCheckout international={international}/>:<LiveCheckoutForm zones={zones} international={international}/>;
+}
+function LiveCheckoutForm({zones,international=false}:{zones:ZoneView[];international?:boolean}){
  const c=useCart(),t=useTranslations('Shop'),locale=useLocale() as Locale;
  const [zoneId,setZoneId]=useState(''),[quote,setQuote]=useState<Quote|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[receipt,setReceipt]=useState<Receipt|null>(null),[attempted,setAttempted]=useState(false);
  const [foreignReady,setForeignReady]=useState(false);

@@ -7,4 +7,4 @@ export type ProductView = {
   stockQuantity: number | null; dailyCapacity: number | null; preparationMinutes: number; featured: boolean;
   media: MediaView[];
 };
-export type CatalogView = {products: ProductView[]; categories: CategoryView[]; isDemo: boolean};
+export type CatalogView = {products: ProductView[]; categories: CategoryView[]; isDemo: boolean; source?:'sample'|'database'};

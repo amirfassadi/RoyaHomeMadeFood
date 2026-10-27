@@ -1,0 +1,277 @@
+{
+  "checkedAt": "2026-10-27T12:17:20.630Z",
+  "domain": "https://royahealthyfood.ir",
+  "scope": "Current live domain, actual UI and rates, fresh isolated browser per country. Browser-local simulated orders only; requests restricted to GET/HEAD on this origin. No administrator login, media test or server writes.",
+  "observations": [
+    {
+      "country": "IR",
+      "currency": "IRT",
+      "method": "DOMESTIC_CARD",
+      "outcome": "Simulate success",
+      "createdAt": "2026-10-27T12:16:45.149Z",
+      "trackingCode": "DEMO-0E555E77DC0E",
+      "quantity": 1,
+      "subtotal": 1500000,
+      "totalToman": 1450000,
+      "deliveryAt": "2026-10-30T10:30:00.000Z",
+      "slot": "14–18",
+      "paymentState": "SIMULATED_PAID",
+      "result": "PASS"
+    },
+    {
+      "country": "TR",
+      "currency": "TRY",
+      "method": "USDC_BSC",
+      "outcome": "Simulate failure",
+      "createdAt": "2026-10-27T12:16:50.372Z",
+      "trackingCode": "DEMO-393966ED47FD",
+      "quantity": 1,
+      "subtotal": 1500000,
+      "totalToman": 1450000,
+      "deliveryAt": "2026-10-29T14:30:00.000Z",
+      "slot": "18–21",
+      "paymentState": "FAILED",
+      "pricing": {
+        "snapshot": {
+          "currency": "TRY",
+          "usdTomanMicros": 271255726460,
+          "unitsPerUsdMicros": 49756843,
+          "feeBps": 300,
+          "asOf": "2026-10-27T12:16:37.004Z",
+          "dollarSource": "tether-cross",
+          "revision": "[\"TR\",\"TRY\",\"2026-10-27T12:16:37.004Z\",271255726460,49756843,300,\"2026-10-23T20:01:37.198Z\",false,{\"provider\":\"currency-api\",\"date\":\"2026-10-26\",\"mirror\":\"jsdelivr\"}]",
+          "fxMeta": {
+            "provider": "currency-api",
+            "date": "2026-10-26",
+            "mirror": "jsdelivr"
+          }
+        },
+        "subtotalMinor": 27515,
+        "discountMinor": 1834,
+        "feeMinor": 770,
+        "deliveryMinor": 917,
+        "totalMinor": 27368
+      },
+      "result": "PASS"
+    },
+    {
+      "country": "AE",
+      "currency": "AED",
+      "method": "PAYPAL",
+      "outcome": "Expire invoice",
+      "createdAt": "2026-10-27T12:16:54.927Z",
+      "trackingCode": "DEMO-4BE15AC16ED8",
+      "quantity": 1,
+      "subtotal": 1500000,
+      "totalToman": 1450000,
+      "deliveryAt": "2026-10-29T14:30:00.000Z",
+      "slot": "18–21",
+      "paymentState": "EXPIRED",
+      "pricing": {
+        "snapshot": {
+          "currency": "AED",
+          "usdTomanMicros": 271255726460,
+          "unitsPerUsdMicros": 3672500,
+          "feeBps": 300,
+          "asOf": "2026-10-27T12:16:37.004Z",
+          "dollarSource": "tether-cross",
+          "revision": "[\"AE\",\"AED\",\"2026-10-27T12:16:37.004Z\",271255726460,3672500,300,\"2026-10-23T20:01:37.198Z\",false,{\"provider\":\"currency-api\",\"date\":\"2026-10-26\",\"mirror\":\"jsdelivr\"}]",
+          "fxMeta": {
+            "provider": "currency-api",
+            "date": "2026-10-26",
+            "mirror": "jsdelivr"
+          }
+        },
+        "subtotalMinor": 2031,
+        "discountMinor": 135,
+        "feeMinor": 57,
+        "deliveryMinor": 68,
+        "totalMinor": 2021
+      },
+      "result": "PASS"
+    },
+    {
+      "country": "DE",
+      "currency": "EUR",
+      "method": "BTC_LIGHTNING",
+      "outcome": "Simulate success",
+      "createdAt": "2026-10-27T12:16:59.913Z",
+      "trackingCode": "DEMO-760F9D6805A0",
+      "quantity": 1,
+      "subtotal": 1500000,
+      "totalToman": 1450000,
+      "deliveryAt": "2026-10-29T14:30:00.000Z",
+      "slot": "18–21",
+      "paymentState": "SIMULATED_PAID",
+      "pricing": {
+        "snapshot": {
+          "currency": "EUR",
+          "usdTomanMicros": 271255726460,
+          "unitsPerUsdMicros": 891118,
+          "feeBps": 300,
+          "asOf": "2026-10-27T12:16:37.004Z",
+          "dollarSource": "tether-cross",
+          "revision": "[\"DE\",\"EUR\",\"2026-10-27T12:16:37.004Z\",271255726460,891118,300,\"2026-10-23T20:01:37.198Z\",false,{\"provider\":\"currency-api\",\"date\":\"2026-10-26\",\"mirror\":\"jsdelivr\"}]",
+          "fxMeta": {
+            "provider": "currency-api",
+            "date": "2026-10-26",
+            "mirror": "jsdelivr"
+          }
+        },
+        "subtotalMinor": 493,
+        "discountMinor": 33,
+        "feeMinor": 14,
+        "deliveryMinor": 16,
+        "totalMinor": 490
+      },
+      "result": "PASS"
+    },
+    {
+      "country": "GB",
+      "currency": "GBP",
+      "method": "PAYPAL",
+      "outcome": "Simulate success",
+      "createdAt": "2026-10-27T12:17:04.615Z",
+      "trackingCode": "DEMO-FCCB32D51D0C",
+      "quantity": 1,
+      "subtotal": 1500000,
+      "totalToman": 1450000,
+      "deliveryAt": "2026-10-29T14:30:00.000Z",
+      "slot": "18–21",
+      "paymentState": "SIMULATED_PAID",
+      "pricing": {
+        "snapshot": {
+          "currency": "GBP",
+          "usdTomanMicros": 271255726460,
+          "unitsPerUsdMicros": 747295,
+          "feeBps": 300,
+          "asOf": "2026-10-27T12:16:37.004Z",
+          "dollarSource": "tether-cross",
+          "revision": "[\"GB\",\"GBP\",\"2026-10-27T12:16:37.004Z\",271255726460,747295,300,\"2026-10-23T20:01:37.198Z\",false,{\"provider\":\"currency-api\",\"date\":\"2026-10-26\",\"mirror\":\"jsdelivr\"}]",
+          "fxMeta": {
+            "provider": "currency-api",
+            "date": "2026-10-26",
+            "mirror": "jsdelivr"
+          }
+        },
+        "subtotalMinor": 413,
+        "discountMinor": 28,
+        "feeMinor": 12,
+        "deliveryMinor": 14,
+        "totalMinor": 411
+      },
+      "result": "PASS"
+    },
+    {
+      "country": "US",
+      "currency": "USD",
+      "method": "PAYPAL",
+      "outcome": "Simulate success",
+      "createdAt": "2026-10-27T12:17:09.417Z",
+      "trackingCode": "DEMO-9DB9D94B9D40",
+      "quantity": 1,
+      "subtotal": 1500000,
+      "totalToman": 1450000,
+      "deliveryAt": "2026-10-29T14:30:00.000Z",
+      "slot": "18–21",
+      "paymentState": "SIMULATED_PAID",
+      "pricing": {
+        "snapshot": {
+          "currency": "USD",
+          "usdTomanMicros": 271255726460,
+          "unitsPerUsdMicros": 1000000,
+          "feeBps": 300,
+          "asOf": "2026-10-27T12:16:37.004Z",
+          "dollarSource": "tether-cross",
+          "revision": "[\"US\",\"USD\",\"2026-10-27T12:16:37.004Z\",271255726460,1000000,300,\"2026-10-23T20:01:37.198Z\",false,{\"provider\":\"currency-api\",\"date\":\"2026-10-26\",\"mirror\":\"jsdelivr\"}]",
+          "fxMeta": {
+            "provider": "currency-api",
+            "date": "2026-10-26",
+            "mirror": "jsdelivr"
+          }
+        },
+        "subtotalMinor": 553,
+        "discountMinor": 37,
+        "feeMinor": 15,
+        "deliveryMinor": 18,
+        "totalMinor": 549
+      },
+      "result": "PASS"
+    },
+    {
+      "country": "CA",
+      "currency": "CAD",
+      "method": "BTC_LIGHTNING",
+      "outcome": "Simulate success",
+      "createdAt": "2026-10-27T12:17:14.010Z",
+      "trackingCode": "DEMO-12B686BF8E34",
+      "quantity": 1,
+      "subtotal": 1500000,
+      "totalToman": 1450000,
+      "deliveryAt": "2026-10-29T14:30:00.000Z",
+      "slot": "18–21",
+      "paymentState": "SIMULATED_PAID",
+      "pricing": {
+        "snapshot": {
+          "currency": "CAD",
+          "usdTomanMicros": 271255726460,
+          "unitsPerUsdMicros": 1400574,
+          "feeBps": 300,
+          "asOf": "2026-10-27T12:16:37.004Z",
+          "dollarSource": "tether-cross",
+          "revision": "[\"CA\",\"CAD\",\"2026-10-27T12:16:37.004Z\",271255726460,1400574,300,\"2026-10-23T20:01:37.198Z\",false,{\"provider\":\"currency-api\",\"date\":\"2026-10-26\",\"mirror\":\"jsdelivr\"}]",
+          "fxMeta": {
+            "provider": "currency-api",
+            "date": "2026-10-26",
+            "mirror": "jsdelivr"
+          }
+        },
+        "subtotalMinor": 774,
+        "discountMinor": 52,
+        "feeMinor": 22,
+        "deliveryMinor": 26,
+        "totalMinor": 770
+      },
+      "result": "PASS"
+    },
+    {
+      "country": "OTHER",
+      "currency": "USD",
+      "method": "USDC_BSC",
+      "outcome": "Simulate success",
+      "createdAt": "2026-10-27T12:17:19.292Z",
+      "trackingCode": "DEMO-53E9B970729D",
+      "quantity": 1,
+      "subtotal": 1500000,
+      "totalToman": 1450000,
+      "deliveryAt": "2026-10-29T14:30:00.000Z",
+      "slot": "18–21",
+      "paymentState": "SIMULATED_PAID",
+      "pricing": {
+        "snapshot": {
+          "currency": "USD",
+          "usdTomanMicros": 271255726460,
+          "unitsPerUsdMicros": 1000000,
+          "feeBps": 300,
+          "asOf": "2026-10-27T12:16:37.004Z",
+          "dollarSource": "tether-cross",
+          "revision": "[\"OTHER\",\"USD\",\"2026-10-27T12:16:37.004Z\",271255726460,1000000,300,\"2026-10-23T20:01:37.198Z\",false,{\"provider\":\"currency-api\",\"date\":\"2026-10-26\",\"mirror\":\"jsdelivr\"}]",
+          "fxMeta": {
+            "provider": "currency-api",
+            "date": "2026-10-26",
+            "mirror": "jsdelivr"
+          }
+        },
+        "subtotalMinor": 553,
+        "discountMinor": 37,
+        "feeMinor": 15,
+        "deliveryMinor": 18,
+        "totalMinor": 549
+      },
+      "result": "PASS"
+    }
+  ],
+  "blocked": [],
+  "errors": [],
+  "independentArithmetic": "PASS: Python Decimal half-up check of all seven foreign invoices using each frozen rate, currency and fee; no application pricing functions imported."
+}

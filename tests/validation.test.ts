@@ -1,6 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mediaSchema, productSchema} from '../src/lib/validation/product';
+import {quoteSchema} from '../src/lib/validation/checkout';
+import {productEditSchema} from '../src/lib/validation/admin';
 const product = {
   nameFa: 'غذای نمونه', nameEn: 'Sample food', slug: 'sample-food', categoryId: 'category',
   descriptionFa: 'شرح محصول نمونه برای آزمون', descriptionEn: 'Example product description for testing',
@@ -20,4 +22,30 @@ test('video bytes and Cloudinary origin are validated', () => {
   assert.equal(mediaSchema.safeParse({...media, bytes: 20_000_001}).success, false);
   assert.equal(mediaSchema.safeParse({...media, durationSeconds: null}).success, false);
   assert.equal(mediaSchema.safeParse({...media, secureUrl: 'https://res.cloudinary.com.evil.test/file.mp4'}).success, false);
+});
+test('checkout collection bounds reject oversized invalid items with a bounded error', () => {
+  const items=Array.from({length:30},(_,i)=>({productId:'product-'+i,quantity:1}));
+  assert.equal(quoteSchema.safeParse({items,zoneId:'zone'}).success,true);
+  for(const length of [31,1000]){
+    const result=quoteSchema.safeParse({items:Array(length).fill(null),zoneId:'zone'});
+    assert.equal(result.success,false);
+    if(!result.success){
+      assert.equal(result.error.issues.length,1);
+      assert.equal(result.error.issues[0].code,'too_big');
+      assert.deepEqual(result.error.issues[0].path,['items']);
+    }
+  }
+});
+test('administrator media bounds reject oversized invalid collections and preserve valid edits', () => {
+  const media=Array.from({length:10},(_,i)=>({id:'media-'+i,altFa:'تصویر نمونه',altEn:'Sample image'}));
+  assert.equal(productEditSchema.safeParse({product,media}).success,true);
+  for(const length of [11,1000]){
+    const result=productEditSchema.safeParse({product,media:Array(length).fill(null)});
+    assert.equal(result.success,false);
+    if(!result.success){
+      assert.equal(result.error.issues.length,1);
+      assert.equal(result.error.issues[0].code,'too_big');
+      assert.deepEqual(result.error.issues[0].path,['media']);
+    }
+  }
 });
