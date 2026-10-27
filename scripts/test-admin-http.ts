@@ -18,7 +18,7 @@ const base='http://127.0.0.1:4313';
 const origin='http://localhost:4313';
 const db=new PrismaClient({adapter:new PrismaPg({connectionString:url})});
 const suffix=randomUUID(),mobile=`09${String(randomBytes(4).readUInt32BE()%1e9).padStart(9,'0')}`,password=randomBytes(24).toString('base64url');
-const products:string[]=[];let adminId:string|undefined,categoryId:string|undefined;
+const products:string[]=[],settingsZoneIds:string[]=[],settingsDiscountIds:string[]=[];let adminId:string|undefined,categoryId:string|undefined;
 const oldPolicy=await db.setting.findUnique({where:{key:'international-pricing'}});
 const oldContent=await db.setting.findUnique({where:{key:'storefront-content'}});
 const oldContact=await db.setting.findUnique({where:{key:'contact'}});
@@ -106,6 +106,46 @@ try{
  assert.ok(!(await storefront()).products.some(p=>p.id===saved.id));
  assert.throws(()=>quoteDemo({...visible,products:[]},basket,zone,'','IR',time),/QUANTITY/);
  console.log('DATABASE STOREFRONT PASS: inactive hidden, active product/price/stock/capacity visible, FA/EN detail rendering, simulated guest order with no database order, archived product removed.');
+ // Settings use real APIs/database here; fixtures remain inactive throughout.
+ const originalZones=await db.deliveryZone.findMany({orderBy:{id:'asc'}});
+ const originalDiscounts=await db.discountCode.findMany({orderBy:{id:'asc'}});
+ const settingsZone={cityFa:'شهر آزمون '+suffix,cityEn:'Settings test '+suffix,nameFa:'محدوده غیرفعال آزمون',nameEn:'Inactive integration fixture',feeToman:75000,deliveryMinutes:90,active:false};
+ const settingsDiscount={code:'QA_'+suffix.replaceAll('-','').slice(0,20).toUpperCase(),type:'PERCENT',value:15,minSubtotalToman:200000,maxDiscountToman:50000,usageLimit:null,startsAt:'2026-10-27T06:00:00.000Z',expiresAt:'2026-10-28T06:00:00.000Z',active:false,showInCustomerClub:false};
+ for(const route of ['zones','discounts'])await ok(await guest.post('/api/admin/settings/'+route+'/',{}),401);
+ await ok(await client.post('/api/admin/settings/zones/',settingsZone));
+ const zoneCreated=await db.deliveryZone.findFirstOrThrow({where:{cityEn:settingsZone.cityEn}});settingsZoneIds.push(zoneCreated.id);
+ await ok(await client.post('/api/admin/settings/discounts/',settingsDiscount));
+ const discountCreated=await db.discountCode.findUniqueOrThrow({where:{code:settingsDiscount.code}});settingsDiscountIds.push(discountCreated.id);
+ const settingsReader=new Client();await ok(await settingsReader.auth('callback/credentials',{mobile,password:replacement}));
+ async function settingsRead(){return ok(await settingsReader.request('/api/admin/data/?section=settings'));}
+ const initialSettings=await settingsRead();
+ assert.equal(initialSettings.zones.find((z:any)=>z.id===zoneCreated.id).feeToman,75000);
+ assert.equal(initialSettings.discounts.find((d:any)=>d.id===discountCreated.id).value,15);
+ const zoneEdit={...settingsZone,id:zoneCreated.id,expectedUpdatedAt:zoneCreated.updatedAt.toISOString(),feeToman:0,deliveryMinutes:0};
+ const discountEdit={...settingsDiscount,id:discountCreated.id,expectedUpdatedAt:discountCreated.updatedAt.toISOString(),type:'FIXED',value:50000,maxDiscountToman:null,usageLimit:4,startsAt:null,expiresAt:null};
+ await ok(await client.post('/api/admin/settings/zones/',zoneEdit));
+ await ok(await client.post('/api/admin/settings/discounts/',discountEdit));
+ const changedSettings=await settingsRead(),zoneChanged=changedSettings.zones.find((z:any)=>z.id===zoneCreated.id),discountChanged=changedSettings.discounts.find((d:any)=>d.id===discountCreated.id);
+ assert.equal(zoneChanged.feeToman,0);assert.equal(zoneChanged.deliveryMinutes,0);assert.equal(zoneChanged.active,false);
+ assert.equal(discountChanged.type,'FIXED');assert.equal(discountChanged.maxDiscountToman,null);assert.equal(discountChanged.startsAt,null);assert.equal(discountChanged.active,false);assert.equal(discountChanged.showInCustomerClub,false);
+ const settingsAuditCount=await db.adminAudit.count({where:{adminId:admin.id,action:{in:['ZONE_SAVE','DISCOUNT_SAVE']}}});assert.equal(settingsAuditCount,4);
+ await ok(await client.post('/api/admin/settings/zones/',zoneEdit),409);
+ await ok(await client.post('/api/admin/settings/discounts/',discountEdit),409);
+ for(const invalid of [{feeToman:-1},{deliveryMinutes:1.5},{deliveryMinutes:525601}])await ok(await client.post('/api/admin/settings/zones/',{...zoneEdit,expectedUpdatedAt:zoneChanged.updatedAt,...invalid}),400);
+ for(const invalid of [{type:'PERCENT',value:101},{value:0},{usageLimit:0},{startsAt:'2026-10-28T06:00:00.000Z',expiresAt:'2026-10-27T06:00:00.000Z'}])await ok(await client.post('/api/admin/settings/discounts/',{...discountEdit,expectedUpdatedAt:discountChanged.updatedAt,...invalid}),400);
+ await ok(await client.post('/api/admin/settings/discounts/',settingsDiscount),409);
+ await ok(await client.post('/api/admin/settings/zones/',settingsZone,'https://untrusted.example'),403);
+ await ok(await client.post('/api/admin/settings/discounts/',settingsDiscount,'https://untrusted.example'),403);
+ assert.equal(await db.adminAudit.count({where:{adminId:admin.id,action:{in:['ZONE_SAVE','DISCOUNT_SAVE']}}}),settingsAuditCount);
+ // A limit may never be lowered below uses already recorded; only this isolated fixture is seeded.
+ const usedDiscount=await db.discountCode.update({where:{id:discountCreated.id},data:{usedCount:3}});
+ await ok(await client.post('/api/admin/settings/discounts/',{...discountEdit,expectedUpdatedAt:usedDiscount.updatedAt.toISOString(),usageLimit:2}),400);
+ assert.equal((await db.discountCode.findUniqueOrThrow({where:{id:discountCreated.id}})).usageLimit,4);
+ assert.deepEqual(await db.deliveryZone.findMany({where:{id:{notIn:settingsZoneIds}},orderBy:{id:'asc'}}),originalZones);
+ assert.deepEqual(await db.discountCode.findMany({where:{id:{notIn:settingsDiscountIds}},orderBy:{id:'asc'}}),originalDiscounts);
+ assert.equal(await db.order.count(),orderCount);
+ await ok(await settingsReader.auth('signout'));await ok(await settingsReader.request('/api/admin/data/?section=settings'),401);
+ console.log('SETTINGS HTTP PASS: authenticated inactive zone/discount creation and edits, independent-session reads, PostgreSQL persistence/audit, zero shipping, nullable limits/dates, stale/invalid/duplicate/Origin/guest rejection, existing records preserved and no database orders.');
  const initial=(await ok(await guest.request('/api/shop/pricing/'))).policy;
  const checkpoints:PricingCheckpoint[]=[];
  await runPricingAdminTest({admin:client,guest,checkpoint:value=>{checkpoints.push(structuredClone(value));}});
@@ -175,6 +215,8 @@ try{
  await ok(await client.request('/api/admin/settings/content/'),401);
  console.log('ADMIN HTTP PASS: real login/logout, hidden-password recovery CLI, cancelled/mismatched recovery, old-session revocation, old-password rejection, new-password login, guest access controls, create/read/edit/archive, prices, stock, capacity, weighted units, zero stock, unlimited capacity, stale edits, invalid input, origin protection, shared pricing and live-effect guards.');
 }finally{
+ await db.discountCode.deleteMany({where:{id:{in:settingsDiscountIds}}});
+ await db.deliveryZone.deleteMany({where:{id:{in:settingsZoneIds}}});
  await db.productMedia.deleteMany({where:{productId:{in:products}}});
  await db.product.deleteMany({where:{id:{in:products}}});
  if(adminId)await db.adminAudit.deleteMany({where:{adminId}});
