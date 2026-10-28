@@ -1,0 +1,54 @@
+name: VPS connection check
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/vps-connection-test.yml'
+permissions:
+  contents: read
+jobs:
+  connection:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check SSH, deployment permissions, and existing services
+        shell: bash
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_PORT: ${{ vars.VPS_PORT }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          : "${VPS_HOST:?Missing VPS_HOST variable}"
+          : "${VPS_PORT:?Missing VPS_PORT variable}"
+          : "${VPS_SSH_KEY:?Missing VPS_SSH_KEY secret}"
+          : "${VPS_KNOWN_HOSTS:?Missing VPS_KNOWN_HOSTS secret}"
+          [[ "$VPS_PORT" =~ ^[0-9]+$ ]]
+          ssh_dir=$(mktemp -d)
+          trap 'rm -rf -- "$ssh_dir"' EXIT
+          chmod 700 "$ssh_dir"
+          printf '%s\n' "$VPS_SSH_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          chmod 600 "$ssh_dir/key" "$ssh_dir/known_hosts"
+          ssh -T -p "$VPS_PORT" -i "$ssh_dir/key" \
+            -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o ConnectTimeout=20 -o ConnectionAttempts=1 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+            "roya-deploy@$VPS_HOST" 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          printf 'SSH_AUTHENTICATION_OK\n'
+          test "$(id -un)" = roya-deploy
+          test -x /usr/local/sbin/roya-deploy
+          sudo -n -l /usr/local/sbin/roya-deploy 0000000000000000000000000000000000000000
+          printf 'DEPLOYMENT_PERMISSION_OK\n'
+          systemctl is-active --quiet roya-store
+          systemctl is-active --quiet roya-preview
+          printf 'SERVICES_ACTIVE\n'
+          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3310/api/health/ >/dev/null
+          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3311/api/health/ >/dev/null
+          printf 'BOTH_HEALTH_CHECKS_OK\n'
+          df -h /opt/roya
+          printf 'READ_ONLY_CONNECTION_TEST_PASSED\n'
+          REMOTE
