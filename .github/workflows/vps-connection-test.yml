@@ -28,14 +28,20 @@ jobs:
           ssh_dir=$(mktemp -d)
           trap 'rm -rf -- "$ssh_dir"' EXIT
           chmod 700 "$ssh_dir"
-          printf '%s\n' "$VPS_SSH_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > "$ssh_dir/key"
           printf '%s\n' "$VPS_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
           chmod 600 "$ssh_dir/key" "$ssh_dir/known_hosts"
-          ssh-keyscan -T 10 -p "$VPS_PORT" -t ed25519 "$VPS_HOST" > "$ssh_dir/scanned" 2>/dev/null
-          fingerprint=$(ssh-keygen -lf "$ssh_dir/scanned" | awk '{print $2}')
+          # Normalize a pasted public host key to the configured host and port.
+          awk -v host="$VPS_HOST" -v port="$VPS_PORT" '
+            {gsub(/\r/, ""); for (i=1; i<NF; i++) if ($i=="ssh-ed25519") {
+              print "[" host "]:" port " " $i " " $(i+1); found=1; exit
+            }}
+            END {if (!found) exit 1}
+          ' "$ssh_dir/known_hosts" > "$ssh_dir/verified_hosts"
+          fingerprint=$(ssh-keygen -lf "$ssh_dir/verified_hosts" | awk '{print $2}')
           test "$fingerprint" = 'SHA256:4FwJX713fNpqOWo9qaWfPrnp6UdvIybDxaUQk+xc4Bw'
-          printf 'VERIFIED_PUBLIC_HOST_ENTRY='
-          cat "$ssh_dir/scanned"
+          mv "$ssh_dir/verified_hosts" "$ssh_dir/known_hosts"
+          printf 'TRUSTED_HOST_KEY_VERIFIED\n'
           ssh -T -p "$VPS_PORT" -i "$ssh_dir/key" \
             -o BatchMode=yes -o IdentitiesOnly=yes \
             -o ConnectTimeout=20 -o ConnectionAttempts=1 \
