@@ -77,8 +77,23 @@ jobs:
           systemctl is-active --quiet roya-store
           systemctl is-active --quiet roya-preview
           printf 'SERVICES_ACTIVE\n'
-          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3310/api/health/ >/dev/null
-          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3311/api/health/ >/dev/null
+          printf 'CONNECTION_AND_PERMISSIONS_PASSED\n'
+          printf 'ACTIVE_STORE_RELEASE=%s\n' "$(readlink -e /opt/roya/current)"
+          printf 'ACTIVE_PREVIEW_RELEASE=%s\n' "$(readlink -e /opt/roya/preview-current)"
+          health_ok=1
+          for port in 3310 3311; do
+            for path in /api/health/ /health /; do
+              code=$(curl --silent --show-error --max-time 10 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port$path") || code=000
+              printf 'HTTP_STATUS port=%s path=%s status=%s\n' "$port" "$path" "$code"
+              if [[ "$path" == /api/health/ && "$code" != 200 ]]; then health_ok=0; fi
+            done
+            curl --silent --show-error --max-time 10 -D - -o /dev/null "http://127.0.0.1:$port/api/health/" \
+              | awk 'BEGIN{IGNORECASE=1} /^(HTTP\/|server:|www-authenticate:|location:)/ {print}'
+          done
+          if (( health_ok != 1 )); then
+            echo 'LEGACY_APPLICATION_HEALTH_NOT_READY: SSH and deployment permissions passed; existing applications did not both return HTTP 200 on /api/health/.'
+            exit 1
+          fi
           printf 'BOTH_HEALTH_CHECKS_OK\n'
           df -h /opt/roya
           printf 'READ_ONLY_CONNECTION_TEST_PASSED\n'
