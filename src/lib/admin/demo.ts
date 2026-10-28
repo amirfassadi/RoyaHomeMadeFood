@@ -8,6 +8,6 @@ export function demoAdminData():AdminData{
  data.stats={products:4,orders:1,pending:0};
  data.customers=[{mobile:'',name:'مشتری نمونه',orders:1,totalToman:850000,lastOrder:date}];
  data.zones=[{id:'demo-zone',cityFa:'شهر نمونه',cityEn:'Example city',nameFa:'محدوده نمونه',nameEn:'Example zone',feeToman:50000,deliveryMinutes:120,active:true,updatedAt:date}];
- data.detail={...data.orders[0],address:'نشانی نمونه؛ اطلاعات مشتری واقعی نیست.',city:'شهر نمونه',deliveryNotes:'',deliveryZoneNameSnapshot:'محدوده نمونه',subtotalToman:800000,discountToman:0,deliveryFeeToman:50000,items:[{id:'demo-item',productNameFa:'سینی مزه نمونه',unit:'PACK',quantity:1,lineTotalToman:800000}],statusHistory:[{status:'PENDING',createdAt:date},{status:'PREPARING',createdAt:'2026-10-10T12:00:00.000Z'}],requestState:null} satisfies OrderDetail;
+ data.detail={...data.orders[0],shippingSnapshot:{provider:'ALOPEYK',destination:{lat:35.7,lng:51.4}},address:'نشانی نمونه؛ اطلاعات مشتری واقعی نیست.',city:'شهر نمونه',deliveryNotes:'',deliveryZoneNameSnapshot:'محدوده نمونه',subtotalToman:800000,discountToman:0,deliveryFeeToman:50000,items:[{id:'demo-item',productNameFa:'سینی مزه نمونه',unit:'PACK',quantity:1,lineTotalToman:800000}],statusHistory:[{status:'PENDING',createdAt:date},{status:'PREPARING',createdAt:'2026-10-10T12:00:00.000Z'}],requestState:null} satisfies OrderDetail;
  return data;
 }

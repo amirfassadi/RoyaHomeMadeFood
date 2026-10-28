@@ -10,3 +10,5 @@ src/generated/
 *.log
 .sites-runtime/
 .openai/*.tar.gz
+
+.swc-native-cache/

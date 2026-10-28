@@ -54,7 +54,7 @@ export async function reconcileCrypto(orderId:string,recoveredInvoiceId?:string)
   if(o.paymentStatus==='PAID')return;
   const now=new Date();
   await tx.cryptoPayment.update({where:{id:p.id},data:{invoiceId:invoice.id,checkoutUrl:invoice.checkoutLink,invoiceStatus:invoice.status,additionalStatus:invoice.additionalStatus,requestState:'READY',...(settled?{verifiedAt:now}:{})}});
-  if(settled)await tx.order.update({where:{id:orderId},data:{paymentStatus:'PAID',...(o.status==='CANCELLED'?{refundRequired:true}:{estimatedDeliveryAt:estimateDelivery(now,[o.longestPreparationMinutes],o.zoneDeliveryMinutes)})}});
+  if(settled)await tx.order.update({where:{id:orderId},data:{paymentStatus:'PAID',paymentConfirmedAt:now,...(o.status==='CANCELLED'?{refundRequired:true}:{estimatedDeliveryAt:estimateDelivery(now,[o.longestPreparationMinutes],o.zoneDeliveryMinutes)})}});
  });
  return {result:settled?'paid':'pending'};
 }

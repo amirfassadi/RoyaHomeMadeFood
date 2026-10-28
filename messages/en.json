@@ -263,7 +263,7 @@
     "submit": "Place order",
     "editQuote": "Check the total again after making changes.",
     "eta": "Estimated delivery",
-    "etaNote": "Delivery estimate is the longest preparation time plus the zone delivery time. Online orders begin preparation after payment verification.",
+    "etaNote": "Delivery estimate is the longest preparation time plus the zone delivery time. Orders are finalized and preparation begins after funds are verified, for both online payments and bank transfers.",
     "demo": "This is a demonstration. Prices, delivery zones and images are examples. No real orders or payments are created.",
     "noZones": "No active delivery zones have been configured.",
     "saved": "Your order has been placed",

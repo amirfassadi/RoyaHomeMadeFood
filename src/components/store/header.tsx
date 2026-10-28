@@ -1,5 +1,6 @@
 'use client';
 import {InternationalBanner} from './international-banner';
+import {PrototypeToolbar} from './prototype-region';
 import {useCart} from './cart-provider';
 import {formatNumber} from '@/lib/format';
 import type {Locale} from '@/i18n/routing';
@@ -21,6 +22,7 @@ export function StoreHeader({isDemo}: {isDemo: boolean}) {
   return <>
     <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-white focus:p-4">{t('skip')}</a>
     {isDemo && <div className="bg-roya-green-dark px-5 py-2.5 text-center text-[11px] leading-5 text-white">{t('demo')}</div>}
+    <PrototypeToolbar/>
     <InternationalBanner isDemo={isDemo}/>
     <header className="sticky top-0 z-30 border-b border-roya-line bg-roya-cream/95 backdrop-blur-md"><div className="section-shell flex min-h-22 items-center justify-between gap-3 py-4">
       <Link href={`/${locale}/`} onClick={() => setOpen(false)}><Logo/></Link>

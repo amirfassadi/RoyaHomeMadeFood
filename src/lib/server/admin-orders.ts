@@ -6,10 +6,12 @@ import {audit} from './admin-products';
 export async function changeOrderStatus(id:string,expectedStatus:Status,status:Status,adminId:string){
  return getDb().$transaction(async tx=>{
   await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id"=${id} FOR UPDATE`;
-  const o=await tx.order.findUnique({where:{id},include:{items:true,paymentAttempts:true,cryptoPayment:true}});if(!o)throw new ShopError('NOT_FOUND',404);
+  const o=await tx.order.findUnique({where:{id},include:{items:true,paymentAttempts:true,cryptoPayment:true,courierDispatch:true}});if(!o)throw new ShopError('NOT_FOUND',404);
   if(o.status===status)return;
   if(o.status!==expectedStatus)throw new ShopError('CONFLICT',409);
   if(!allowedTransition(o.status,status))throw new ShopError('TRANSITION',409);
+  if(o.courierDispatch && o.courierDispatch.requestState!=='CANCELLED' && ['SHIPPED','DELIVERED','CANCELLED'].includes(status))throw new ShopError('COURIER_ACTIVE',409);
+  if(!o.courierDispatch && (o.shippingSnapshot as {provider?:string}|null)?.provider==='ALOPEYK' && ['SHIPPED','DELIVERED'].includes(status))throw new ShopError('COURIER_REQUIRED',409);
   if(status==='PREPARING' && o.paymentMethod!=='CASH_ON_DELIVERY' && o.paymentStatus!=='PAID')throw new ShopError('PAYMENT_PENDING',409);
   const cancellation=status==='CANCELLED';
   if(cancellation && !canReleaseCancellation(o.paymentMethod,o.paymentStatus,o.cryptoPayment?.requestState??o.paymentAttempts[0]?.requestState??null))throw new ShopError('PAYMENT_PENDING',409);

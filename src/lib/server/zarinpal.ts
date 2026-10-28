@@ -67,7 +67,7 @@ export async function verifyPayment(attemptId:string,nonce:string,authority:stri
     if(current.paymentStatus==='PAID')return;
     const now=new Date();
     await tx.paymentAttempt.update({where:{id:attempt.id},data:{status:'PAID',referenceId:verified.ref_id===undefined?undefined:String(verified.ref_id),verifiedAt:now}});
-    await tx.order.update({where:{id:attempt.orderId},data:{paymentStatus:'PAID',estimatedDeliveryAt:estimateDelivery(now,[current.longestPreparationMinutes],current.zoneDeliveryMinutes)}});
+    await tx.order.update({where:{id:attempt.orderId},data:{paymentStatus:'PAID',paymentConfirmedAt:now,estimatedDeliveryAt:estimateDelivery(now,[current.longestPreparationMinutes],current.zoneDeliveryMinutes)}});
   });
   return {locale,result:'paid'};
 }

@@ -8,7 +8,7 @@
   "packageManager": "npm@11.9.0",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "node scripts/build-sites.mjs",
     "start": "next start",
     "build:sites": "node scripts/build-sites.mjs",
     "typecheck": "prisma generate && tsc --noEmit",
@@ -22,34 +22,37 @@
     "deploy:check": "node --import tsx scripts/preflight.ts",
     "maintenance:rate-limits": "prisma generate && node --import tsx scripts/cleanup-rate-limits.ts",
     "test:integration": "prisma generate && node --conditions=react-server --import tsx --test tests/integration/*.test.ts",
-    "admin:recover": "prisma generate && node --import tsx scripts/recover-admin.ts"
+    "admin:recover": "prisma generate && node --import tsx scripts/recover-admin.ts",
+    "build:app": "prisma generate && next build"
   },
   "dependencies": {
-    "next": "16.4.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "next-intl": "4.14.9",
-    "next-auth": "4.24.15",
-    "@prisma/client": "7.10.0",
-    "@prisma/adapter-pg": "7.10.0",
-    "pg": "^8.16.3",
-    "cloudinary": "^2.8.0",
-    "zod": "^4.3.6",
-    "server-only": "0.0.1",
-    "lucide-react": "^0.577.0",
     "@fontsource-variable/vazirmatn": "^5.2.8",
-    "dotenv": "^17.2.3"
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "cloudinary": "^2.8.0",
+    "dotenv": "^17.2.3",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.577.0",
+    "next": "16.4.3",
+    "next-auth": "4.24.15",
+    "next-intl": "4.14.9",
+    "pg": "^8.16.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "0.0.1",
+    "zod": "4.6.6"
   },
   "devDependencies": {
-    "prisma": "7.10.0",
-    "typescript": "^5.9.3",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^24.10.1",
+    "@types/pg": "^8.15.6",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "@types/pg": "^8.15.6",
+    "prisma": "7.10.0",
     "tailwindcss": "^4.1.18",
-    "@tailwindcss/postcss": "^4.1.18",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   },
   "overrides": {
     "@prisma/config": {

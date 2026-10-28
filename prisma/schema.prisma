@@ -29,6 +29,7 @@ enum OrderStatus {
   CANCELLED
 }
 enum PaymentMethod {
+  BANK_TRANSFER
   BTCPAY
   ZARINPAL
   CASH_ON_DELIVERY
@@ -163,6 +164,10 @@ model DiscountCode {
 model Order {
   id                         String         @id @default(cuid())
   // Generate cryptographically random tracking codes in checkout; never expose sequential IDs.
+  invoiceNumber              String?        @unique
+  paymentReference           String?        @unique
+  paymentConfirmedAt         DateTime?      @db.Timestamptz(3)
+  transferReference          String?        @unique
   trackingCode               String         @unique @db.VarChar(32)
   idempotencyKey             String         @unique @db.VarChar(64)
   requestFingerprint         String         @db.VarChar(64)
@@ -185,6 +190,8 @@ model Order {
   paymentStatus              PaymentStatus  @default(UNPAID)
   subtotalToman              Int
   discountToman              Int            @default(0)
+  shippingSnapshot           Json?
+  courierDispatch            CourierDispatch?
   deliveryFeeToman           Int
   totalToman                 Int
   discountCodeId             String?
@@ -203,6 +210,25 @@ model Order {
   @@index([status, createdAt])
   @@index([mobile, createdAt])
   @@index([userId, createdAt])
+}
+
+// Persist intent before calling the courier. Unknown outcomes must be reconciled, never retried.
+model CourierDispatch {
+  id String @id @default(cuid())
+  orderId String @unique
+  order Order @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  requestState String @default("REQUESTING")
+  environment String
+  externalId String? @unique
+  externalStatus String?
+  requestSnapshot Json
+  quotedFeeToman Int
+  actualFeeToman Int?
+  readyAt DateTime @default(now()) @db.Timestamptz(3)
+  requestedBy String
+  lastSyncedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model OrderItem {
