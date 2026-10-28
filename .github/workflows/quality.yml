@@ -112,6 +112,26 @@ jobs:
           printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > "$ssh_dir/key"
           printf '%s\n' "$VPS_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
           chmod 600 "$ssh_dir/key" "$ssh_dir/known_hosts"
+          python3 - "$ssh_dir/key" <<'PY'
+          import base64
+          import binascii
+          import pathlib
+          import sys
+          path = pathlib.Path(sys.argv[1])
+          value = path.read_bytes().strip()
+          if not value.startswith(b"-----BEGIN OPENSSH PRIVATE KEY-----"):
+              try:
+                  value = base64.b64decode(b"".join(value.split()), validate=True).strip()
+              except (ValueError, binascii.Error):
+                  raise SystemExit("VPS_SSH_KEY must contain a complete OpenSSH private key or its base64 encoding.")
+          if not value.startswith(b"-----BEGIN OPENSSH PRIVATE KEY-----") or not value.endswith(b"-----END OPENSSH PRIVATE KEY-----"):
+              raise SystemExit("VPS_SSH_KEY is incomplete. Copy the complete private key directly into GitHub.")
+          path.write_bytes(value + b"\n")
+          PY
+          if ! ssh-keygen -y -P '' -f "$ssh_dir/key" >/dev/null 2>/dev/null; then
+            echo 'VPS_SSH_KEY is not a valid unencrypted private key. Replace it with the complete key or its base64 encoding.'
+            exit 1
+          fi
           # Normalize a pasted public host key to the configured host and port.
           awk -v host="$VPS_HOST" -v port="$VPS_PORT" '
             {gsub(/\r/, ""); for (i=1; i<NF; i++) if ($i=="ssh-ed25519") {
