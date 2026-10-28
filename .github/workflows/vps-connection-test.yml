@@ -31,6 +31,11 @@ jobs:
           printf '%s\n' "$VPS_SSH_KEY" > "$ssh_dir/key"
           printf '%s\n' "$VPS_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
           chmod 600 "$ssh_dir/key" "$ssh_dir/known_hosts"
+          ssh-keyscan -T 10 -p "$VPS_PORT" -t ed25519 "$VPS_HOST" > "$ssh_dir/scanned" 2>/dev/null
+          fingerprint=$(ssh-keygen -lf "$ssh_dir/scanned" | awk '{print $2}')
+          test "$fingerprint" = 'SHA256:4FwJX713fNpqOWo9qaWfPrnp6UdvIybDxaUQk+xc4Bw'
+          printf 'VERIFIED_PUBLIC_HOST_ENTRY='
+          cat "$ssh_dir/scanned"
           ssh -T -p "$VPS_PORT" -i "$ssh_dir/key" \
             -o BatchMode=yes -o IdentitiesOnly=yes \
             -o ConnectTimeout=20 -o ConnectionAttempts=1 \
