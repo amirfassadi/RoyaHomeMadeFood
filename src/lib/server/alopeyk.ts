@@ -25,7 +25,7 @@ export async function alopeykQuote(settings:Pick<ShippingSettings,'origin'|'mark
  if(!parsed.success)throw new ShopError('DELIVERY_UNAVAILABLE',503);
  return {...shippingTotal(parsed.data.object.price,settings.markupPercent),deliveryProvider:'ALOPEYK' as const,deliveryTestMode:environment==='sandbox'};
 }
-const courierAddressSchema=coordinatesSchema.extend({type:z.enum(['origin','destination']),description:z.string().max(2000),person_fullname:z.string().min(1).max(100),person_phone:z.string().regex(/^09\d{9}$/)});
+const courierAddressSchema=coordinatesSchema.extend({type:z.enum(['origin','destination']),description:z.string().max(2500),person_fullname:z.string().min(1).max(100),person_phone:z.string().regex(/^09\d{9}$/)});
 export const courierRequestSchema=z.object({transport_type:z.literal('motorbike'),has_return:z.literal(false),cashed:z.literal(false),addresses:z.array(courierAddressSchema).length(2)});
 export type CourierRequest=z.infer<typeof courierRequestSchema>;
 const courierReply=z.object({status:z.literal('success'),object:z.object({id:z.number().int().positive().safe(),status:z.string().min(1).max(100),price:z.number().int().nonnegative().max(2147483647),addresses:z.array(z.object({type:z.enum(['origin','destination']),lat:z.coerce.number().finite(),lng:z.coerce.number().finite(),description:z.string().nullable().optional(),person_phone:z.string().nullable().optional()})).optional()})});

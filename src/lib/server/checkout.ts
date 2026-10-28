@@ -40,6 +40,7 @@ export async function calculateQuote(tx: Tx, input: QuoteInput, reserve=false, n
   const discountToman=discount?discountAmount(subtotalToman,discount):0;
   const setting=await tx.setting.findUnique({where:{key:'shipping'}});
   const config=setting?shippingSettingsSchema.parse(setting.value):defaultShippingSettings;
+  if(config.enabled&&(!config.senderName||!config.senderPhone||config.originAddress.length<10))throw new ShopError('DELIVERY_UNAVAILABLE',503);
   const shipping=config.enabled?{...await alopeykQuote(config,input.destination),shippingOrigin:config.origin}:{deliveryFeeToman:zone.feeToman};
   if(reserve && 'deliveryTestMode' in shipping && shipping.deliveryTestMode)throw new ShopError('DELIVERY_UNAVAILABLE',503);
   const totalToman=checkedMoney(subtotalToman-discountToman+shipping.deliveryFeeToman);

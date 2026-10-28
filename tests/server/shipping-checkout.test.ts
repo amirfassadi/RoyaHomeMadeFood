@@ -5,7 +5,7 @@ test('checkout re-quotes server fare, refuses changed totals and sandbox orders 
  const original=globalThis.fetch;
  process.env.ALOPEYK_ACCESS_TOKEN='test-only';process.env.ALOPEYK_ENVIRONMENT='production';
  let percent=1,enabled=true,created=0;
- const tx:any={$queryRaw:async()=>[],product:{findMany:async()=>[{id:'p',nameFa:'غذا',nameEn:'Food',unit:'PIECE',minOrderQuantity:1,orderStepQuantity:1,stockQuantity:null,dailyCapacity:null,priceBasisQuantity:1,priceToman:200000,preparationMinutes:30}]},productDailyUsage:{findUnique:async()=>null,upsert:async()=>{}},deliveryZone:{findFirst:async()=>({id:'z',feeToman:50000,deliveryMinutes:30})},setting:{findUnique:async()=>({value:{enabled,markupPercent:percent,origin:{lat:35.7,lng:51.4}}})},order:{findUnique:async()=>null,create:async({data}:any)=>{created++;return data;}}};
+ const tx:any={$queryRaw:async()=>[],product:{findMany:async()=>[{id:'p',nameFa:'غذا',nameEn:'Food',unit:'PIECE',minOrderQuantity:1,orderStepQuantity:1,stockQuantity:null,dailyCapacity:null,priceBasisQuantity:1,priceToman:200000,preparationMinutes:30}]},productDailyUsage:{findUnique:async()=>null,upsert:async()=>{}},deliveryZone:{findFirst:async()=>({id:'z',feeToman:50000,deliveryMinutes:30})},setting:{findUnique:async()=>({value:{enabled,markupPercent:percent,originAddress:'Test shop address',senderName:'Test sender',senderPhone:'09121234567',origin:{lat:35.7,lng:51.4}}})},order:{findUnique:async()=>null,create:async({data}:any)=>{created++;return data;}}};
  Object.assign(globalThis,{royaDb:{$transaction:async(fn:any)=>fn(tx)}});
  const input={items:[{productId:'p',quantity:1}],zoneId:'z',discountCode:'',destination:{lat:35.8,lng:51.5}};
  try{
