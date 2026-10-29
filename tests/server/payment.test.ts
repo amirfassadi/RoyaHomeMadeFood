@@ -57,3 +57,16 @@ test('cancellation between initial read and gateway claim is checked under the o
  db.paymentAttempt.findUnique=async()=>{const snapshot=await read();Object.assign(s.order,{status:'CANCELLED'});return snapshot;};
  assert.equal(await initiatePayment('order'),null);assert.equal(s.calls(),0);
 });
+
+test('a late verified payment after cancellation is flagged for refund without restarting delivery',async()=>{
+ const s=setup();s.attempt.authority=authority;
+ const originalEta=new Date('2026-10-01T10:00:00Z');
+ Object.assign(s.order,{status:'CANCELLED',estimatedDeliveryAt:originalEta,refundRequired:false});
+ s.respond({code:100,ref_id:556});
+ assert.equal((await verifyPayment('attempt','nonce',authority,'OK')).result,'paid');
+ assert.equal(s.order.paymentStatus,'PAID');
+ assert.equal((s.order as any).status,'CANCELLED');
+ assert.equal((s.order as any).refundRequired,true);
+ assert.equal((s.order as any).estimatedDeliveryAt,originalEta);
+});
+
