@@ -168,6 +168,7 @@ model Order {
   paymentReference           String?        @unique
   paymentConfirmedAt         DateTime?      @db.Timestamptz(3)
   transferReference          String?        @unique
+  bankTransferSnapshot       Json?
   trackingCode               String         @unique @db.VarChar(32)
   idempotencyKey             String         @unique @db.VarChar(64)
   requestFingerprint         String         @db.VarChar(64)

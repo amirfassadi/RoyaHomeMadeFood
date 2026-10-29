@@ -9,7 +9,7 @@ import {calculateLineTotal, validateQuantity, estimateDelivery} from '@/lib/doma
 import {capacityDay, checkedMoney, discountAmount} from '@/lib/domain/checkout';
 import type {QuoteInput, CheckoutInput} from '@/lib/validation/checkout';
 import {cryptoConfig,cryptoQuote} from './international';
-import {bankTransferDetails} from './manual-payment';
+import {configuredBankTransfer} from './manual-payment';
 import {gatewayConfiguration} from './zarinpal';
 type Tx=Prisma.TransactionClient;
 export async function calculateQuote(tx: Tx, input: QuoteInput, reserve=false, now=new Date()) {
@@ -52,8 +52,6 @@ export function publicQuote(q: Awaited<ReturnType<typeof calculateQuote>>) {
 export async function placeOrder(input: CheckoutInput,customer?:{id:string;mobile:string;sessionVersion:number}|null) {
   const crypto=input.paymentMethod==='BTCPAY'?cryptoConfig():null;
   if(crypto&&(!input.buyerEmail||!input.expectedUsdCents))throw new ShopError('INVALID');
-  const gateway=input.paymentMethod==='ZARINPAL'?gatewayConfiguration():null;
-  if(input.paymentMethod==='BANK_TRANSFER')bankTransferDetails();
   const canonical={...input,items:[...input.items].sort((a,b)=>a.productId.localeCompare(b.productId))};
   const fingerprint=createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
   const db=getDb();
@@ -62,6 +60,8 @@ export async function placeOrder(input: CheckoutInput,customer?:{id:string;mobil
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.idempotencyKey},0))::text`;
     const previous=await tx.order.findUnique({where:{idempotencyKey:input.idempotencyKey}});
     if(previous){if(previous.requestFingerprint!==fingerprint)throw new ShopError('IDEMPOTENCY_CONFLICT',409);return previous;}
+    const gateway=input.paymentMethod==='ZARINPAL'?gatewayConfiguration():null;
+    const bankTransfer=input.paymentMethod==='BANK_TRANSFER'?configuredBankTransfer((await tx.setting.findUnique({where:{key:'bank-transfer'}}))?.value):null;
     let userId:string|undefined;
     if(customer && customer.mobile===input.mobile){
       await tx.$queryRaw`SELECT \"id\" FROM \"User\" WHERE \"id\"=${customer.id} FOR SHARE`;
@@ -81,6 +81,6 @@ export async function placeOrder(input: CheckoutInput,customer?:{id:string;mobil
     const trackingCode=`ROYA-${randomBytes(12).toString('hex').toUpperCase()}`;
     const invoiceNumber=`INV-${trackingCode.slice(5)}`;
     const paymentReference=BigInt('0x'+createHash('sha256').update(`${trackingCode}:${invoiceNumber}`).digest('hex').slice(0,20)).toString();
-    return tx.order.create({data:{invoiceNumber,paymentReference,trackingCode,idempotencyKey:input.idempotencyKey,requestFingerprint:fingerprint,locale:input.locale,capacityDay:q.day,userId,customerName:input.name,mobile:input.mobile,address:input.address,city:q.zone.cityFa,deliveryNotes:input.notes,deliveryZoneId:q.zone.id,deliveryZoneNameSnapshot:q.zone.nameFa,paymentMethod:input.paymentMethod,buyerEmail:crypto?input.buyerEmail:undefined,paymentStatus:'PENDING',subtotalToman:q.subtotalToman,discountToman:q.discountToman,deliveryFeeToman:q.deliveryFeeToman,shippingSnapshot:'deliveryProvider' in q?{provider:q.deliveryProvider,courierFeeToman:q.courierFeeToman,markupToman:q.shippingMarkupToman,markupPercent:q.shippingMarkupPercent,origin:q.shippingOrigin,destination:input.destination,quotedAt:now.toISOString()}:undefined,totalToman:q.totalToman,discountCodeId:q.discount?.id,discountCodeSnapshot:q.discount?.code,longestPreparationMinutes:q.longestPreparationMinutes,zoneDeliveryMinutes:q.zone.deliveryMinutes,estimatedDeliveryAt:q.estimatedDeliveryAt,...(crypto&&foreign?{cryptoPayment:{create:{amountUsdCents:foreign.amountUsdCents,tomanPerUsd:crypto.rate,rateExpiresAt:new Date(crypto.expires),storeId:crypto.store,gatewayOrigin:crypto.url}}}:{}),items:{create:q.items},statusHistory:{create:{status:'PENDING'}},...(gateway?{paymentAttempts:{create:{amountToman:q.totalToman,callbackNonce:randomBytes(32).toString('hex'),merchantId:gateway.merchantId,sandbox:gateway.sandbox}}}:{})}});
+    return tx.order.create({data:{...(bankTransfer?{bankTransferSnapshot:{accounts:bankTransfer.accounts}}:{}),invoiceNumber,paymentReference,trackingCode,idempotencyKey:input.idempotencyKey,requestFingerprint:fingerprint,locale:input.locale,capacityDay:q.day,userId,customerName:input.name,mobile:input.mobile,address:input.address,city:q.zone.cityFa,deliveryNotes:input.notes,deliveryZoneId:q.zone.id,deliveryZoneNameSnapshot:q.zone.nameFa,paymentMethod:input.paymentMethod,buyerEmail:crypto?input.buyerEmail:undefined,paymentStatus:'PENDING',subtotalToman:q.subtotalToman,discountToman:q.discountToman,deliveryFeeToman:q.deliveryFeeToman,shippingSnapshot:'deliveryProvider' in q?{provider:q.deliveryProvider,courierFeeToman:q.courierFeeToman,markupToman:q.shippingMarkupToman,markupPercent:q.shippingMarkupPercent,origin:q.shippingOrigin,destination:input.destination,quotedAt:now.toISOString()}:undefined,totalToman:q.totalToman,discountCodeId:q.discount?.id,discountCodeSnapshot:q.discount?.code,longestPreparationMinutes:q.longestPreparationMinutes,zoneDeliveryMinutes:q.zone.deliveryMinutes,estimatedDeliveryAt:q.estimatedDeliveryAt,...(crypto&&foreign?{cryptoPayment:{create:{amountUsdCents:foreign.amountUsdCents,tomanPerUsd:crypto.rate,rateExpiresAt:new Date(crypto.expires),storeId:crypto.store,gatewayOrigin:crypto.url}}}:{}),items:{create:q.items},statusHistory:{create:{status:'PENDING'}},...(gateway?{paymentAttempts:{create:{amountToman:q.totalToman,callbackNonce:randomBytes(32).toString('hex'),merchantId:gateway.merchantId,sandbox:gateway.sandbox}}}:{})}});
   },{maxWait:10000,timeout:15000});
 }
