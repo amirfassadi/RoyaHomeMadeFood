@@ -1,4 +1,4 @@
-import {pageMetadata} from '@/lib/seo/core';
+import {pageMetadata} from '@/lib/server/seo';
 import {getTranslations,setRequestLocale} from 'next-intl/server';
 import {PageShell,PageHeading} from '@/components/store/page-shell';
 import {CartPage} from '@/components/store/cart-page';

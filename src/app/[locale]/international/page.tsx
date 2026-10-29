@@ -5,7 +5,7 @@ import {PageShell} from '@/components/store/page-shell';
 import {CheckoutForm} from '@/components/store/checkout-form';
 import {getZones} from '@/lib/server/delivery-zones';
 import {buttonClasses} from '@/components/ui/button';
-import {pageMetadata} from '@/lib/seo/core';
+import {pageMetadata} from '@/lib/server/seo';
 import type {Locale} from '@/i18n/routing';
 import {isDemoCatalog} from '@/lib/server/catalog';
 export const revalidate=60;

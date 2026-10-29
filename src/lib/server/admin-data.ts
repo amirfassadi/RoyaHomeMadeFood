@@ -1,3 +1,4 @@
+import {seoSettingsSchema} from '@/lib/validation/seo';
 import {bankTransferSettingsSchema,emptyBankTransferSettings} from '@/lib/validation/bank-transfer';
 import {shippingSettingsSchema,defaultShippingSettings} from '@/lib/validation/shipping';
 import 'server-only';
@@ -38,6 +39,7 @@ export async function getAdminData(section:string,options:{page?:number;q?:strin
   data.customers=rows.map(r=>({mobile:r.mobile,name:latest.find(n=>n.mobile===r.mobile)?.customerName??'',orders:r._count._all,totalToman:r._sum.totalToman??0,lastOrder:r._max.createdAt!.toISOString()}));
  }
  if(section==='settings'){
+  const seo=await db.setting.findUnique({where:{key:'seo'}});data.seo={settings:seoSettingsSchema.safeParse(seo?.value).data??{enabled:false,googleVerification:''},updatedAt:seo?.updatedAt.toISOString()??null};
   const bank=await db.setting.findUnique({where:{key:'bank-transfer'}});data.bankTransfer={settings:bankTransferSettingsSchema.safeParse(bank?.value).data??emptyBankTransferSettings(),updatedAt:bank?.updatedAt.toISOString()??null};
   const shipping=await db.setting.findUnique({where:{key:'shipping'}});data.shipping=shippingSettingsSchema.safeParse(shipping?.value).data??defaultShippingSettings;
   const [zones,discounts,contact]=await Promise.all([db.deliveryZone.findMany({orderBy:{cityFa:'asc'}}),db.discountCode.findMany({orderBy:{createdAt:'desc'}}),db.setting.findUnique({where:{key:'contact'}})]);
