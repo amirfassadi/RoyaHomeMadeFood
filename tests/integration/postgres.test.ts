@@ -1,6 +1,6 @@
 import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
-import {randomUUID} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {PrismaClient} from '../../src/generated/prisma/client';
 import {PrismaPg} from '@prisma/adapter-pg';
 import {bankTransferDetails,confirmTransfer} from '../../src/lib/server/manual-payment';
@@ -11,12 +11,16 @@ import {otpDigest} from '../../src/lib/customer/otp';
 import {changeAdminPassword} from '../../src/lib/server/admin-security';
 import {hashPassword,verifyPassword} from '../../src/lib/admin/password';
 import {saveCommunication} from '../../src/lib/server/communications';
+import {expireOrderReservation} from '../../src/lib/server/reservations';
+import {verifyCheckoutCode} from '../../src/lib/server/checkout-mobile';
+import {sendVerificationSms} from '../../src/lib/server/sms';
 const url=process.env.ROYA_INTEGRATION_DATABASE_URL;
 // Never fall back to DATABASE_URL, and never run on a storefront database.
 if(!url||!/^\/(roya_test|roya_integration_test)$/.test(new URL(url).pathname))throw new Error('Set ROYA_INTEGRATION_DATABASE_URL to an isolated roya_test database');
 const db=new PrismaClient({adapter:new PrismaPg({connectionString:url})});
 const prefix=`test-${randomUUID()}`;
 let category:any,zone:any,admin:any;
+const checkoutChallengeIds:string[]=[];
 const userIds:string[]=[],productIds:string[]=[],challengeIds:string[]=[],messageIds:string[]=[],announcementIds:string[]=[];
 before(async()=>{
  Object.assign(process.env,{DATABASE_URL:url,ROYA_DEMO_CATALOG:'0',CUSTOMER_ACCOUNTS_ENABLED:'1',NEXTAUTH_SECRET:'test-only-session-secret'.repeat(2),CUSTOMER_OTP_SECRET:'test-only-otp-secret'.repeat(2),KAVENEGAR_API_KEY:'test-never-sent',KAVENEGAR_OTP_TEMPLATE:'test'});delete process.env.SITES_STATIC_PREVIEW;
@@ -31,12 +35,13 @@ after(async()=>{
  await db.cryptoPayment.deleteMany({where:{orderId:{in:ids}}});
  await db.paymentAttempt.deleteMany({where:{orderId:{in:ids}}});await db.order.deleteMany({where:{id:{in:ids}}});
  await db.productDailyUsage.deleteMany({where:{productId:{in:productIds}}});await db.product.deleteMany({where:{id:{in:productIds}}});
+ await db.checkoutMobileChallenge.deleteMany({where:{id:{in:checkoutChallengeIds}}});
  await db.customerLoginChallenge.deleteMany({where:{id:{in:challengeIds}}});await db.marketingConsentEvent.deleteMany({where:{userId:{in:userIds}}});await db.user.deleteMany({where:{id:{in:userIds}}});
  await db.contactMessage.deleteMany({where:{id:{in:messageIds}}});await db.clubAnnouncement.deleteMany({where:{id:{in:announcementIds}}});await db.adminAudit.deleteMany({where:{adminId:admin?.id??'never'}});
  if(zone)await db.deliveryZone.delete({where:{id:zone.id}});if(category)await db.category.delete({where:{id:category.id}});await db.$disconnect();
 });
-async function product(){const p=await db.product.create({data:{slug:`${prefix}-${randomUUID()}`,nameFa:'محصول آزمایشی',nameEn:'Test product',descriptionFa:'فقط آزمون',descriptionEn:'Only testing',categoryId:category.id,priceToman:100000,unit:'PIECE',priceBasisQuantity:1,minOrderQuantity:1,orderStepQuantity:1,stockQuantity:1,dailyCapacity:1,preparationMinutes:120}});productIds.push(p.id);return p;}
-function input(p:any,key=randomUUID()){return {items:[{productId:p.id,quantity:1}],zoneId:zone.id,discountCode:'',name:'Test buyer',mobile:'09120000001',address:'Integration test address',notes:'',locale:'fa' as const,paymentMethod:'CASH_ON_DELIVERY' as const,idempotencyKey:key,expectedTotal:101000};}
+async function product(){const p=await db.product.create({data:{slug:`${prefix}-${randomUUID()}`,nameFa:'محصول آزمایشی',nameEn:'Test product',descriptionFa:'فقط آزمون',descriptionEn:'Only testing',categoryId:category.id,priceToman:100000,unit:'PIECE',priceBasisQuantity:1,minOrderQuantity:1,orderStepQuantity:1,stockQuantity:1,dailyCapacity:1,preparationMinutes:120}});productIds.push(p.id);const proofs=[];for(let n=0;n<3;n++){const id=randomUUID();checkoutChallengeIds.push(id);await db.checkoutMobileChallenge.create({data:{id,mobile:'09120000001',verifier:'0'.repeat(64),ready:true,verifiedAt:new Date(),expiresAt:new Date(Date.now()+300000),proofExpiresAt:new Date(Date.now()+1800000),proofHash:createHash('sha256').update('a'.repeat(64)).digest('hex')}});proofs.push({challengeId:id,token:'a'.repeat(64)});}return {...p,proofs};}
+function input(p:any,key=randomUUID()){return {mobileProof:p.proofs.shift(),items:[{productId:p.id,quantity:1}],zoneId:zone.id,discountCode:'',name:'Test buyer',mobile:'09120000001',address:'Integration test address',notes:'',locale:'fa' as const,paymentMethod:'CASH_ON_DELIVERY' as const,idempotencyKey:key,expectedTotal:101000};}
 test('PostgreSQL serializes the last stock/capacity unit and cancellation releases it once',async()=>{
  const p=await product(),results=await Promise.allSettled([placeOrder(input(p)),placeOrder(input(p))]);assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(results.filter(r=>r.status==='rejected').length,1);
  const order=(results.find(r=>r.status==='fulfilled') as PromiseFulfilledResult<any>).value;assert.equal(Number((await db.product.findUniqueOrThrow({where:{id:p.id}})).stockQuantity),0);assert.equal(order.userId,null);assert.equal(order.longestPreparationMinutes+order.zoneDeliveryMinutes,150);
@@ -105,5 +110,57 @@ test('bank transfer saves active destinations per order, retries once and confir
  }finally{
   if(old)await db.setting.upsert({where:{key:'bank-transfer'},create:{key:'bank-transfer',value:old.value!},update:{value:old.value!}});
   else await db.setting.deleteMany({where:{key:'bank-transfer'}});
+ }
+});
+
+test('guest verification is mandatory, consumed atomically and reusable only by the identical order retry',async()=>{
+ const p=await product(),payload=input(p);
+ await assert.rejects(()=>placeOrder({...payload,mobileProof:undefined}),/MOBILE_VERIFICATION_REQUIRED/);
+ await assert.rejects(()=>placeOrder({...payload,mobile:'09120000002'}),/MOBILE_VERIFICATION_REQUIRED/);
+ assert.equal(Number((await db.product.findUniqueOrThrow({where:{id:p.id}})).stockQuantity),1);
+ // Repricing failure rolls back proof consumption as well as inventory.
+ await assert.rejects(()=>placeOrder({...payload,expectedTotal:1}),/PRICE_CHANGED/);
+ const order=await placeOrder(payload);assert(order.reservationExpiresAt);
+ assert.equal((await placeOrder(payload)).id,order.id);
+ await assert.rejects(()=>placeOrder({...payload,idempotencyKey:randomUUID()}),/MOBILE_VERIFICATION_REQUIRED/);
+});
+
+test('real locks expire one reservation exactly once and preserve stock when a paid order is checked',async()=>{
+ const p=await product(),order=await placeOrder(input(p));
+ await db.order.update({where:{id:order.id},data:{reservationExpiresAt:new Date(0)}});
+ const results=await Promise.all([expireOrderReservation(order.id),expireOrderReservation(order.id)]);
+ assert.equal(results.filter(Boolean).length,1);
+ assert.equal(Number((await db.product.findUniqueOrThrow({where:{id:p.id}})).stockQuantity),1);
+ assert.equal(await db.orderStatusHistory.count({where:{orderId:order.id,status:'CANCELLED'}}),1);
+ const fresh=await db.order.findUniqueOrThrow({where:{id:order.id}});assert(fresh.reservationExpiredAt);assert.equal(fresh.paymentStatus,'PENDING');
+ const other=await product(),paid=await placeOrder(input(other));
+ await db.order.update({where:{id:paid.id},data:{paymentStatus:'PAID',reservationExpiresAt:new Date(0)}});
+ assert.equal(await expireOrderReservation(paid.id),false);
+ assert.equal(Number((await db.product.findUniqueOrThrow({where:{id:other.id}})).stockQuantity),0);
+});
+
+test('guest OTP redemption commits one proof under concurrent real database locks',async()=>{
+ const id=randomUUID(),mobile='09120000001';checkoutChallengeIds.push(id);
+ await db.checkoutMobileChallenge.create({data:{id,mobile,ready:true,verifier:otpDigest(process.env.CUSTOMER_OTP_SECRET!,id,mobile,'123456'),expiresAt:new Date(Date.now()+300000)}});
+ const results=await Promise.allSettled([verifyCheckoutCode(id,'123456'),verifyCheckoutCode(id,'123456')]);
+ assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
+ const record=await db.checkoutMobileChallenge.findUniqueOrThrow({where:{id}});assert(record.verifiedAt);assert(record.proofHash);assert.equal(record.attempts,1);
+});
+
+test('persistent SMS test budget permits only five concurrent provider calls, with no real SMS',async()=>{
+ const old=await db.smsTestBudget.findUnique({where:{id:'initial-five'}}),original=globalThis.fetch;
+ const oldMode=process.env.ROYA_SMS_MODE,oldMobiles=process.env.ROYA_SMS_TEST_MOBILES;let calls=0;
+ try{
+  await db.smsTestBudget.deleteMany({where:{id:'initial-five'}});
+  process.env.ROYA_SMS_MODE='test';process.env.ROYA_SMS_TEST_MOBILES='09120000001';
+  globalThis.fetch=async()=>{calls++;return Response.json({return:{status:200},entries:[{messageid:1}]});};
+  const results=await Promise.allSettled(Array.from({length:12},()=>sendVerificationSms('09120000001','123456')));
+  assert.equal(results.filter(r=>r.status==='fulfilled').length,5);assert.equal(calls,5);
+  assert.equal((await db.smsTestBudget.findUniqueOrThrow({where:{id:'initial-five'}})).used,5);
+ }finally{
+  globalThis.fetch=original;
+  if(oldMode===undefined)delete process.env.ROYA_SMS_MODE;else process.env.ROYA_SMS_MODE=oldMode;
+  if(oldMobiles===undefined)delete process.env.ROYA_SMS_TEST_MOBILES;else process.env.ROYA_SMS_TEST_MOBILES=oldMobiles;
+  await db.smsTestBudget.deleteMany({where:{id:'initial-five'}});if(old)await db.smsTestBudget.create({data:old});
  }
 });

@@ -3,6 +3,7 @@ import {z} from 'zod';
 import {getDb} from './db';
 import {consumeRateLimit} from './rate-limit';
 import {ShopError} from './shop-http';
+import {expireLockedReservation} from './reservations';
 import {tomanToRial} from '@/lib/domain/checkout';
 import {estimateDelivery} from '@/lib/domain/order';
 export function gatewayConfiguration(){
@@ -26,13 +27,13 @@ async function call(sandbox:boolean,action:'request'|'verify',body:unknown){
 export async function initiatePayment(orderId:string){
   const db=getDb(), attempt=await db.paymentAttempt.findUnique({where:{orderId},include:{order:true}});
   if(!attempt)return null;
-  if(attempt.order.paymentStatus==='PAID' || attempt.order.status==='CANCELLED')return null;
+  if(attempt.order.paymentStatus==='PAID' || attempt.order.status==='CANCELLED'||(attempt.order.reservationExpiresAt&&attempt.order.reservationExpiresAt.getTime()<=Date.now()))return null;
   if(attempt.authority)return paymentUrl(attempt.sandbox,attempt.authority);
   // A single caller can initiate. Uncertain network results are never retried blindly.
   const claim=await db.$transaction(async tx=>{
     await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id"=${attempt.orderId} FOR UPDATE`;
     const order=await tx.order.findUniqueOrThrow({where:{id:attempt.orderId}});
-    if(order.status==='CANCELLED' || order.paymentStatus==='PAID')return {count:0};
+    if(order.status==='CANCELLED' || order.paymentStatus==='PAID'||(order.reservationExpiresAt&&order.reservationExpiresAt.getTime()<=Date.now()))return {count:0};
     return tx.paymentAttempt.updateMany({where:{id:attempt.id,requestState:'NEW'},data:{requestState:'REQUESTING'}});
   });
   if(!claim.count)return null;
@@ -63,12 +64,11 @@ export async function verifyPayment(attemptId:string,nonce:string,authority:stri
   if(verified.code===100 && verified.ref_id===undefined)return {locale,result:'pending'};
   await db.$transaction(async tx=>{
     await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id"=${attempt.orderId} FOR UPDATE`;
-    const current=await tx.order.findUniqueOrThrow({where:{id:attempt.orderId}});
+    const current=await tx.order.findUniqueOrThrow({where:{id:attempt.orderId},include:{items:true}});
     if(current.paymentStatus==='PAID')return;
-    const now=new Date();
+    const now=new Date(),expired=await expireLockedReservation(tx,current,new Date());
     await tx.paymentAttempt.update({where:{id:attempt.id},data:{status:'PAID',referenceId:verified.ref_id===undefined?undefined:String(verified.ref_id),verifiedAt:now}});
-    await tx.order.update({where:{id:attempt.orderId},data:{paymentStatus:'PAID',paymentConfirmedAt:now,...(current.status==='CANCELLED'?{refundRequired:true}:{estimatedDeliveryAt:estimateDelivery(now,[current.longestPreparationMinutes],current.zoneDeliveryMinutes)})}});
+    await tx.order.update({where:{id:attempt.orderId},data:{paymentStatus:'PAID',paymentConfirmedAt:now,...(current.status==='CANCELLED'||expired?{refundRequired:true}:{estimatedDeliveryAt:estimateDelivery(now,[current.longestPreparationMinutes],current.zoneDeliveryMinutes)})}});
   });
   return {locale,result:'paid'};
 }
-

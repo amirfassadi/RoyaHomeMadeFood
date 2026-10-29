@@ -175,6 +175,8 @@ model Order {
   locale                     String         @db.VarChar(2)
   capacityDay                String         @db.VarChar(10)
   inventoryReserved          Boolean        @default(true)
+  reservationExpiresAt       DateTime?      @db.Timestamptz(3)
+  reservationExpiredAt       DateTime?      @db.Timestamptz(3)
   refundRequired             Boolean        @default(false)
   userId                     String?
   user                       User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -211,6 +213,7 @@ model Order {
   @@index([status, createdAt])
   @@index([mobile, createdAt])
   @@index([userId, createdAt])
+  @@index([status, reservationExpiresAt])
 }
 
 // Persist intent before calling the courier. Unknown outcomes must be reconciled, never retried.
@@ -389,4 +392,24 @@ model CryptoPayment {
  checkoutUrl String?
  verifiedAt DateTime? @db.Timestamptz(3)
  createdAt DateTime @default(now()) @db.Timestamptz(3)
+}
+
+model CheckoutMobileChallenge {
+ id String @id @db.Uuid
+ mobile String @db.VarChar(16)
+ verifier String @db.VarChar(64)
+ ready Boolean @default(false)
+ attempts Int @default(0)
+ expiresAt DateTime @db.Timestamptz(3)
+ verifiedAt DateTime? @db.Timestamptz(3)
+ proofHash String? @db.VarChar(64)
+ proofExpiresAt DateTime? @db.Timestamptz(3)
+ consumedAt DateTime? @db.Timestamptz(3)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ @@index([mobile, createdAt])
+ @@index([expiresAt])
+}
+model SmsTestBudget {
+ id String @id
+ used Int @default(0)
 }
