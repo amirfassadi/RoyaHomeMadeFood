@@ -4,6 +4,7 @@ import {getDb} from './db';
 import {isDemoCatalog} from './catalog';
 import {consumeRateLimit} from './rate-limit';
 import {ShopError} from './shop-http';
+import {sendVerificationSms} from './sms';
 import {otpDigest,otpMatches} from '@/lib/customer/otp';
 import {consentVersion,requestCodeSchema,verifyCodeSchema} from '@/lib/customer/validation';
 function secret(){const value=process.env.CUSTOMER_OTP_SECRET;if(!value||value.length<32)throw new ShopError('UNAVAILABLE',503);return value;}
@@ -22,11 +23,9 @@ export async function requestCustomerCode(raw:unknown){
   await tx.customerLoginChallenge.create({data:{id,...input,verifier:otpDigest(secret(),id,input.mobile,code),expiresAt:new Date(now.getTime()+300000)}});
  });
  try{
-  const response=await fetch(`https://api.kavenegar.com/v1/${encodeURIComponent(process.env.KAVENEGAR_API_KEY!)}/verify/lookup.json`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({receptor:input.mobile,token:code,template:process.env.KAVENEGAR_OTP_TEMPLATE!,type:'sms'}),signal:AbortSignal.timeout(10000),cache:'no-store',redirect:'error'});
-  const result=await response.json();
-  if(!response.ok||result?.return?.status!==200||!Array.isArray(result.entries)||!result.entries.length)throw new Error();
+  await sendVerificationSms(input.mobile,code);
   await db.customerLoginChallenge.updateMany({where:{id,consumedAt:null},data:{ready:true}});
- }catch{await db.customerLoginChallenge.updateMany({where:{id},data:{consumedAt:new Date()}});throw new ShopError('SMS_UNAVAILABLE',503);}
+ }catch(error){await db.customerLoginChallenge.updateMany({where:{id},data:{consumedAt:new Date()}});throw error;}
  return {challengeId:id,expiresIn:300,resendAfter:60};
 }
 export async function authorizeCustomer(raw:unknown){

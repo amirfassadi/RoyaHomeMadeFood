@@ -3,6 +3,7 @@ import {z} from 'zod';
 import {bankTransferSettingsSchema,bankTransferSnapshotSchema,type BankTransferDetails} from '@/lib/validation/bank-transfer';
 import {getDb} from './db';
 import {ShopError} from './shop-http';
+import {expireLockedReservation} from './reservations';
 import {audit} from './admin-products';
 import {estimateDelivery} from '@/lib/domain/order';
 
@@ -28,15 +29,15 @@ export const confirmTransferSchema=z.object({id:z.string().min(1).max(100),refer
 export async function confirmTransfer(input:z.infer<typeof confirmTransferSchema>,adminId:string){
  return getDb().$transaction(async tx=>{
   await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id"=${input.id} FOR UPDATE`;
-  const order=await tx.order.findUnique({where:{id:input.id}});
-  if(!order || order.paymentMethod!=='BANK_TRANSFER' || order.status==='CANCELLED')throw new ShopError('TRANSITION',409);
+  const order=await tx.order.findUnique({where:{id:input.id},include:{items:true}});
+  if(!order || order.paymentMethod!=='BANK_TRANSFER' || (order.status==='CANCELLED'&&!order.reservationExpiredAt))throw new ShopError('TRANSITION',409);
   if(order.totalToman!==input.amountToman)throw new ShopError('PAYMENT_AMOUNT',409);
   if(order.paymentStatus==='PAID'){
    if(order.transferReference!==input.reference)throw new ShopError('CONFLICT',409);
    return;
   }
-  const now=new Date();
-  await tx.order.update({where:{id:order.id},data:{paymentStatus:'PAID',paymentConfirmedAt:now,transferReference:input.reference,estimatedDeliveryAt:estimateDelivery(now,[order.longestPreparationMinutes],order.zoneDeliveryMinutes)}});
+  const now=new Date(),expired=await expireLockedReservation(tx,order,new Date());
+  await tx.order.update({where:{id:order.id},data:{paymentStatus:'PAID',paymentConfirmedAt:now,transferReference:input.reference,...(order.status==='CANCELLED'||expired?{refundRequired:true}:{estimatedDeliveryAt:estimateDelivery(now,[order.longestPreparationMinutes],order.zoneDeliveryMinutes)})}});
   await audit(tx,adminId,'BANK_TRANSFER_CONFIRMED',order.id);
  });
 }

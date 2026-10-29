@@ -11,7 +11,7 @@ async function main(){
  if(!url||!/^\/(roya_test|roya_integration_test)$/.test(new URL(url).pathname))throw new Error('Product render check requires an isolated integration database.');
  const db=new PrismaClient({adapter:new PrismaPg({connectionString:url})});
  const slug=`render-check-${randomUUID()}`;
- let categoryId:string|undefined,productId:string|undefined,logs='',spawnError:Error|undefined;
+ let categoryId:string|undefined,productId:string|undefined,zoneId:string|undefined,orderId:string|undefined,logs='',spawnError:Error|undefined;
  const port=3417;
  // The product is deliberately created after next build: its slug must work
  // on the first request without having been included in generateStaticParams.
@@ -19,6 +19,11 @@ async function main(){
  // build-time data cache (which intentionally contains an empty catalog).
  cpSync('public','.next/standalone/public',{recursive:true});
  cpSync('.next/static','.next/standalone/.next/static',{recursive:true});
+ const maintenanceCategory=await db.category.create({data:{slug:slug+'-maintenance',nameFa:'آزمون انقضا',nameEn:'Expiry check'}});
+ const maintenanceProduct=await db.product.create({data:{slug:slug+'-maintenance',categoryId:maintenanceCategory.id,nameFa:'آزمون انقضا',nameEn:'Expiry check',descriptionFa:'محصول تست موقت',descriptionEn:'Temporary test product',priceToman:1000,unit:'PACK',priceBasisQuantity:1,minOrderQuantity:1,orderStepQuantity:1,stockQuantity:0,preparationMinutes:0}});
+ const zone=await db.deliveryZone.create({data:{cityFa:slug,cityEn:'Test',nameFa:slug,nameEn:'Test',feeToman:0,deliveryMinutes:0}});zoneId=zone.id;
+ await db.productDailyUsage.create({data:{productId:maintenanceProduct.id,day:'2026-10-01',quantity:1}});
+ const pending=await db.order.create({data:{trackingCode:'ROYA-'+randomUUID().replaceAll('-','').slice(0,24).toUpperCase(),idempotencyKey:randomUUID(),requestFingerprint:'0'.repeat(64),locale:'en',capacityDay:'2026-10-01',customerName:'Expiry test',mobile:'09120000001',address:'Temporary test address',city:'Test',deliveryZoneId:zone.id,deliveryZoneNameSnapshot:'Test',paymentMethod:'BANK_TRANSFER',paymentStatus:'PENDING',subtotalToman:1000,deliveryFeeToman:0,totalToman:1000,longestPreparationMinutes:0,zoneDeliveryMinutes:0,estimatedDeliveryAt:new Date(),reservationExpiresAt:new Date(0),items:{create:{productId:maintenanceProduct.id,productNameFa:'آزمون',productNameEn:'Test',unit:'PACK',quantity:1,priceBasisQuantity:1,unitPriceToman:1000,lineTotalToman:1000,preparationMinutes:0,stockReserved:true}}}});orderId=pending.id;
  const server=spawn(process.execPath,['.next/standalone/server.js'],{env:{...process.env,NODE_ENV:'production',HOSTNAME:'127.0.0.1',PORT:String(port),DATABASE_URL:url,DIRECT_URL:url,ROYA_DEMO_CATALOG:'0',SITES_STATIC_PREVIEW:'0',NEXT_PUBLIC_SITE_URL:'https://shop.example'},stdio:['ignore','pipe','pipe']});
  server.on('error',error=>{spawnError=error;});
  const capture=(chunk:Buffer)=>{logs=(logs+chunk.toString()).slice(-20000);};
@@ -32,6 +37,11 @@ async function main(){
    await delay(250);
   }
   assert(ready,'Production server did not become ready.');
+  let expired=false;
+  for(let n=0;n<40;n++){if((await db.order.findUniqueOrThrow({where:{id:pending.id}})).status==='CANCELLED'){expired=true;break;}await delay(250);}
+  assert(expired,'Production startup did not run reservation expiry.');
+  assert.equal(Number((await db.product.findUniqueOrThrow({where:{id:maintenanceProduct.id}})).stockQuantity),1);
+  console.log('Production reservation worker automatically expired a stale order and released stock.');
   const category=await db.category.create({data:{slug,nameFa:'دسته آزمون رندر',nameEn:'Render test category'}});categoryId=category.id;
   const product=await db.product.create({data:{slug,categoryId,nameFa:'محصول آزمون رندر',nameEn:'Product render verification',descriptionFa:'محصول موقت برای بررسی اجرای صفحه محصول',descriptionEn:'Temporary product for verifying production page rendering.',priceToman:100000,unit:'PACK',priceBasisQuantity:1,minOrderQuantity:1,orderStepQuantity:1,preparationMinutes:60}});productId=product.id;
   assert.equal(await db.product.count({where:{id:productId,active:true,category:{active:true}}}),1,'Runtime product fixture is not visible in the test database.');
@@ -51,6 +61,10 @@ async function main(){
   server.kill('SIGTERM');
   await Promise.race([new Promise<void>(resolve=>{if(server.exitCode!==null)resolve();else server.once('exit',()=>resolve());}),delay(5000)]);
   if(server.exitCode===null)server.kill('SIGKILL');
+  if(orderId)await db.order.deleteMany({where:{id:orderId}});
+  if(zoneId)await db.deliveryZone.deleteMany({where:{id:zoneId}});
+  await db.product.deleteMany({where:{id:maintenanceProduct.id}});
+  await db.category.deleteMany({where:{id:maintenanceCategory.id}});
   if(productId)await db.product.deleteMany({where:{id:productId}});
   if(categoryId)await db.category.deleteMany({where:{id:categoryId}});
   await db.$disconnect();

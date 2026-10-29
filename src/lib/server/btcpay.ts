@@ -2,6 +2,7 @@ import 'server-only';
 import {getDb} from './db';
 import {cryptoConfig} from './international';
 import {ShopError} from './shop-http';
+import {expireLockedReservation} from './reservations';
 import {consumeRateLimit} from './rate-limit';
 import {decimalUsd} from '@/lib/international';
 import {invoiceSchema,amountMatches,safeCheckoutUrl} from '@/lib/crypto-invoice';
@@ -18,13 +19,13 @@ async function call(p:Payment,invoiceId?:string,body?:unknown){
 }
 export async function initiateCrypto(orderId:string){
  const db=getDb(),p=await db.cryptoPayment.findUnique({where:{orderId},include:{order:true}});
- if(!p||p.order.status==='CANCELLED'||p.order.paymentStatus==='PAID')return null;
+ if(!p||p.order.status==='CANCELLED'||p.order.paymentStatus==='PAID'||(p.order.reservationExpiresAt&&p.order.reservationExpiresAt.getTime()<=Date.now()))return null;
  if(p.invoiceId)return p.invoiceStatus==='New'?p.checkoutUrl:null;
  const c=configuration(p);
  const claim=await db.$transaction(async tx=>{
   await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id"=${orderId} FOR UPDATE`;
-  const o=await tx.order.findUniqueOrThrow({where:{id:orderId}});
-  if(o.status==='CANCELLED'||o.paymentStatus==='PAID'||p.rateExpiresAt.getTime()<=Date.now())return {count:0};
+  const o=await tx.order.findUniqueOrThrow({where:{id:orderId},include:{items:true}});
+  if(o.status==='CANCELLED'||o.paymentStatus==='PAID'||(o.reservationExpiresAt&&o.reservationExpiresAt.getTime()<=Date.now())||p.rateExpiresAt.getTime()<=Date.now())return {count:0};
   return tx.cryptoPayment.updateMany({where:{id:p.id,requestState:'NEW'},data:{requestState:'REQUESTING'}});
  });
  if(!claim.count)return null;
@@ -49,12 +50,12 @@ export async function reconcileCrypto(orderId:string,recoveredInvoiceId?:string)
  const settled=invoice.status==='Settled'&&invoice.additionalStatus==='None';
  await db.$transaction(async tx=>{
   await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id"=${orderId} FOR UPDATE`;
-  const current=await tx.cryptoPayment.findUniqueOrThrow({where:{orderId}}),o=await tx.order.findUniqueOrThrow({where:{id:orderId}});
+  const current=await tx.cryptoPayment.findUniqueOrThrow({where:{orderId}}),o=await tx.order.findUniqueOrThrow({where:{id:orderId},include:{items:true}});
   if(current.invoiceId&&current.invoiceId!==invoice.id)throw new ShopError('GATEWAY_REVIEW',409);
   if(o.paymentStatus==='PAID')return;
-  const now=new Date();
+  const now=new Date(),expired=await expireLockedReservation(tx,o,new Date());
   await tx.cryptoPayment.update({where:{id:p.id},data:{invoiceId:invoice.id,checkoutUrl:invoice.checkoutLink,invoiceStatus:invoice.status,additionalStatus:invoice.additionalStatus,requestState:'READY',...(settled?{verifiedAt:now}:{})}});
-  if(settled)await tx.order.update({where:{id:orderId},data:{paymentStatus:'PAID',paymentConfirmedAt:now,...(o.status==='CANCELLED'?{refundRequired:true}:{estimatedDeliveryAt:estimateDelivery(now,[o.longestPreparationMinutes],o.zoneDeliveryMinutes)})}});
+  if(settled)await tx.order.update({where:{id:orderId},data:{paymentStatus:'PAID',paymentConfirmedAt:now,...(o.status==='CANCELLED'||expired?{refundRequired:true}:{estimatedDeliveryAt:estimateDelivery(now,[o.longestPreparationMinutes],o.zoneDeliveryMinutes)})}});
  });
  return {result:settled?'paid':'pending'};
 }
