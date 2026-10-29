@@ -79,11 +79,13 @@ run_env() {
   shift
   unit_count=$((unit_count + 1))
   unit="roya-migration-$$-$unit_count"
-  systemd-run --quiet --wait --pipe --collect --unit="$unit" \
+  systemd-run --wait --pipe --collect --unit="$unit" \
     --service-type=exec --uid=roya-store --gid=roya-store \
     -p "WorkingDirectory=$payload/migrate" \
-    -p "EnvironmentFile=/etc/roya/database.env $env_file" \
+    -p 'EnvironmentFile=/etc/roya/database.env' \
+    -p "EnvironmentFile=$env_file" \
     -p 'Environment=NODE_ENV=production' \
+    -p "Environment=PATH=$PATH" \
     -p 'NoNewPrivileges=yes' \
     "$node" "$@"
 }
