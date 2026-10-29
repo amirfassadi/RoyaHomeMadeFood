@@ -32,6 +32,7 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      - run: bash -n deploy/install-vps.sh && bash -n deploy/deploy-vps.sh
       - run: npm ci
       - run: npm audit --audit-level=high
       - run: npm run db:validate
@@ -41,5 +42,112 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:integration
-      - run: npm run build
+      - run: npm run build:app
       - run: npm run build:sites
+
+  deploy:
+    needs: quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ROYA_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: roya-vps-production
+      cancel-in-progress: false
+    env:
+      NEXT_PUBLIC_SITE_URL: https://royahealthyfood.ir
+      NEXTAUTH_URL: https://royahealthyfood.ir
+      ROYA_DEMO_CATALOG: '0'
+      ROYA_INDEXABLE: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+      DATABASE_URL: postgresql://roya_test:test_only_not_a_production_secret@localhost:5432/roya_test
+      DIRECT_URL: postgresql://roya_test:test_only_not_a_production_secret@localhost:5432/roya_test
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: roya_test
+          POSTGRES_PASSWORD: test_only_not_a_production_secret
+          POSTGRES_DB: roya_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U roya_test -d roya_test"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run db:deploy
+      - run: npm run db:seed
+      - run: npm run build:app
+      - name: Package server and temporary migration tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p payload/runtime/.next/standalone/.next payload/migrate
+          cp -a .next/standalone/. payload/runtime/.next/standalone/
+          cp -a .next/static payload/runtime/.next/standalone/.next/static
+          cp -a public payload/runtime/.next/standalone/public
+          cp -a node_modules prisma prisma.config.ts package.json package-lock.json scripts src payload/migrate/
+          tar -czf roya-deploy.tar.gz -C payload runtime migrate
+      - name: Deploy over verified SSH
+        shell: bash
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_PORT: ${{ vars.VPS_PORT }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          : "${VPS_HOST:?Set VPS_HOST}"
+          : "${VPS_PORT:?Set VPS_PORT}"
+          : "${VPS_SSH_KEY:?Set VPS_SSH_KEY}"
+          : "${VPS_KNOWN_HOSTS:?Set VPS_KNOWN_HOSTS}"
+          [[ "$VPS_PORT" =~ ^[0-9]+$ ]]
+          ssh_dir=$(mktemp -d)
+          trap 'rm -rf -- "$ssh_dir"' EXIT
+          chmod 700 "$ssh_dir"
+          printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > "$ssh_dir/key"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          chmod 600 "$ssh_dir/key" "$ssh_dir/known_hosts"
+          python3 - "$ssh_dir/key" <<'PY'
+          import base64
+          import binascii
+          import pathlib
+          import sys
+          path = pathlib.Path(sys.argv[1])
+          value = path.read_bytes().strip()
+          if not value.startswith(b"-----BEGIN OPENSSH PRIVATE KEY-----"):
+              try:
+                  value = base64.b64decode(b"".join(value.split()), validate=True).strip()
+              except (ValueError, binascii.Error):
+                  raise SystemExit("VPS_SSH_KEY must contain a complete OpenSSH private key or its base64 encoding.")
+          if not value.startswith(b"-----BEGIN OPENSSH PRIVATE KEY-----") or not value.endswith(b"-----END OPENSSH PRIVATE KEY-----"):
+              raise SystemExit("VPS_SSH_KEY is incomplete. Copy the complete private key directly into GitHub.")
+          path.write_bytes(value + b"\n")
+          PY
+          if ! ssh-keygen -y -P '' -f "$ssh_dir/key" >/dev/null 2>/dev/null; then
+            echo 'VPS_SSH_KEY is not a valid unencrypted private key. Replace it with the complete key or its base64 encoding.'
+            exit 1
+          fi
+          # Normalize a pasted public host key to the configured host and port.
+          awk -v host="$VPS_HOST" -v port="$VPS_PORT" '
+            {gsub(/\r/, ""); for (i=1; i<NF; i++) if ($i=="ssh-ed25519") {
+              print "[" host "]:" port " " $i " " $(i+1); found=1; exit
+            }}
+            END {if (!found) exit 1}
+          ' "$ssh_dir/known_hosts" > "$ssh_dir/verified_hosts"
+          fingerprint=$(ssh-keygen -lf "$ssh_dir/verified_hosts" | awk '{print $2}')
+          test "$fingerprint" = 'SHA256:4FwJX713fNpqOWo9qaWfPrnp6UdvIybDxaUQk+xc4Bw'
+          mv "$ssh_dir/verified_hosts" "$ssh_dir/known_hosts"
+          printf 'TRUSTED_HOST_KEY_VERIFIED\n'
+          ssh -T -p "$VPS_PORT" -i "$ssh_dir/key" \
+            -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+            -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+            "roya-deploy@$VPS_HOST" \
+            "sudo -n /usr/local/sbin/roya-deploy $GITHUB_SHA" < roya-deploy.tar.gz
+

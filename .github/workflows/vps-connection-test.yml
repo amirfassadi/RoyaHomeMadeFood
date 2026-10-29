@@ -1,0 +1,111 @@
+name: VPS connection check
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/vps-connection-test.yml'
+permissions:
+  contents: read
+jobs:
+  connection:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check SSH, deployment permissions, and existing services
+        shell: bash
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_PORT: ${{ vars.VPS_PORT }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          : "${VPS_HOST:?Missing VPS_HOST variable}"
+          : "${VPS_PORT:?Missing VPS_PORT variable}"
+          : "${VPS_SSH_KEY:?Missing VPS_SSH_KEY secret}"
+          : "${VPS_KNOWN_HOSTS:?Missing VPS_KNOWN_HOSTS secret}"
+          [[ "$VPS_PORT" =~ ^[0-9]+$ ]]
+          ssh_dir=$(mktemp -d)
+          trap 'rm -rf -- "$ssh_dir"' EXIT
+          chmod 700 "$ssh_dir"
+          printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > "$ssh_dir/key"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          chmod 600 "$ssh_dir/key" "$ssh_dir/known_hosts"
+          python3 - "$ssh_dir/key" <<'PY'
+          import base64
+          import binascii
+          import pathlib
+          import sys
+          path = pathlib.Path(sys.argv[1])
+          value = path.read_bytes().strip()
+          if not value.startswith(b"-----BEGIN OPENSSH PRIVATE KEY-----"):
+              try:
+                  value = base64.b64decode(b"".join(value.split()), validate=True).strip()
+              except (ValueError, binascii.Error):
+                  raise SystemExit("VPS_SSH_KEY must contain a complete OpenSSH private key or its base64 encoding.")
+          if not value.startswith(b"-----BEGIN OPENSSH PRIVATE KEY-----") or not value.endswith(b"-----END OPENSSH PRIVATE KEY-----"):
+              raise SystemExit("VPS_SSH_KEY is incomplete. Copy the complete private key directly into GitHub.")
+          path.write_bytes(value + b"\n")
+          PY
+          if ! ssh-keygen -y -P '' -f "$ssh_dir/key" >/dev/null 2>/dev/null; then
+            echo 'VPS_SSH_KEY is not a valid unencrypted private key. Replace it with the complete key or its base64 encoding.'
+            exit 1
+          fi
+          # Normalize a pasted public host key to the configured host and port.
+          awk -v host="$VPS_HOST" -v port="$VPS_PORT" '
+            {gsub(/\r/, ""); for (i=1; i<NF; i++) if ($i=="ssh-ed25519") {
+              print "[" host "]:" port " " $i " " $(i+1); found=1; exit
+            }}
+            END {if (!found) exit 1}
+          ' "$ssh_dir/known_hosts" > "$ssh_dir/verified_hosts"
+          fingerprint=$(ssh-keygen -lf "$ssh_dir/verified_hosts" | awk '{print $2}')
+          test "$fingerprint" = 'SHA256:4FwJX713fNpqOWo9qaWfPrnp6UdvIybDxaUQk+xc4Bw'
+          mv "$ssh_dir/verified_hosts" "$ssh_dir/known_hosts"
+          printf 'TRUSTED_HOST_KEY_VERIFIED\n'
+          ssh -T -p "$VPS_PORT" -i "$ssh_dir/key" \
+            -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o ConnectTimeout=20 -o ConnectionAttempts=1 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+            "roya-deploy@$VPS_HOST" 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          printf 'SSH_AUTHENTICATION_OK\n'
+          test "$(id -un)" = roya-deploy
+          test -x /usr/local/sbin/roya-deploy
+          sudo -n -l /usr/local/sbin/roya-deploy 0000000000000000000000000000000000000000
+          printf 'DEPLOYMENT_PERMISSION_OK\n'
+          systemctl is-active --quiet roya-store
+          systemctl is-active --quiet roya-preview
+          printf 'SERVICES_ACTIVE\n'
+          printf 'CONNECTION_AND_PERMISSIONS_PASSED\n'
+          printf 'ACTIVE_STORE_RELEASE=%s\n' "$(readlink -e /opt/roya/current)"
+          printf 'ACTIVE_PREVIEW_RELEASE=%s\n' "$(readlink -e /opt/roya/preview-current)"
+          health_ok=1
+          legacy_bridge=0
+          for port in 3310 3311; do
+            for path in /api/health/ /health /; do
+              code=$(curl --silent --show-error --max-time 10 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port$path") || code=000
+              printf 'HTTP_STATUS port=%s path=%s status=%s\n' "$port" "$path" "$code"
+              if [[ "$path" == /api/health/ && "$code" != 200 ]]; then
+                if [[ "$port" == 3310 && "$code" == 401 && "$(readlink -e /opt/roya/current)" == /opt/roya/releases/* ]]; then
+                  legacy_bridge=1
+                else
+                  health_ok=0
+                fi
+              fi
+            done
+            curl --silent --show-error --max-time 10 -D - -o /dev/null "http://127.0.0.1:$port/api/health/" \
+              | awk 'BEGIN{IGNORECASE=1} /^(HTTP\/|server:|www-authenticate:|location:)/ {print}'
+          done
+          if (( health_ok != 1 )); then
+            echo 'LEGACY_APPLICATION_HEALTH_NOT_READY: SSH and deployment permissions passed; existing applications did not both return HTTP 200 on /api/health/.'
+            exit 1
+          fi
+          if (( legacy_bridge == 1 )); then
+            echo 'LEGACY_BRIDGE_AUTH_REQUIRED: the old backend requires a Vercel token. SSH and service checks passed; backend database health is not verified. New deployments still require HTTP 200 on both health endpoints.'
+          else
+            printf 'BOTH_HEALTH_CHECKS_OK\n'
+          fi
+          df -h /opt/roya
+          printf 'READ_ONLY_CONNECTION_TEST_PASSED\n'
+          REMOTE
