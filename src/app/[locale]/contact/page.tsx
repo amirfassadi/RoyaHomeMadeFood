@@ -1,4 +1,4 @@
-import {pageMetadata} from '@/lib/seo/core';
+import {pageMetadata} from '@/lib/server/seo';
 import Link from 'next/link';
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {Phone, Mail, MapPin, Clock3} from 'lucide-react';

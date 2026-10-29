@@ -3,7 +3,7 @@ import {setRequestLocale} from 'next-intl/server';
 import type {Locale} from '@/i18n/routing';
 import {PageShell,PageHeading} from '@/components/store/page-shell';
 import {CustomerAccountForm} from '@/components/store/customer-account';
-import {pageMetadata} from '@/lib/seo/core';
+import {pageMetadata} from '@/lib/server/seo';
 import {isDemoCatalog} from '@/lib/server/catalog';
 import {optionalCustomer} from '@/lib/server/customer-session';
 import {customerLoginEnabled} from '@/lib/server/customer-otp';

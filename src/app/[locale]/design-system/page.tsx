@@ -1,4 +1,4 @@
-import {pageMetadata} from '@/lib/seo/core';
+import {pageMetadata} from '@/lib/server/seo';
 import Link from 'next/link';
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {Leaf, Heart, Sprout, ArrowUpLeft, ArrowUpRight, Globe2, Clock3, Check} from 'lucide-react';
