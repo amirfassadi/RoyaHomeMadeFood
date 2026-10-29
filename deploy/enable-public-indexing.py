@@ -10,9 +10,25 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 
 TARGET = Path('/etc/nginx/conf.d/roya-domain.conf')
 ALLOWED_HOSTS = {'royahealthyfood.ir', 'www.royahealthyfood.ir'}
+
+
+def verify_public_headers():
+    # Reload returns before the master has necessarily replaced old workers.
+    # Require two consecutive clean requests, each on a new connection.
+    clean = 0
+    for attempt in range(10):
+        response = subprocess.run(['curl', '--noproxy', '*', '--fail', '--silent', '--show-error', '--head', '--max-time', '5', '--resolve', 'royahealthyfood.ir:443:127.0.0.1', 'https://royahealthyfood.ir/fa/'], capture_output=True, text=True)
+        blocked = re.search(r'^X-Robots-Tag:[^\r\n]*(?:noindex|none)\b', response.stdout, re.I | re.M)
+        clean = clean + 1 if response.returncode == 0 and not blocked else 0
+        if clean >= 2:
+            return
+        if attempt < 9:
+            time.sleep(1)
+    raise RuntimeError('Public HTTPS checks did not become clean after reload; a noindex header or request failure remains.')
 
 
 def rewrite(text):
@@ -53,9 +69,7 @@ def main():
         TARGET.write_text(updated)
         subprocess.run(['/usr/sbin/nginx', '-t'], check=True)
         subprocess.run(['systemctl', 'reload', 'nginx'], check=True)
-        response = subprocess.run(['curl', '--fail', '--silent', '--show-error', '--head', '--max-time', '15', '--resolve', 'royahealthyfood.ir:443:127.0.0.1', 'https://royahealthyfood.ir/fa/'], check=True, capture_output=True, text=True)
-        if re.search(r'^X-Robots-Tag:[^\r\n]*(?:noindex|none)\b', response.stdout, re.I | re.M):
-            raise RuntimeError('A noindex header remains, possibly from another include.')
+        verify_public_headers()
     except Exception as error:
         TARGET.write_text(original)
         subprocess.run(['/usr/sbin/nginx', '-t'], check=True)
@@ -67,3 +81,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
