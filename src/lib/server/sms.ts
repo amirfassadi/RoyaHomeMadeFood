@@ -1,9 +1,11 @@
 import 'server-only';
 import {getDb} from './db';
 import {ShopError} from './shop-http';
+import {smsEnabled} from './sms-policy';
 
 export function smsConfigured(){return !!process.env.KAVENEGAR_API_KEY?.trim()&&!!process.env.KAVENEGAR_OTP_TEMPLATE?.trim()&&(process.env.CUSTOMER_OTP_SECRET?.length??0)>=32;}
 export async function sendVerificationSms(mobile:string,code:string){
+ if(!await smsEnabled())throw new ShopError('SMS_PAUSED',503);
  if(!smsConfigured())throw new ShopError('SMS_UNAVAILABLE',503);
  // Test mode is fail-closed and is the default. Production requires explicit opt-in.
  if(process.env.ROYA_SMS_MODE!=='production'){

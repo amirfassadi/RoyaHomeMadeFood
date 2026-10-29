@@ -9,7 +9,7 @@ function setup(){
  process.env.CUSTOMER_OTP_SECRET='s'.repeat(40);
  const row:any={id,mobile,ready:true,verifiedAt:null,consumedAt:null,attempts:0,expiresAt:new Date(Date.now()+300000),proofExpiresAt:null,verifier:otpDigest(process.env.CUSTOMER_OTP_SECRET,id,mobile,'123456')};
  const tx:any={$queryRaw:async()=>[],checkoutMobileChallenge:{findUnique:async()=>({...row}),update:async({data}:any)=>{row.attempts+=data.attempts?.increment??0;const {attempts,...rest}=data;Object.assign(row,rest);}}};
- Object.assign(globalThis,{royaDb:{$queryRaw:async()=>[{count:1}],checkoutMobileChallenge:{findUnique:async()=>({mobile})},$transaction:async(fn:any)=>fn(tx)}});
+ Object.assign(globalThis,{royaDb:{setting:{findUnique:async()=>null},$queryRaw:async()=>[{count:1}],checkoutMobileChallenge:{findUnique:async()=>({mobile})},$transaction:async(fn:any)=>fn(tx)}});
  return {row,tx};
 }
 test('guest SMS proof is single-use, bound to the mobile, and no raw proof is stored',async()=>{
@@ -35,7 +35,7 @@ test('expired and forged guest proofs cannot reserve inventory',async()=>{
 test('test SMS attempts stop at five across concurrent calls and failures never restore budget',async()=>{
  Object.assign(process.env,{KAVENEGAR_API_KEY:'test-only-key',KAVENEGAR_OTP_TEMPLATE:'test',CUSTOMER_OTP_SECRET:'s'.repeat(40),ROYA_SMS_MODE:'test',ROYA_SMS_TEST_MOBILES:mobile});
  let used=0,calls=0;const original=globalThis.fetch;
- Object.assign(globalThis,{royaDb:{$queryRaw:async()=>used<5?[{used:++used}]:[]}});
+ Object.assign(globalThis,{royaDb:{setting:{findUnique:async()=>null},$queryRaw:async()=>used<5?[{used:++used}]:[]}});
  try{
   globalThis.fetch=async()=>{calls++;throw new Error('uncertain response');};
   await assert.rejects(()=>sendVerificationSms('09120000000','123456'),/SMS_TEST_RECIPIENT/);assert.equal(used,0);

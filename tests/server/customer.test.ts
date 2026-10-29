@@ -8,7 +8,7 @@ function setup(role='CUSTOMER',existing=false){
  const challenge={id,mobile,name:'Test customer',marketingSms:false,ready:true,attempts:0,expiresAt:new Date(Date.now()+300000),consumedAt:null as Date|null,verifier:otpDigest(process.env.CUSTOMER_OTP_SECRET!,id,mobile,code)};
  let user:any=existing?{id:'user',role,active:true,twoFactorEnabled:false,name:'Existing',sessionVersion:2,marketingSms:true}:null,created=0;
  const tx={$queryRaw:async()=>[],customerLoginChallenge:{findUnique:async()=>structuredClone(challenge),update:async({data}:any)=>{challenge.attempts+=data.attempts.increment;if(data.consumedAt)challenge.consumedAt=data.consumedAt;}},user:{findUnique:async()=>user,create:async({data}:any)=>{created++;user={id:'user',sessionVersion:0,...data};return user;},update:async({data}:any)=>Object.assign(user,data)}};
- Object.assign(globalThis,{royaDb:{$queryRaw:async()=>[{count:1,used:1}],customerLoginChallenge:{findUnique:async()=>({mobile})},$transaction:async(fn:any)=>fn(tx)}});
+ Object.assign(globalThis,{royaDb:{setting:{findUnique:async()=>null},$queryRaw:async()=>[{count:1,used:1}],customerLoginChallenge:{findUnique:async()=>({mobile})},$transaction:async(fn:any)=>fn(tx)}});
  return {challenge,getUser:()=>user,created:()=>created};
 }
 test('OTP creates a verified CUSTOMER once with explicit consent and rejects reuse',async()=>{const state=setup();assert.equal((await authorizeCustomer({challengeId:id,code}))?.role,'CUSTOMER');assert(state.getUser().mobileVerifiedAt);assert.equal(state.getUser().marketingSms,false);assert.equal(state.getUser().consentEvents.create.allowed,false);assert.equal(await authorizeCustomer({challengeId:id,code}),null);assert.equal(state.created(),1);});

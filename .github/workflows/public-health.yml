@@ -1,0 +1,14 @@
+name: Public storefront health
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 4 * * *'
+permissions:
+  contents: read
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: python3 scripts/check-public-site.py
