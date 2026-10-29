@@ -6,11 +6,13 @@ import {ShopError,mobileLimit} from './shop-http';
 import {consumeRateLimit} from './rate-limit';
 import {otpDigest,otpMatches} from '@/lib/customer/otp';
 import {sendVerificationSms,smsConfigured} from './sms';
+import {smsEnabled} from './sms-policy';
 import {isDemoCatalog} from './catalog';
 export function checkoutMobileEnabled(){return !isDemoCatalog()&&!!process.env.DATABASE_URL&&smsConfigured();}
 const digest=(s:string)=>createHash('sha256').update(s).digest('hex');
 function secret(){const s=process.env.CUSTOMER_OTP_SECRET;if(!s||s.length<32)throw new ShopError('MOBILE_VERIFICATION_UNAVAILABLE',503);return s;}
 export async function requestCheckoutCode(mobile:string){
+ if(!await smsEnabled())throw new ShopError('SMS_PAUSED',503);
  if(!checkoutMobileEnabled())throw new ShopError('MOBILE_VERIFICATION_UNAVAILABLE',503);
  if(!await consumeRateLimit('checkout:sms:global',30,3600))throw new ShopError('RATE_LIMIT',429);
  await mobileLimit(mobile,'checkout-code',3);
@@ -26,6 +28,7 @@ export async function requestCheckoutCode(mobile:string){
  return {challengeId:id,resendAfter:60,expiresIn:300};
 }
 export async function verifyCheckoutCode(challengeId:string,code:string){
+ if(!await smsEnabled())throw new ShopError('SMS_PAUSED',503);
  if(!await consumeRateLimit('checkout:verify:global',60,60))throw new ShopError('RATE_LIMIT',429);
  const found=await getDb().checkoutMobileChallenge.findUnique({where:{id:challengeId},select:{mobile:true}});
  if(!found)throw new ShopError('MOBILE_CODE_INVALID');

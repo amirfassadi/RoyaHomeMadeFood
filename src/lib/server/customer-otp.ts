@@ -4,6 +4,7 @@ import {getDb} from './db';
 import {isDemoCatalog} from './catalog';
 import {consumeRateLimit} from './rate-limit';
 import {ShopError} from './shop-http';
+import {smsEnabled} from './sms-policy';
 import {sendVerificationSms} from './sms';
 import {otpDigest,otpMatches} from '@/lib/customer/otp';
 import {consentVersion,requestCodeSchema,verifyCodeSchema} from '@/lib/customer/validation';
@@ -11,6 +12,7 @@ function secret(){const value=process.env.CUSTOMER_OTP_SECRET;if(!value||value.l
 export function customerLoginEnabled(){return !isDemoCatalog()&&process.env.CUSTOMER_ACCOUNTS_ENABLED==='1'&&!!process.env.DATABASE_URL&&(process.env.NEXTAUTH_SECRET?.length??0)>=32&&(process.env.CUSTOMER_OTP_SECRET?.length??0)>=32&&!!process.env.KAVENEGAR_API_KEY&&!!process.env.KAVENEGAR_OTP_TEMPLATE;}
 async function limit(mobile:string,kind:string,count:number,seconds:number){const key=createHash('sha256').update(mobile).digest('hex');if(!await consumeRateLimit(`customer:${kind}:${key}`,count,seconds))throw new ShopError('RATE_LIMIT',429);}
 export async function requestCustomerCode(raw:unknown){
+ if(!await smsEnabled())throw new ShopError('SMS_PAUSED',503);
  if(!customerLoginEnabled())throw new ShopError('UNAVAILABLE',503);
  const input=requestCodeSchema.parse(raw);
  if(!await consumeRateLimit('customer:sms:global',30,3600))throw new ShopError('RATE_LIMIT',429);
@@ -29,7 +31,7 @@ export async function requestCustomerCode(raw:unknown){
  return {challengeId:id,expiresIn:300,resendAfter:60};
 }
 export async function authorizeCustomer(raw:unknown){
- if(!customerLoginEnabled())return null;
+ if(!customerLoginEnabled()||!await smsEnabled())return null;
  const parsed=verifyCodeSchema.safeParse(raw);if(!parsed.success)return null;
  if(!await consumeRateLimit('customer:verify:global',60,60))return null;
  const db=getDb(),{challengeId,code}=parsed.data;

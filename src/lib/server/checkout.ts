@@ -11,6 +11,7 @@ import type {QuoteInput, CheckoutInput} from '@/lib/validation/checkout';
 import {cryptoConfig,cryptoQuote} from './international';
 import {configuredBankTransfer} from './manual-payment';
 import {gatewayConfiguration} from './zarinpal';
+import {smsEnabled} from './sms-policy';
 import {consumeCheckoutProof} from './checkout-mobile';
 type Tx=Prisma.TransactionClient;
 export async function calculateQuote(tx: Tx, input: QuoteInput, reserve=false, now=new Date()) {
@@ -69,7 +70,7 @@ export async function placeOrder(input: CheckoutInput,customer?:{id:string;mobil
       const owner=await tx.user.findUnique({where:{id:customer.id}});
       if(owner?.active&&owner.role==='CUSTOMER'&&owner.mobileVerifiedAt&&owner.sessionVersion===customer.sessionVersion)userId=owner.id;
     }
-    if(!userId)await consumeCheckoutProof(tx,input.mobile,input.mobileProof);
+    if(!userId&&await smsEnabled(tx))await consumeCheckoutProof(tx,input.mobile,input.mobileProof);
     const now=new Date(), q=await calculateQuote(tx,input,true,now);
     if(q.totalToman!==input.expectedTotal)throw new ShopError('PRICE_CHANGED',409);
     const foreign=crypto?cryptoQuote(q.totalToman):null;

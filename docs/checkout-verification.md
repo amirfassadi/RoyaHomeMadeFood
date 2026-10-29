@@ -21,3 +21,11 @@ A production Node startup hook starts a once-per-minute maintenance loop and als
 Expiry only affects due PENDING, unpaid, inventory-reserved orders without courier dispatch. It cancels the order and atomically releases stock, original-day capacity and discount usage once. PAID/PREPARING/SHIPPED/DELIVERED orders are not expired. Gateway attempts are retained, including uncertain requests; they are never fabricated as failed. A later authoritative Zarinpal/BTCPay success marks PAID plus refundRequired without reopening the order or allocating released stock. An admin can record a matched late bank transfer on an auto-expired order for refund review. The app does not automatically refund money.
 
 Watch service logs for `Reservation expiry failed` and investigate immediately. Existing service restart-on-failure handles process exits; there is no guarantee of maintenance while both services are stopped. CI verifies the exact standalone server automatically expires a pre-existing fixture and releases stock, alongside concurrency and payment tests.
+
+## Temporary SMS pause
+
+The owner requested a temporary pause after the first successful live OTP test. The sms-policy Setting is migrated to enabled=false exactly once. With this explicit pause, guest checkout does not require OTP, and account/checkout SMS requests are rejected before provider or budget access. Existing verified sessions remain valid. Inventory expiry and payment checks are unaffected. Missing policy defaults to requiring verification; malformed policy fails closed.
+
+Admin Settings now includes an authenticated, origin-checked and audited SMS switch with optimistic concurrency. Resuming requires configured Kavenegar credentials; the five-attempt counter remains unchanged. Do not enable production SMS mode or reset the counter without explicit owner authorization.
+
+The read-only public health workflow checks six public routes daily at 04:30 UTC (08:00 Tehran); GitHub schedules may be delayed. A weekly npm vulnerability audit runs Mondays. Neither job sends SMS, creates orders, receives deployment secrets or changes production. Results appear in GitHub Actions; notification delivery depends on GitHub account settings.

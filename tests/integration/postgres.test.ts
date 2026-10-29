@@ -19,12 +19,14 @@ const url=process.env.ROYA_INTEGRATION_DATABASE_URL;
 if(!url||!/^\/(roya_test|roya_integration_test)$/.test(new URL(url).pathname))throw new Error('Set ROYA_INTEGRATION_DATABASE_URL to an isolated roya_test database');
 const db=new PrismaClient({adapter:new PrismaPg({connectionString:url})});
 const prefix=`test-${randomUUID()}`;
-let category:any,zone:any,admin:any;
+let category:any,zone:any,admin:any,oldSmsPolicy:any;
 const checkoutChallengeIds:string[]=[];
 const userIds:string[]=[],productIds:string[]=[],challengeIds:string[]=[],messageIds:string[]=[],announcementIds:string[]=[];
 before(async()=>{
  Object.assign(process.env,{DATABASE_URL:url,ROYA_DEMO_CATALOG:'0',CUSTOMER_ACCOUNTS_ENABLED:'1',NEXTAUTH_SECRET:'test-only-session-secret'.repeat(2),CUSTOMER_OTP_SECRET:'test-only-otp-secret'.repeat(2),KAVENEGAR_API_KEY:'test-never-sent',KAVENEGAR_OTP_TEMPLATE:'test'});delete process.env.SITES_STATIC_PREVIEW;
  Object.assign(globalThis,{royaDb:db});
+ oldSmsPolicy=await db.setting.findUnique({where:{key:'sms-policy'}});
+ await db.setting.upsert({where:{key:'sms-policy'},create:{key:'sms-policy',value:{enabled:true}},update:{value:{enabled:true}}});
  category=await db.category.create({data:{slug:prefix,nameFa:'دسته آزمایشی',nameEn:'Integration test'}});
  zone=await db.deliveryZone.create({data:{cityFa:prefix,cityEn:'Test',nameFa:prefix,nameEn:'Test',feeToman:1000,deliveryMinutes:30}});
  admin=await db.user.create({data:{name:'Integration admin',mobile:`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`,role:'ADMIN',passwordHash:await hashPassword('Initial test password 123')}});userIds.push(admin.id);
@@ -38,6 +40,7 @@ after(async()=>{
  await db.checkoutMobileChallenge.deleteMany({where:{id:{in:checkoutChallengeIds}}});
  await db.customerLoginChallenge.deleteMany({where:{id:{in:challengeIds}}});await db.marketingConsentEvent.deleteMany({where:{userId:{in:userIds}}});await db.user.deleteMany({where:{id:{in:userIds}}});
  await db.contactMessage.deleteMany({where:{id:{in:messageIds}}});await db.clubAnnouncement.deleteMany({where:{id:{in:announcementIds}}});await db.adminAudit.deleteMany({where:{adminId:admin?.id??'never'}});
+ if(oldSmsPolicy)await db.setting.update({where:{key:'sms-policy'},data:{value:oldSmsPolicy.value}});else await db.setting.deleteMany({where:{key:'sms-policy'}});
  if(zone)await db.deliveryZone.delete({where:{id:zone.id}});if(category)await db.category.delete({where:{id:category.id}});await db.$disconnect();
 });
 async function product(){const p=await db.product.create({data:{slug:`${prefix}-${randomUUID()}`,nameFa:'محصول آزمایشی',nameEn:'Test product',descriptionFa:'فقط آزمون',descriptionEn:'Only testing',categoryId:category.id,priceToman:100000,unit:'PIECE',priceBasisQuantity:1,minOrderQuantity:1,orderStepQuantity:1,stockQuantity:1,dailyCapacity:1,preparationMinutes:120}});productIds.push(p.id);const proofs=[];for(let n=0;n<3;n++){const id=randomUUID();checkoutChallengeIds.push(id);await db.checkoutMobileChallenge.create({data:{id,mobile:'09120000001',verifier:'0'.repeat(64),ready:true,verifiedAt:new Date(),expiresAt:new Date(Date.now()+300000),proofExpiresAt:new Date(Date.now()+1800000),proofHash:createHash('sha256').update('a'.repeat(64)).digest('hex')}});proofs.push({challengeId:id,token:'a'.repeat(64)});}return {...p,proofs};}
@@ -163,4 +166,15 @@ test('persistent SMS test budget permits only five concurrent provider calls, wi
   if(oldMobiles===undefined)delete process.env.ROYA_SMS_TEST_MOBILES;else process.env.ROYA_SMS_TEST_MOBILES=oldMobiles;
   await db.smsTestBudget.deleteMany({where:{id:'initial-five'}});if(old)await db.smsTestBudget.create({data:old});
  }
+});
+
+test('pausing SMS permits guest checkout without proof and preserves the SMS test budget',async()=>{
+ const before=await db.smsTestBudget.findUnique({where:{id:'initial-five'}});
+ try{
+  await db.setting.update({where:{key:'sms-policy'},data:{value:{enabled:false}}});
+  const p=await product(),payload=input(p);
+  const order=await placeOrder({...payload,mobileProof:undefined});assert(order.reservationExpiresAt);assert.equal(order.userId,null);
+  await assert.rejects(()=>sendVerificationSms('09120000001','123456'),/SMS_PAUSED/);
+  assert.deepEqual(await db.smsTestBudget.findUnique({where:{id:'initial-five'}}),before);
+ }finally{await db.setting.update({where:{key:'sms-policy'},data:{value:{enabled:true}}});}
 });

@@ -28,6 +28,8 @@ function LiveCheckoutForm({zones,international=false}:{zones:ZoneView[];internat
  const [zoneId,setZoneId]=useState(''),[quote,setQuote]=useState<Quote|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[receipt,setReceipt]=useState<Receipt|null>(null),[attempted,setAttempted]=useState(false);
  const [proofVersion,setProofVersion]=useState(0);
  const [mobile,setMobile]=useState(''),[mobileProof,setMobileProof]=useState<MobileProof|null>(null);
+ const [mobileRequired,setMobileRequired]=useState<boolean|null>(null);
+ useEffect(()=>{const c=new AbortController();fetch('/api/shop/mobile/code/',{cache:'no-store',signal:c.signal}).then(async r=>{if(!r.ok)throw new Error();return r.json();}).then(d=>setMobileRequired(d.required!==false)).catch(()=>{});return()=>c.abort();},[]);
  const normalizedMobile=mobileSchema.safeParse(mobile);
  const [destination,setDestination]=useState<MapLocation|null>(null);
  const [shippingEnabled,setShippingEnabled]=useState<boolean|null>(null);
@@ -62,7 +64,7 @@ function LiveCheckoutForm({zones,international=false}:{zones:ZoneView[];internat
   e.preventDefault();if(busy)return;if(!international&&!choosingPayment){if(quote)setChoosingPayment(true);return;}if(!quote || c.catalog.isDemo || (international&&!foreignReady)||(!international&&!paymentMethods?.[paymentMethod]))return;
   const result=(international?internationalCheckoutSchema:domesticCheckoutSchema).safeParse(attempted && retryData.current ? retryData.current : {...payload(),expectedTotal:quote.totalToman,idempotencyKey:key.current,...(mobileProof?{mobileProof:{challengeId:mobileProof.challengeId,token:mobileProof.token}}:{}),...(international?{expectedUsdCents:quote.amountUsdCents}:{})});
   if(!result.success){setError(message('INVALID'));return;}
-  if(!attempted&&(!mobileProof||Date.parse(mobileProof.expiresAt)<=Date.now())){setMobileProof(null);setError(locale==='fa'?'ابتدا شماره موبایل را با کد پیامک تأیید کنید.':'Verify your mobile by SMS before ordering.');return;}
+  if(!attempted&&mobileRequired!==false&&(!mobileProof||Date.parse(mobileProof.expiresAt)<=Date.now())){setMobileProof(null);setError(locale==='fa'?'ابتدا شماره موبایل را با کد پیامک تأیید کنید.':'Verify your mobile by SMS before ordering.');return;}
   retryData.current=result.data;
   setBusy(true);setAttempted(true);setError('');
   try{
@@ -76,11 +78,11 @@ function LiveCheckoutForm({zones,international=false}:{zones:ZoneView[];internat
  if(!c.items.length)return <><p className="mb-6">{t('empty')}</p><Link className={buttonClasses()} href={`/${locale}/catalog/`}>{t('shop')}</Link></>;
  return <form ref={form} onSubmit={submit} onChange={e=>{if(e.target instanceof Element&&e.target.closest('[data-checkout-mobile]'))return;if(e.target instanceof HTMLInputElement && e.target.name==='paymentMethod')return;setChoosingPayment(false);setQuote(null);key.current=null;setError('');}} className="grid gap-8 lg:grid-cols-[1fr_360px]">
   <fieldset disabled={busy || attempted} className="grid content-start gap-5 rounded-3xl border border-roya-line bg-white p-6 md:p-8">
-   <p className="text-xs leading-7 text-roya-muted">{locale==='fa'?'خرید بدون عضویت امکان‌پذیر است؛ تأیید شماره موبایل با پیامک الزامی است.':'Guest checkout is available; SMS mobile verification is required.'} <Link href={`/${locale}/account/`} className="text-roya-green underline">{locale==='fa'?'ورود / عضویت':'Sign in / join'}</Link></p>
+   <p className="text-xs leading-7 text-roya-muted">{locale==='fa'?'خرید بدون عضویت امکان‌پذیر است؛ شماره تماس را برای هماهنگی سفارش وارد کنید.':'Guest checkout is available. Enter a contact mobile for your order.'} <Link href={`/${locale}/account/`} className="text-roya-green underline">{locale==='fa'?'ورود / عضویت':'Sign in / join'}</Link></p>
    {c.catalog.isDemo && <p className="rounded-xl bg-roya-leaf p-4 text-sm leading-7">{t('demo')}</p>}
    {international&&<div className="grid gap-4"><p className="rounded-xl bg-roya-leaf p-4 text-sm leading-7">{locale==='fa'?'مشخصات زیر متعلق به گیرنده در ایران است. برای پیگیری، کد سفارش و موبایل گیرنده را نگه دارید.':'The details below belong to your recipient in Iran. Save the tracking code and recipient mobile to track the order.'}</p>{!foreignReady&&!c.catalog.isDemo&&<p role="status" className="text-sm leading-7 text-roya-brown">{locale==='fa'?'پرداخت ارزی هنوز در دسترس نیست؛ اتصال درگاه، نرخ معتبر و تشخیص معتبر کشور خارج ایران لازم است.':'International payment is currently unavailable. A configured gateway, valid exchange rate and verified overseas connection are required.'}</p>}<label className="grid gap-2 text-sm">{locale==='fa'?'ایمیل شما (خریدار)':'Your email (buyer)'}<input className={inputClass} type="email" name="buyerEmail" required maxLength={254} dir="ltr" autoComplete="email"/></label></div>}
    <div className="grid gap-5 sm:grid-cols-2"><label className="grid gap-2 text-sm">{t('name')}<input className={inputClass} name="name" required minLength={2} maxLength={100} autoComplete="name"/></label><label className="grid gap-2 text-sm">{t('mobile')}<input className={inputClass} name="mobile" value={mobile} onChange={e=>{const next=mobileSchema.safeParse(e.target.value);if(!next.success||!normalizedMobile.success||next.data!==normalizedMobile.data)setMobileProof(null);setMobile(e.target.value);}} required maxLength={32} inputMode="tel" autoComplete="tel" dir="ltr" placeholder="09123456789"/></label></div>
-   {normalizedMobile.success&&<CheckoutMobile key={`${normalizedMobile.data}:${proofVersion}`} mobile={normalizedMobile.data} fa={locale==='fa'} onVerified={setMobileProof}/>}
+   {mobileRequired===true&&normalizedMobile.success&&<CheckoutMobile key={`${normalizedMobile.data}:${proofVersion}`} mobile={normalizedMobile.data} fa={locale==='fa'} onVerified={setMobileProof}/>}
    <label className="grid gap-2 text-sm">{t('zone')}<select className={inputClass} value={zoneId} onChange={e=>setZoneId(e.target.value)} required><option value="">{t('chooseZone')}</option>{zones.map(z=><option key={z.id} value={z.id}>{locale==='fa'?`${z.cityFa} — ${z.nameFa}`:`${z.cityEn} — ${z.nameEn}`}{shippingEnabled?'':` (${formatToman(z.feeToman,locale)})`}</option>)}</select></label>
    {!zones.length && <p role="status">{t('noZones')}</p>}
    <label className="grid gap-2 text-sm">{t('address')}<textarea className={inputClass} name="address" required minLength={10} maxLength={1000} rows={3} autoComplete="street-address"/></label>
@@ -94,7 +96,7 @@ function LiveCheckoutForm({zones,international=false}:{zones:ZoneView[];internat
    <p className="my-5 text-xs leading-6 text-roya-muted">{t('etaNote')}</p>
    {attempted && !busy && <p className="mb-4 text-xs leading-6">{t('retrySame')}</p>}{error && <p role="alert" className="mb-4 text-sm text-roya-brown">{error}</p>}
    <Button type="button" variant="secondary" className="mb-3 w-full" onClick={check} disabled={busy || attempted || shippingEnabled===null || !zones.length || (international&&!foreignReady)}>{busy?t('loading'):t('quote')}</Button>
-   <Button type="submit" className="w-full" disabled={busy || (!international&&choosingPayment&&!paymentMethods?.[paymentMethod]) || !quote || quote.deliveryTestMode || c.catalog.isDemo || (international&&!foreignReady)}>{locale==='fa'?(choosingPayment?'پرداخت و ایجاد درخواست سفارش':'تأیید فاکتور و ورود به پرداخت'):(choosingPayment?'Proceed with payment':'Confirm invoice and choose payment')}</Button>
+   <Button type="submit" className="w-full" disabled={busy || mobileRequired===null || (!international&&choosingPayment&&!paymentMethods?.[paymentMethod]) || !quote || quote.deliveryTestMode || c.catalog.isDemo || (international&&!foreignReady)}>{locale==='fa'?(choosingPayment?'پرداخت و ایجاد درخواست سفارش':'تأیید فاکتور و ورود به پرداخت'):(choosingPayment?'Proceed with payment':'Confirm invoice and choose payment')}</Button>
   </aside>
  </form>;
 }

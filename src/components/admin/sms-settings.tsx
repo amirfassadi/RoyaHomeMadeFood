@@ -1,0 +1,9 @@
+'use client';
+import {useState} from 'react';
+import {Button} from '@/components/ui/button';
+import {Panel,Notice,mutate} from './shared';
+export function SmsSettingsEditor({initial,isDemo,refresh}:{initial?:{enabled:boolean;used:number;testMode:boolean;updatedAt:string|null};isDemo:boolean;refresh:()=>void}){
+ const [enabled,setEnabled]=useState(initial?.enabled??false),[version,setVersion]=useState(initial?.updatedAt??null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[saved,setSaved]=useState(false);
+ async function save(e:React.FormEvent){e.preventDefault();if(busy||isDemo)return;setBusy(true);setError('');setSaved(false);try{const r=await mutate('settings/sms',{settings:{enabled},expectedUpdatedAt:version});setVersion(r.updatedAt);setSaved(true);refresh();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
+ return <Panel title="پیامک و تأیید شماره موبایل"><form onSubmit={save} className="grid gap-4"><Notice error={error}/><label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={enabled} disabled={busy||isDemo} onChange={e=>{setEnabled(e.target.checked);setSaved(false);}}/>فعال‌بودن پیامک و الزام تأیید موبایل سفارش مهمان</label><p className="text-sm leading-7 text-roya-muted">در حالت توقف، پیامک ورود و سفارش ارسال نمی‌شود و خرید مهمان بدون تأیید شماره امکان‌پذیر است. شماره واردشده در این حالت اثبات مالکیت ندارد. مهلت رزرو و کنترل پرداخت برقرار می‌ماند. ورود پیامکی حساب‌های جدید نیز متوقف می‌شود؛ نشست‌های فعلی باقی می‌مانند.</p>{initial?.testMode&&<p className="text-sm">تلاش‌های مصرف‌شده تست: {initial.used} از ۵. توقف یا فعال‌سازی دوباره این شمارنده را صفر نمی‌کند.</p>}<Button disabled={busy||isDemo}>{busy?'در حال ذخیره…':'ذخیره وضعیت پیامک'}</Button>{saved&&<p role="status" className="text-sm text-roya-green">وضعیت ذخیره شد؛ پیامکی برای آزمایش ارسال نشد.</p>}</form></Panel>;
+}
