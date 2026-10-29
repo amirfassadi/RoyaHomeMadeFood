@@ -14,6 +14,9 @@ import {Badge} from '@/components/ui/badge';
 import {formatNumber, formatToman} from '@/lib/format';
 import type {Locale} from '@/i18n/routing';
 export const revalidate = 60;
+// Product slugs are generated on demand with ISR. Runtime SEO reads must not
+// switch an already-static fallback route into dynamic rendering on first use.
+export const dynamic = 'force-static';
 // Runtime slugs remain available in Next.js; the static preview includes only explicit demo slugs.
 export async function generateStaticParams() {
   if (!isDemoCatalog()) return [];
