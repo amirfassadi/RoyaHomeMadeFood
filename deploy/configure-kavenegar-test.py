@@ -8,6 +8,8 @@ import re
 import secrets
 import shutil
 import tempfile
+import json
+from urllib.request import urlopen
 
 
 def main():
@@ -17,6 +19,14 @@ def main():
     for path in paths:
         if path.is_symlink() or not path.is_file() or path.stat().st_uid != 0:
             raise SystemExit('Expected existing root-owned regular environment files.')
+    # Do not enable account SMS on a legacy release without the five-send cap.
+    try:
+        for port in (3310, 3311):
+            with urlopen(f'http://127.0.0.1:{port}/api/shop/mobile/code/', timeout=5) as response:
+                if not isinstance(json.load(response).get('enabled'), bool):
+                    raise ValueError()
+    except Exception:
+        raise SystemExit('Deploy the guest-verification release on both services first. Files unchanged.')
     key = getpass('KAVENEGAR_API_KEY (hidden): ').strip()
     template = getpass('Approved template name (hidden): ').strip()
     digits = str.maketrans('۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩', '01234567890123456789')
