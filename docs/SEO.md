@@ -15,4 +15,8 @@ The sitemap contains only public pages and active catalog products. Product sche
 
 Enabling indexing does not guarantee immediate indexing or rankings. Search Console ownership requires the owner's Google account or DNS access. Real product descriptions, original product photos and accurate contact details must be maintained by the business owner. Metadata is an initial technical foundation, not a substitute for those pages.
 
+## Existing reverse-proxy blocker
+
+The live Nginx responses were observed to include `X-Robots-Tag: noindex, nofollow` independently of the application metadata. This header overrides the intention to index public pages. It must be removed or scoped to private routes in the relevant Nginx configuration before public indexing can be considered enabled. Do not disable authentication or change unrelated virtual hosts. Validate Nginx configuration before reloading and verify the public response headers afterwards. The GitHub deployment account can invoke the application deployment helper but cannot directly edit Nginx configuration.
+
 References: [Google canonical URLs](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls), [Google sitemaps](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap), [Google noindex](https://developers.google.com/search/docs/crawling-indexing/block-indexing), [Next.js metadata](https://nextjs.org/docs/app/getting-started/metadata-and-og-images).
