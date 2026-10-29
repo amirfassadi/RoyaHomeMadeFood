@@ -82,10 +82,16 @@ run_env() {
 }
 
 # Environment checks precede migration and switching. No secrets leave the VPS.
-run_env /etc/roya/backend.env --import tsx scripts/preflight.ts
-run_env /etc/roya/preview.env --import tsx scripts/preflight.ts
-run_env /etc/roya/backend.env node_modules/prisma/build/index.js migrate deploy
-run_env /etc/roya/backend.env --import tsx prisma/seed.ts
+# Use the staged VPS configuration only for the new release. The running
+# legacy services retain their original configuration for rollback.
+backend_env=/etc/roya/backend.vps.env
+preview_env=/etc/roya/preview.vps.env
+[[ -f "$backend_env" && ! -L "$backend_env" ]] || { echo 'Missing backend.vps.env'; exit 1; }
+[[ -f "$preview_env" && ! -L "$preview_env" ]] || { echo 'Missing preview.vps.env'; exit 1; }
+run_env "$backend_env" --import tsx scripts/preflight.ts
+run_env "$preview_env" --import tsx scripts/preflight.ts
+run_env "$backend_env" node_modules/prisma/build/index.js migrate deploy
+run_env "$backend_env" --import tsx prisma/seed.ts
 
 mv -- "$payload/runtime" "$release"
 chmod 755 "$release"
@@ -95,9 +101,9 @@ done
 units_changed=1
 for role in store preview; do
   if [[ $role == store ]]; then
-    link=current; port=3310; env_file=backend
+    link=current; port=3310; env_file=backend.vps
   else
-    link=preview-current; port=3311; env_file=preview
+    link=preview-current; port=3311; env_file=preview.vps
   fi
   cat > "/etc/systemd/system/roya-$role.service" <<UNIT
 [Unit]
