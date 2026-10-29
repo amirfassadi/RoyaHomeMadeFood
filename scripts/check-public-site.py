@@ -5,6 +5,7 @@ import json
 import sys
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+from urllib.parse import urlsplit
 import xml.etree.ElementTree as ET
 
 BASE = 'https://royahealthyfood.ir'
@@ -44,8 +45,12 @@ def check(path):
             if not root.tag.endswith('urlset'):
                 raise ValueError('Invalid sitemap')
             for item in root.iter():
-                if item.tag.endswith('loc') and item.text and any(part in item.text for part in ('/admin/', '/checkout/', '/account/', '/tracking/', '/api/')):
-                    raise ValueError('Private route included in sitemap')
+                if item.tag.endswith('loc') and item.text:
+                    parts = urlsplit(item.text).path.strip('/').split('/')
+                    if parts and parts[0] in ('fa', 'en'):
+                        parts = parts[1:]
+                    if parts and parts[0] in ('admin', 'api', 'cart', 'checkout', 'account', 'tracking', 'payment-result', 'rates', 'design-system'):
+                        raise ValueError('Private route included in sitemap')
     return path
 
 
