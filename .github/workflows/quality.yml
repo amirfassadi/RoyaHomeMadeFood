@@ -43,6 +43,7 @@ jobs:
       - run: npm test
       - run: npm run test:integration
       - run: npm run build:app
+      - run: node --conditions=react-server --import tsx scripts/check-product-render.ts
       - run: npm run build:sites
 
   deploy:
@@ -150,4 +151,3 @@ jobs:
             -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
             "roya-deploy@$VPS_HOST" \
             "sudo -n /usr/local/sbin/roya-deploy $GITHUB_SHA" < roya-deploy.tar.gz
-
