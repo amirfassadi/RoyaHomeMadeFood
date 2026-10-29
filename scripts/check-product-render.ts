@@ -1,5 +1,6 @@
 import {spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
+import {cpSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 import assert from 'node:assert/strict';
 import {PrismaClient} from '../src/generated/prisma/client';
@@ -14,7 +15,11 @@ async function main(){
  const port=3417;
  // The product is deliberately created after next build: its slug must work
  // on the first request without having been included in generateStaticParams.
- const server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port',String(port)],{env:{...process.env,NODE_ENV:'production',DATABASE_URL:url,DIRECT_URL:url,ROYA_DEMO_CATALOG:'0',SITES_STATIC_PREVIEW:'0',NEXT_PUBLIC_SITE_URL:'https://shop.example'},stdio:['ignore','pipe','pipe']});
+ // Match the deployed standalone layout rather than reusing next start's
+ // build-time data cache (which intentionally contains an empty catalog).
+ cpSync('public','.next/standalone/public',{recursive:true});
+ cpSync('.next/static','.next/standalone/.next/static',{recursive:true});
+ const server=spawn(process.execPath,['.next/standalone/server.js'],{env:{...process.env,NODE_ENV:'production',HOSTNAME:'127.0.0.1',PORT:String(port),DATABASE_URL:url,DIRECT_URL:url,ROYA_DEMO_CATALOG:'0',SITES_STATIC_PREVIEW:'0',NEXT_PUBLIC_SITE_URL:'https://shop.example'},stdio:['ignore','pipe','pipe']});
  server.on('error',error=>{spawnError=error;});
  const capture=(chunk:Buffer)=>{logs=(logs+chunk.toString()).slice(-20000);};
  server.stdout.on('data',capture);server.stderr.on('data',capture);
@@ -29,6 +34,7 @@ async function main(){
   assert(ready,'Production server did not become ready.');
   const category=await db.category.create({data:{slug,nameFa:'دسته آزمون رندر',nameEn:'Render test category'}});categoryId=category.id;
   const product=await db.product.create({data:{slug,categoryId,nameFa:'محصول آزمون رندر',nameEn:'Product render verification',descriptionFa:'محصول موقت برای بررسی اجرای صفحه محصول',descriptionEn:'Temporary product for verifying production page rendering.',priceToman:100000,unit:'PACK',priceBasisQuantity:1,minOrderQuantity:1,orderStepQuantity:1,preparationMinutes:60}});productId=product.id;
+  assert.equal(await db.product.count({where:{id:productId,active:true,category:{active:true}}}),1,'Runtime product fixture is not visible in the test database.');
   for(const locale of ['fa','en']){
    const response=await fetch(`http://127.0.0.1:${port}/${locale}/products/${slug}/`,{headers:{'User-Agent':'Googlebot'},signal:AbortSignal.timeout(20000)});
    const html=await response.text();
