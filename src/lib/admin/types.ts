@@ -1,3 +1,4 @@
+import type {BankTransferSettings} from '@/lib/validation/bank-transfer';
 import type {ShippingSettings} from '@/lib/validation/shipping';
 import type {z} from 'zod';
 import type {productSchema} from '@/lib/validation/product';
@@ -9,6 +10,6 @@ export type OrderDetail=AdminOrder&{shippingSnapshot?:{provider?:string;destinat
 export type Zone={id:string;cityFa:string;cityEn:string;nameFa:string;nameEn:string;feeToman:number;deliveryMinutes:number;active:boolean;updatedAt:string};
 export type Discount={showInCustomerClub?:boolean;id:string;code:string;type:'FIXED'|'PERCENT';value:number;minSubtotalToman:number;maxDiscountToman:number|null;usageLimit:number|null;usedCount:number;startsAt:string|null;expiresAt:string|null;active:boolean;updatedAt:string};
 export type Customer={mobile:string;name:string;orders:number;totalToman:number;lastOrder:string};
-export type AdminData={shipping?:ShippingSettings;products:AdminProduct[];categories:{id:string;nameFa:string}[];orders:AdminOrder[];customers:Customer[];members:{id:string;name:string;mobile:string;marketingSms:boolean;createdAt:string}[];zones:Zone[];discounts:Discount[];contact:ContactSettings;page:number;totalPages:number;stats:{products:number;orders:number;pending:number};detail?:OrderDetail};
+export type AdminData={bankTransfer?:{settings:BankTransferSettings;updatedAt:string|null};shipping?:ShippingSettings;products:AdminProduct[];categories:{id:string;nameFa:string}[];orders:AdminOrder[];customers:Customer[];members:{id:string;name:string;mobile:string;marketingSms:boolean;createdAt:string}[];zones:Zone[];discounts:Discount[];contact:ContactSettings;page:number;totalPages:number;stats:{products:number;orders:number;pending:number};detail?:OrderDetail};
 export type Section='dashboard'|'products'|'orders'|'customers'|'settings';
 export const emptyData=():AdminData=>({products:[],categories:[],orders:[],customers:[],members:[],zones:[],discounts:[],contact:{},page:1,totalPages:1,stats:{products:0,orders:0,pending:0}});

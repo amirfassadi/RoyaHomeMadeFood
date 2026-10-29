@@ -28,11 +28,14 @@ test('manual confirmation cannot settle cancelled orders or online gateway order
  await assert.rejects(()=>confirmTransfer(input,'admin'),/TRANSITION/);
  assert.equal(s.order.paymentStatus,'PENDING');
 });
-test('bank destinations fail closed and client requests cannot inject paid status',()=>{
- delete process.env.PAYMENT_ACCOUNT_HOLDER;delete process.env.PAYMENT_CARD_NUMBER;delete process.env.PAYMENT_IBAN;
- assert.throws(()=>bankTransferDetails(),/PAYMENT_UNAVAILABLE/);
- process.env.PAYMENT_ACCOUNT_HOLDER='Test holder';process.env.PAYMENT_IBAN='IR'+'0'.repeat(24);
- assert.equal(bankTransferDetails().iban,process.env.PAYMENT_IBAN);
- process.env.PAYMENT_CARD_NUMBER='invalid';assert.throws(()=>bankTransferDetails(),/PAYMENT_UNAVAILABLE/);
+test('bank destinations come from active admin accounts and snapshots survive later settings changes',async()=>{
+ const account={id:'00000000-0000-4000-8000-000000000001',holder:'Test holder',card:'6037000000000000',iban:'',active:true};
+ let value:unknown={enabled:true,accounts:[account,{...account,id:'00000000-0000-4000-8000-000000000002',holder:'Inactive',card:'6037000000000001',active:false}]};
+ Object.assign(globalThis,{royaDb:{setting:{findUnique:async()=>({value})}}});
+ const details=await bankTransferDetails();
+ assert.equal(details.accounts.length,1);assert.equal(details.holder,'Test holder');
+ value={enabled:false,accounts:[]};
+ await assert.rejects(()=>bankTransferDetails(),/BANK_TRANSFER_UNAVAILABLE/);
+ assert.equal((await bankTransferDetails({accounts:details.accounts})).card,'6037000000000000');
  assert.equal(confirmTransferSchema.safeParse({id:'order',amountToman:100,reference:'BANK-123',paymentStatus:'PAID'}).success,false);
 });

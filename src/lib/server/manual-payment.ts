@@ -1,16 +1,28 @@
 import 'server-only';
 import {z} from 'zod';
+import {bankTransferSettingsSchema,bankTransferSnapshotSchema,type BankTransferDetails} from '@/lib/validation/bank-transfer';
 import {getDb} from './db';
 import {ShopError} from './shop-http';
 import {audit} from './admin-products';
 import {estimateDelivery} from '@/lib/domain/order';
 
-export function bankTransferDetails(){
- const holder=process.env.PAYMENT_ACCOUNT_HOLDER?.trim();
- const card=process.env.PAYMENT_CARD_NUMBER?.trim();
- const iban=process.env.PAYMENT_IBAN?.trim().toUpperCase();
- if(!holder || (!card && !iban) || (card && !/^\d{16}$/.test(card)) || (iban && !/^IR\d{24}$/.test(iban)))throw new ShopError('PAYMENT_UNAVAILABLE',503);
- return {holder,card:card??null,iban:iban??null};
+export function configuredBankTransfer(value:unknown):BankTransferDetails {
+ const parsed=bankTransferSettingsSchema.safeParse(value);
+ if(!parsed.success||!parsed.data.enabled)throw new ShopError('BANK_TRANSFER_UNAVAILABLE',503);
+ const accounts=parsed.data.accounts.filter(account=>account.active);
+ const first=accounts[0];
+ if(!first)throw new ShopError('BANK_TRANSFER_UNAVAILABLE',503);
+ return {holder:first.holder,card:first.card||null,iban:first.iban||null,accounts};
+}
+export async function bankTransferDetails(snapshot?:unknown):Promise<BankTransferDetails>{
+ if(snapshot!==undefined&&snapshot!==null){
+  const parsed=bankTransferSnapshotSchema.safeParse(snapshot);
+  if(!parsed.success)throw new ShopError('UNAVAILABLE',503);
+  const first=parsed.data.accounts[0];
+  return {holder:first.holder,card:first.card||null,iban:first.iban||null,accounts:parsed.data.accounts};
+ }
+ const setting=await getDb().setting.findUnique({where:{key:'bank-transfer'}});
+ return configuredBankTransfer(setting?.value);
 }
 export const confirmTransferSchema=z.object({id:z.string().min(1).max(100),reference:z.string().trim().regex(/^[A-Za-z0-9-]{4,100}$/),amountToman:z.number().int().positive()}).strict();
 export async function confirmTransfer(input:z.infer<typeof confirmTransferSchema>,adminId:string){

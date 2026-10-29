@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {PrismaClient} from '../../src/generated/prisma/client';
 import {PrismaPg} from '@prisma/adapter-pg';
+import {bankTransferDetails,confirmTransfer} from '../../src/lib/server/manual-payment';
 import {placeOrder} from '../../src/lib/server/checkout';
 import {changeOrderStatus} from '../../src/lib/server/admin-orders';
 import {authorizeCustomer} from '../../src/lib/server/customer-otp';
@@ -75,4 +76,34 @@ test('crypto checkout snapshots USD, rejects stale pricing and cannot prepare or
  await assert.rejects(()=>changeOrderStatus(a.id,'PENDING','CANCELLED',admin.id),/PAYMENT_PENDING/);
  await db.cryptoPayment.update({where:{id:payment.id},data:{requestState:'NEW'}});
  await changeOrderStatus(a.id,'PENDING','CANCELLED',admin.id);assert.equal(Number((await db.product.findUniqueOrThrow({where:{id:p.id}})).stockQuantity),1);
+});
+
+
+test('bank transfer saves active destinations per order, retries once and confirms only matched bank funds',async()=>{
+ const old=await db.setting.findUnique({where:{key:'bank-transfer'}});
+ const accounts=[{id:randomUUID(),holder:'Integration holder A',card:'6037000000000000',iban:'',active:true},{id:randomUUID(),holder:'Integration holder B',card:'',iban:'IR'+'0'.repeat(24),active:true}];
+ try{
+  await db.setting.upsert({where:{key:'bank-transfer'},create:{key:'bank-transfer',value:{enabled:false,accounts:[]}},update:{value:{enabled:false,accounts:[]}}});
+  const p=await product(),payload={...input(p),paymentMethod:'BANK_TRANSFER' as const};
+  await assert.rejects(()=>placeOrder(payload),/BANK_TRANSFER_UNAVAILABLE/);
+  assert.equal(Number((await db.product.findUniqueOrThrow({where:{id:p.id}})).stockQuantity),1);
+  await db.setting.update({where:{key:'bank-transfer'},data:{value:{enabled:true,accounts}}});
+  const [a,b]=await Promise.all([placeOrder(payload),placeOrder(payload)]);
+  assert.equal(a.id,b.id);assert.equal(a.paymentStatus,'PENDING');assert(a.paymentReference);
+  assert.equal((await bankTransferDetails(a.bankTransferSnapshot)).accounts.length,2);
+  await db.setting.update({where:{key:'bank-transfer'},data:{value:{enabled:false,accounts:[]}}});
+  assert.equal((await placeOrder(payload)).id,a.id);
+  assert.equal((await bankTransferDetails(a.bankTransferSnapshot)).accounts[0].holder,'Integration holder A');
+  await assert.rejects(()=>changeOrderStatus(a.id,'PENDING','PREPARING',admin.id),/PAYMENT_PENDING/);
+  const confirmation={id:a.id,reference:'BANK-'+randomUUID(),amountToman:a.totalToman};
+  await assert.rejects(()=>confirmTransfer({...confirmation,amountToman:a.totalToman-1},admin.id),/PAYMENT_AMOUNT/);
+  await Promise.all([confirmTransfer(confirmation,admin.id),confirmTransfer(confirmation,admin.id)]);
+  const paid=await db.order.findUniqueOrThrow({where:{id:a.id}});
+  assert.equal(paid.paymentStatus,'PAID');assert.equal(paid.estimatedDeliveryAt.getTime()-paid.paymentConfirmedAt!.getTime(),150*60000);
+  assert.equal(await db.adminAudit.count({where:{targetId:a.id,action:'BANK_TRANSFER_CONFIRMED'}}),1);
+  await changeOrderStatus(a.id,'PENDING','PREPARING',admin.id);
+ }finally{
+  if(old)await db.setting.upsert({where:{key:'bank-transfer'},create:{key:'bank-transfer',value:old.value!},update:{value:old.value!}});
+  else await db.setting.deleteMany({where:{key:'bank-transfer'}});
+ }
 });
