@@ -53,4 +53,8 @@ For the final installation, bootstrap the administrator interactively using `scr
 
 ## Validation limits
 
+### Deployment without Cloudinary
+
+Set `ROYA_MEDIA_UPLOADS_ENABLED=0` in both staged VPS environment files to deploy without Cloudinary credentials. Product creation and editing remain available without media. The admin uploader is disabled, and server media operations refuse requests. To enable uploads later, set the flag to `1`, configure all three Cloudinary credentials, and restart the application services. Other preflight checks remain mandatory.
+
 Shell syntax must pass locally and in CI. The server build, database integration tests and deploy job must pass on GitHub before activation. SSH authentication, existing server environment compatibility, actual service restart/rollback and public-site acceptance require validation on the VPS. Do not treat the presence of these files as a completed installation.
