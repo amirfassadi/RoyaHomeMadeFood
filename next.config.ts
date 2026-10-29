@@ -9,6 +9,7 @@ const config: NextConfig = {
   // Webpack serializing a single extension as a string in its app loader.
   pageExtensions: staticPreview ? ['tsx', 'jsx'] : ['ts', 'tsx'],
   poweredByHeader: false,
+  ...(!staticPreview?{async redirects(){return [{source:'/',destination:'/fa/',permanent:true}];}}:{}),
   ...(!staticPreview?{async headers(){return [{source:'/((?!_next/static).*)',headers:securityHeaders(process.env.NODE_ENV==='production')},{source:'/api/:path*',headers:[{key:'Cache-Control',value:'no-store'}]}];}}:{}),
   images: {
     unoptimized: staticPreview,
