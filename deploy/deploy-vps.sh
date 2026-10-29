@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+stage=initial-checks
+trap 'printf "Deployment error: stage=%s line=%s exit=%s\\n" "$stage" "$LINENO" "$?" >&2' ERR
 [[ $EUID == 0 && $# == 1 && $1 =~ ^[0-9a-f]{40}$ ]] || exit 2
 sha=$1
 exec 9>/run/lock/roya-deploy.lock
@@ -32,6 +34,7 @@ point_to() {
 }
 cleanup() {
   local result=$?
+  if (( result != 0 )); then printf 'Deployment stopped: stage=%s exit=%s\n' "$stage" "$result" >&2; fi
   trap - EXIT
   if (( result != 0 && switched == 1 && committed == 0 )); then
     echo 'Deployment failed; restoring previous application releases.'
@@ -59,24 +62,30 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+stage=extract-archive
+echo 'Extracting deployment archive.'
 # Extract application-controlled files as the application user, never as root.
 runuser -u roya-store -- tar -xzf - --no-same-owner -C "$work/payload"
+stage=validate-archive
+echo 'Validating extracted deployment archive.'
 payload=$work/payload
-[[ -d "$payload/runtime" && ! -L "$payload/runtime" ]] || exit 1
-[[ -d "$payload/migrate" && ! -L "$payload/migrate" ]] || exit 1
-[[ -f "$payload/runtime/.next/standalone/server.js" ]] || exit 1
-[[ -f "$payload/migrate/prisma.config.ts" ]] || exit 1
+[[ -d "$payload/runtime" && ! -L "$payload/runtime" ]] || { echo 'Missing runtime directory' >&2; exit 1; }
+[[ -d "$payload/migrate" && ! -L "$payload/migrate" ]] || { echo 'Missing migration directory' >&2; exit 1; }
+[[ -f "$payload/runtime/.next/standalone/server.js" ]] || { echo 'Missing runtime/.next/standalone/server.js' >&2; exit 1; }
+[[ -f "$payload/migrate/prisma.config.ts" ]] || { echo 'Missing migrate/prisma.config.ts' >&2; exit 1; }
 
 run_env() {
   local env_file=$1
   shift
   unit_count=$((unit_count + 1))
   unit="roya-migration-$$-$unit_count"
-  systemd-run --quiet --wait --pipe --collect --unit="$unit" \
+  systemd-run --wait --pipe --collect --unit="$unit" \
     --service-type=exec --uid=roya-store --gid=roya-store \
     -p "WorkingDirectory=$payload/migrate" \
-    -p "EnvironmentFile=/etc/roya/database.env $env_file" \
+    -p 'EnvironmentFile=/etc/roya/database.env' \
+    -p "EnvironmentFile=$env_file" \
     -p 'Environment=NODE_ENV=production' \
+    -p "Environment=PATH=$PATH" \
     -p 'NoNewPrivileges=yes' \
     "$node" "$@"
 }
@@ -88,11 +97,18 @@ backend_env=/etc/roya/backend.vps.env
 preview_env=/etc/roya/preview.vps.env
 [[ -f "$backend_env" && ! -L "$backend_env" ]] || { echo 'Missing backend.vps.env'; exit 1; }
 [[ -f "$preview_env" && ! -L "$preview_env" ]] || { echo 'Missing preview.vps.env'; exit 1; }
+stage=backend-preflight
+echo 'Checking backend environment.'
 run_env "$backend_env" --import tsx scripts/preflight.ts
+stage=preview-preflight
+echo 'Checking preview environment.'
 run_env "$preview_env" --import tsx scripts/preflight.ts
+stage=database-migration
 run_env "$backend_env" node_modules/prisma/build/index.js migrate deploy
+stage=database-seed
 run_env "$backend_env" --import tsx prisma/seed.ts
 
+stage=activate-release
 mv -- "$payload/runtime" "$release"
 chmod 755 "$release"
 for service in roya-store roya-preview; do
@@ -134,6 +150,7 @@ point_to "$release" "$base/current"
 point_to "$release" "$base/preview-current"
 systemctl daemon-reload
 systemctl restart roya-store roya-preview
+stage=health-checks
 healthy=0
 for attempt in {1..30}; do
   if systemctl is-active --quiet roya-store roya-preview \
