@@ -1,3 +1,4 @@
+import {parseTransferReport} from '@/lib/validation/transfer-report';
 import {emailSettingsView} from './email';
 import {customerLoginEnabled} from './customer-otp';
 import {smsConfigured} from './sms';
@@ -55,9 +56,9 @@ export async function getAdminData(section:string,options:{page?:number;q?:strin
   if(hasAdminPermission(user,'discounts'))data.discounts=JSON.parse(JSON.stringify(await db.discountCode.findMany({orderBy:{createdAt:'desc'}})));
  }
  if(section==='order'){
-  const o=await db.order.findUnique({where:{id:options.id??''},select:{...summary,reservationExpiresAt:true,reservationExpiredAt:true,shippingSnapshot:true,courierDispatch:{select:{id:true,requestState:true,externalId:true,externalStatus:true,quotedFeeToman:true,actualFeeToman:true,readyAt:true,lastSyncedAt:true}},invoiceNumber:true,paymentReference:true,paymentConfirmedAt:true,transferReference:true,address:true,city:true,deliveryNotes:true,deliveryZoneNameSnapshot:true,subtotalToman:true,discountToman:true,deliveryFeeToman:true,items:{select:{id:true,productNameFa:true,unit:true,quantity:true,lineTotalToman:true}},statusHistory:{select:{status:true,createdAt:true},orderBy:{createdAt:'asc'}},buyerEmail:true,cryptoPayment:{select:{amountUsdCents:true,requestState:true,invoiceId:true,invoiceStatus:true,additionalStatus:true}},paymentAttempts:{select:{requestState:true}}}});
+  const o=await db.order.findUnique({where:{id:options.id??''},select:{...summary,reservationExpiresAt:true,reservationExpiredAt:true,shippingSnapshot:true,bankTransferSnapshot:true,courierDispatch:{select:{id:true,requestState:true,externalId:true,externalStatus:true,quotedFeeToman:true,actualFeeToman:true,readyAt:true,lastSyncedAt:true}},invoiceNumber:true,paymentReference:true,paymentConfirmedAt:true,transferReference:true,address:true,city:true,deliveryNotes:true,deliveryZoneNameSnapshot:true,subtotalToman:true,discountToman:true,deliveryFeeToman:true,items:{select:{id:true,productNameFa:true,unit:true,quantity:true,lineTotalToman:true}},statusHistory:{select:{status:true,createdAt:true},orderBy:{createdAt:'asc'}},buyerEmail:true,cryptoPayment:{select:{amountUsdCents:true,requestState:true,invoiceId:true,invoiceStatus:true,additionalStatus:true}},paymentAttempts:{select:{requestState:true}}}});
   if(!o)throw new ShopError('NOT_FOUND',404);
-  const {paymentAttempts,cryptoPayment,...safe}=o;data.detail=JSON.parse(JSON.stringify({...safe,items:o.items.map(i=>({...i,quantity:Number(i.quantity)})),cryptoPayment,requestState:cryptoPayment?.requestState??paymentAttempts[0]?.requestState??null}));
+  const {paymentAttempts,cryptoPayment,...safe}=o;data.detail=JSON.parse(JSON.stringify({...safe,transferReport:parseTransferReport(o.transferReport),items:o.items.map(i=>({...i,quantity:Number(i.quantity)})),cryptoPayment,requestState:cryptoPayment?.requestState??paymentAttempts[0]?.requestState??null}));
  }
  return data;
 }
