@@ -9,7 +9,7 @@ export async function customerOrderTracking(userId:string,trackingCode:string){c
 export async function changeCustomerPassword(userId:string,sessionVersion:number,currentPassword:string,newPassword:string){
  if(!await consumeRateLimit(`customer-password-change:${userId}`,5,600))throw new ShopError('RATE_LIMIT',429);
  const db=getDb(),user=await db.user.findUnique({where:{id:userId}}),valid=await verifyPassword(currentPassword,user?.passwordHash??null);
- if(!valid||!user?.active||user.role!=='CUSTOMER'||!user.mobileVerifiedAt||!user.emailVerifiedAt||user.sessionVersion!==sessionVersion)throw new ShopError('CURRENT_PASSWORD',403);
+ if(!valid||!user?.active||user.role!=='CUSTOMER'||!user.mobileVerifiedAt||user.sessionVersion!==sessionVersion)throw new ShopError('CURRENT_PASSWORD',403);
  const passwordHash=await hashPassword(newPassword);
  await db.$transaction(async tx=>{
   await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id"=${userId} FOR UPDATE`;

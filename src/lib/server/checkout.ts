@@ -68,7 +68,7 @@ export async function placeOrder(input: CheckoutInput,customer?:{id:string;mobil
     if(customer){
       await tx.$queryRaw`SELECT \"id\" FROM \"User\" WHERE \"id\"=${customer.id} FOR SHARE`;
       const owner=await tx.user.findUnique({where:{id:customer.id}});
-      if(owner?.active&&owner.role==='CUSTOMER'&&owner.mobileVerifiedAt&&owner.emailVerifiedAt&&owner.sessionVersion===customer.sessionVersion)userId=owner.id;
+      if(owner?.active&&owner.role==='CUSTOMER'&&owner.mobileVerifiedAt&&owner.sessionVersion===customer.sessionVersion)userId=owner.id;
       else throw new ShopError('UNAUTHORIZED',401);
     }
     if(!userId&&await smsEnabled(tx))await consumeCheckoutProof(tx,input.mobile,input.mobileProof);

@@ -58,7 +58,7 @@ test('PostgreSQL serializes the last stock/capacity unit and cancellation releas
 test('PostgreSQL returns one order for concurrent identical idempotency keys',async()=>{const p=await product(),payload=input(p),orders=await Promise.all([placeOrder(payload),placeOrder(payload)]);assert.equal(orders[0].id,orders[1].id);assert.equal(await db.order.count({where:{idempotencyKey:payload.idempotencyKey}}),1);});
 test('OTP redemption is single-use under real row/advisory locks and only new member orders are linked',async()=>{
  const id=randomUUID(),mobile=`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`,code='001234';challengeIds.push(id);
- await db.customerRegistration.create({data:{id,mobile,email:`${id}@example.com`,name:'Verified buyer',passwordHash:await hashPassword('Integration customer password 123'),marketingSms:false,mobileReady:true,mobileVerifiedAt:new Date(),mobileVerifier:otpDigest(process.env.CUSTOMER_OTP_SECRET!,`mobile:${id}`,mobile,'999999'),emailReady:true,emailVerifier:otpDigest(process.env.CUSTOMER_OTP_SECRET!,`email:${id}`,`${id}@example.com`,code),emailExpiresAt:new Date(Date.now()+300000),expiresAt:new Date(Date.now()+900000)}});
+ await db.customerRegistration.create({data:{id,mobile,email:`${id}@example.com`,name:'Verified buyer',passwordHash:await hashPassword('Integration customer password 123'),marketingSms:false,mobileReady:true,mobileVerifiedAt:new Date(),mobileVerifier:otpDigest(process.env.CUSTOMER_OTP_SECRET!,`mobile:${id}`,mobile,code),emailReady:true,emailVerifier:otpDigest(process.env.CUSTOMER_OTP_SECRET!,`email:${id}`,`${id}@example.com`,code),emailExpiresAt:new Date(Date.now()+300000),expiresAt:new Date(Date.now()+900000)}});
  const result=await Promise.all([authorizeCustomer({challengeId:id,code}),authorizeCustomer({challengeId:id,code})]);assert.equal(result.filter(Boolean).length,1);
  const account=result.find(Boolean)!;userIds.push(account.id);const owner=await db.user.findUniqueOrThrow({where:{id:account.id}});assert.equal(owner.role,'CUSTOMER');assert.equal(owner.marketingSms,false);assert.equal(await db.marketingConsentEvent.count({where:{userId:owner.id}}),1);
  const p=await product(),order=await placeOrder({...input(p),mobile},{id:owner.id,mobile,sessionVersion:owner.sessionVersion});assert.equal(order.userId,owner.id);
@@ -192,7 +192,7 @@ test('owner creates email-only limited admins and access changes revoke their se
  const updated=await updateAdminUser(actor.id,actor.sessionVersion,{id:created.id,expectedSessionVersion:created.sessionVersion,active:true,permissions:['orders','bankAccounts']});assert.equal(updated.sessionVersion,created.sessionVersion+1);assert(updated.adminPermissions.includes('bankAccounts'));
 });
 
-test('panel email configuration is encrypted and only a received test code enables registration',async()=>{
+test('panel email configuration is encrypted and only a received test code enables the email service',async()=>{
  const old=await db.setting.findUnique({where:{key:'customer-email'}}),originalFetch=globalThis.fetch;let code='';
  try{
   const settings=await saveEmailSettings({enabled:true,from:'account@mail.example.com',apiKey:'re_integration_test_not_a_real_key',expectedUpdatedAt:old?.updatedAt.toISOString()??null},admin.id);
@@ -204,8 +204,8 @@ test('panel email configuration is encrypted and only a received test code enabl
  }finally{globalThis.fetch=originalFetch;if(old)await db.setting.upsert({where:{key:'customer-email'},create:{key:'customer-email',value:old.value!},update:{value:old.value!}});else await db.setting.deleteMany({where:{key:'customer-email'}});}
 });
 test('customer history is private and a password change invalidates the old session version',async()=>{
- const owner=await db.user.findFirstOrThrow({where:{role:'CUSTOMER',emailVerifiedAt:{not:null}}});
+ const owner=await db.user.findFirstOrThrow({where:{role:'CUSTOMER',mobileVerifiedAt:{not:null}}});
  const history=await customerOrderHistory(owner.id,1);assert(history.orders.length>0);const code=history.orders[0].trackingCode;
  assert.equal((await customerOrderTracking(owner.id,code)).trackingCode,code);await assert.rejects(()=>customerOrderTracking(admin.id,code),/NOT_FOUND/);
- await changeCustomerPassword(owner.id,owner.sessionVersion,'Integration customer password 123','Updated customer password 456');const changed=await db.user.findUniqueOrThrow({where:{id:owner.id}});assert.equal(changed.sessionVersion,owner.sessionVersion+1);assert(await verifyPassword('Updated customer password 456',changed.passwordHash));assert(changed.mobileVerifiedAt&&changed.emailVerifiedAt);
+ await changeCustomerPassword(owner.id,owner.sessionVersion,'Integration customer password 123','Updated customer password 456');const changed=await db.user.findUniqueOrThrow({where:{id:owner.id}});assert.equal(changed.sessionVersion,owner.sessionVersion+1);assert(await verifyPassword('Updated customer password 456',changed.passwordHash));assert(changed.mobileVerifiedAt);assert.equal(changed.emailVerifiedAt,null);
 });

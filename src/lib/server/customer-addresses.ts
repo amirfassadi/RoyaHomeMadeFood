@@ -8,7 +8,7 @@ export async function saveCustomerAddress(userId:string,raw:unknown){
  const {id,destination,...data}=addressSchema.parse(raw);
  return getDb().$transaction(async tx=>{
   await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id"=${userId} FOR UPDATE`;
-  const user=await tx.user.findUnique({where:{id:userId}});if(!user?.active||user.role!=='CUSTOMER'||!user.emailVerifiedAt)throw new ShopError('UNAUTHORIZED',401);
+  const user=await tx.user.findUnique({where:{id:userId}});if(!user?.active||user.role!=='CUSTOMER'||!user.mobileVerifiedAt)throw new ShopError('UNAUTHORIZED',401);
   if(!await tx.deliveryZone.findFirst({where:{id:data.zoneId,active:true}}))throw new ShopError('ZONE_CHANGED');
   const coordinates={latitude:destination?.lat??null,longitude:destination?.lng??null};
   if(id){const result=await tx.customerAddress.updateMany({where:{id,userId},data:{...data,...coordinates}});if(!result.count)throw new ShopError('NOT_FOUND',404);}
