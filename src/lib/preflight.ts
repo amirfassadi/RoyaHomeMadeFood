@@ -15,6 +15,7 @@ export function deploymentErrors(env:Record<string,string|undefined>){
   if((env.CUSTOMER_OTP_SECRET??'').length<32)errors.push('CUSTOMER_OTP_SECRET: at least 32 random characters required');
   for(const key of ['KAVENEGAR_API_KEY','KAVENEGAR_OTP_TEMPLATE'])if(!env[key]?.trim())errors.push(`${key}: required for customer accounts`);
  }
+ if(env.RESEND_API_KEY||env.CUSTOMER_EMAIL_FROM)for(const key of ['RESEND_API_KEY','CUSTOMER_EMAIL_FROM'])if(!env[key]?.trim())errors.push(`${key}: required when registration email is configured`);
  if(env.ROYA_INTERNATIONAL_ENABLED==='1'){
   if(env.ROYA_TRUST_GEO_HEADER!=='1')errors.push('ROYA_TRUST_GEO_HEADER: trusted country proxy required');
   for(const key of ['BTCPAY_STORE_ID','BTCPAY_API_KEY','BTCPAY_WEBHOOK_SECRET'])if(!env[key]?.trim())errors.push(`${key}: required for international payment`);

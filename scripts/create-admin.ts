@@ -25,6 +25,6 @@ async function main(){
  }finally{rl.close();}
  const password=await secretPrompt(),passwordHash=await hashPassword(password);
  const db=new PrismaClient({adapter:new PrismaPg({connectionString:process.env.DATABASE_URL})});
- try{const existing=await db.user.findUnique({where:{mobile}});if(existing)throw new Error('Account already exists; refusing to overwrite its role or password');await db.user.create({data:{name,mobile,passwordHash,role:'ADMIN',active:true}});console.log('Admin created. No password was printed or stored in source.');}finally{await db.$disconnect();}
+ try{const existing=await db.user.findUnique({where:{mobile}});if(existing)throw new Error('Account already exists; refusing to overwrite its role or password');await db.user.create({data:{name,mobile,passwordHash,role:'ADMIN',adminOwner:true,active:true}});console.log('Admin created. No password was printed or stored in source.');}finally{await db.$disconnect();}
 }
 main().catch(e=>{console.error(e.message);process.exitCode=1;});

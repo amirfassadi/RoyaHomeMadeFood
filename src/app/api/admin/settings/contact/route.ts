@@ -7,5 +7,5 @@ import {revalidateTag} from 'next/cache';
 export const runtime='nodejs';
 export const maxDuration=60;
 export async function POST(request:Request){try{
-const {user,body}=await adminBody(request,contactEditSchema);await getDb().$transaction(async tx=>{await tx.setting.upsert({where:{key:'contact'},create:{key:'contact',value:body},update:{value:body}});await audit(tx,user.id,'CONTACT_SETTINGS','contact');});revalidateTag('settings',{expire:0});return json({ok:true});
+const {user,body}=await adminBody(request,contactEditSchema,'settings');await getDb().$transaction(async tx=>{await tx.setting.upsert({where:{key:'contact'},create:{key:'contact',value:body},update:{value:body}});await audit(tx,user.id,'CONTACT_SETTINGS','contact');});revalidateTag('settings',{expire:0});return json({ok:true});
 }catch(e){return adminFailure(e);}}

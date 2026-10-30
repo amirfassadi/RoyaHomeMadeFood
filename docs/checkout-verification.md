@@ -1,3 +1,9 @@
+# Account verification and reservation deadlines
+
+Live checkout now requires a signed-in customer account. Registration verifies the account mobile once, then the email, and establishes a password login. Recipient mobile numbers are delivery details and may differ from the account holder. The retired `/api/shop/mobile/code/` and `/verify/` endpoints return 410 without sending SMS. Legacy helper tests and tables remain for existing challenge records; new public checkouts do not use them. The one-hour reservation, expiration, late-payment handling, SMS pause and persistent five-attempt test budget remain unchanged.
+
+The historical notes below describe the previous guest flow and the reservation implementation. The account requirement above supersedes their guest-checkout behavior.
+
 # Guest verification and reservation deadlines
 
 Guest checkout requires a verified Iranian recipient mobile, independent of membership and marketing consent. A signed-in active customer's verified matching mobile is accepted on the server; guest UI offers separate SMS verification and never creates an account. Both domestic and international order creation enforce this before stock writes. Quotes remain available without SMS.

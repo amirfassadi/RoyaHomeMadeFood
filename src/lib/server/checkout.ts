@@ -54,7 +54,7 @@ export function publicQuote(q: Awaited<ReturnType<typeof calculateQuote>>) {
 export async function placeOrder(input: CheckoutInput,customer?:{id:string;mobile:string;sessionVersion:number}|null) {
   const crypto=input.paymentMethod==='BTCPAY'?cryptoConfig():null;
   if(crypto&&(!input.buyerEmail||!input.expectedUsdCents))throw new ShopError('INVALID');
-  const canonical={...input,items:[...input.items].sort((a,b)=>a.productId.localeCompare(b.productId))};
+  const canonical={...input,...(customer?{customerId:customer.id}:{}),items:[...input.items].sort((a,b)=>a.productId.localeCompare(b.productId))};
   const fingerprint=createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
   const db=getDb();
   // Advisory lock makes repeated clicks / lost HTTP responses return the same order.
@@ -65,10 +65,11 @@ export async function placeOrder(input: CheckoutInput,customer?:{id:string;mobil
     const gateway=input.paymentMethod==='ZARINPAL'?gatewayConfiguration():null;
     const bankTransfer=input.paymentMethod==='BANK_TRANSFER'?configuredBankTransfer((await tx.setting.findUnique({where:{key:'bank-transfer'}}))?.value):null;
     let userId:string|undefined;
-    if(customer && customer.mobile===input.mobile){
+    if(customer){
       await tx.$queryRaw`SELECT \"id\" FROM \"User\" WHERE \"id\"=${customer.id} FOR SHARE`;
       const owner=await tx.user.findUnique({where:{id:customer.id}});
-      if(owner?.active&&owner.role==='CUSTOMER'&&owner.mobileVerifiedAt&&owner.sessionVersion===customer.sessionVersion)userId=owner.id;
+      if(owner?.active&&owner.role==='CUSTOMER'&&owner.mobileVerifiedAt&&owner.emailVerifiedAt&&owner.sessionVersion===customer.sessionVersion)userId=owner.id;
+      else throw new ShopError('UNAUTHORIZED',401);
     }
     if(!userId&&await smsEnabled(tx))await consumeCheckoutProof(tx,input.mobile,input.mobileProof);
     const now=new Date(), q=await calculateQuote(tx,input,true,now);

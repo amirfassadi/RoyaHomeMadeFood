@@ -49,7 +49,7 @@ enum DiscountType {
 model User {
   id                 String   @id @default(cuid())
   name               String
-  mobile             String   @unique @db.VarChar(16)
+  mobile             String?  @unique @db.VarChar(16)
   email              String?  @unique
   passwordHash       String?
   role               UserRole @default(CUSTOMER)
@@ -58,6 +58,11 @@ model User {
   twoFactorSecretEnc String?
   twoFactorEnabled   Boolean  @default(false)
   sessionVersion     Int      @default(0)
+  emailVerifiedAt    DateTime? @db.Timestamptz(3)
+  addresses          CustomerAddress[]
+  adminOwner         Boolean @default(false)
+  adminPermissions   String[] @default([])
+  mustChangePassword Boolean @default(false)
   mobileVerifiedAt   DateTime? @db.Timestamptz(3)
   marketingSms       Boolean @default(false)
   consentEvents      MarketingConsentEvent[]
@@ -412,4 +417,43 @@ model CheckoutMobileChallenge {
 model SmsTestBudget {
  id String @id
  used Int @default(0)
+}
+
+
+model CustomerRegistration {
+ id String @id @db.Uuid
+ name String @db.VarChar(100)
+ mobile String @db.VarChar(16)
+ email String @db.VarChar(254)
+ passwordHash String
+ marketingSms Boolean @default(false)
+ mobileVerifier String @db.VarChar(64)
+ mobileReady Boolean @default(false)
+ mobileAttempts Int @default(0)
+ mobileVerifiedAt DateTime? @db.Timestamptz(3)
+ emailVerifier String? @db.VarChar(64)
+ emailReady Boolean @default(false)
+ emailAttempts Int @default(0)
+ emailExpiresAt DateTime? @db.Timestamptz(3)
+ expiresAt DateTime @db.Timestamptz(3)
+ consumedAt DateTime? @db.Timestamptz(3)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ @@index([mobile, createdAt])
+ @@index([expiresAt])
+}
+
+model CustomerAddress {
+ id String @id @default(cuid())
+ userId String
+ user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+ title String @db.VarChar(50)
+ recipientName String @db.VarChar(100)
+ mobile String @db.VarChar(16)
+ zoneId String @db.VarChar(100)
+ address String @db.VarChar(1000)
+ latitude Float?
+ longitude Float?
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @db.Timestamptz(3)
+ @@index([userId, createdAt])
 }

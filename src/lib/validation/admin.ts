@@ -1,8 +1,9 @@
+import {adminIdentifierSchema} from './admin-users';
 import {z} from 'zod';
 import {productSchema} from './product';
 import {mobileSchema} from './checkout';
 import {contactSettingsSchema} from './contact';
-export const loginSchema=z.object({mobile:mobileSchema,password:z.string().min(1).max(128)});
+export const loginSchema=z.object({mobile:adminIdentifierSchema,password:z.string().min(1).max(128)});
 const identifier=z.string().min(1).max(200),version=z.iso.datetime();
 const alt=z.string().trim().min(1).max(300);
 export const productEditSchema=z.object({id:identifier.optional(),expectedUpdatedAt:version.optional(),product:productSchema,media:z.array(z.object({id:identifier.optional(),uploadId:identifier.optional(),altFa:alt,altEn:alt}).strict().refine(m=>!!m.id!==!!m.uploadId)).max(10)}).strict().refine(v=>!v.id || !!v.expectedUpdatedAt).refine(v=>new Set(v.media.map(m=>m.id??m.uploadId)).size===v.media.length);

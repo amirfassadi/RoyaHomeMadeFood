@@ -10,7 +10,7 @@ import type {communicationActionSchema} from '@/lib/validation/communications';
 import type {ContactInbox} from '@/lib/admin/communications';
 export async function getCommunications(page=1,filter='all'):Promise<ContactInbox>{
  if(isDemoCatalog())return {page:1,totalPages:1,unread:1,messages:[{id:'demo-message',name:'مشتری نمونه',mobile:'',message:'این پیام نمونه برای بررسی صندوق تماس است.',locale:'fa',readAt:null,createdAt:'2026-10-11T08:00:00.000Z'}],announcements:[]};
- await connection();await requireAdmin();
+ await connection();await requireAdmin('communications');
  const db=getDb(),where=filter==='unread'?{readAt:null}:filter==='read'?{readAt:{not:null}}:{};
  const [messages,total,unread,announcements]=await Promise.all([db.contactMessage.findMany({where,take:20,skip:(page-1)*20,orderBy:{createdAt:'desc'}}),db.contactMessage.count({where}),db.contactMessage.count({where:{readAt:null}}),db.clubAnnouncement.findMany({take:50,orderBy:{createdAt:'desc'}})]);
  return {page,totalPages:Math.max(1,Math.ceil(total/20)),unread,messages:messages.map(m=>({...m,readAt:m.readAt?.toISOString()??null,createdAt:m.createdAt.toISOString()})),announcements:announcements.map(a=>({...a,startsAt:a.startsAt?.toISOString()??null,expiresAt:a.expiresAt?.toISOString()??null,updatedAt:a.updatedAt.toISOString()}))};

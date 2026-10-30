@@ -259,11 +259,11 @@ See [the deployment and recovery guide](docs/DEPLOYMENT.md) for Vercel and VPS/s
 
 ## Optional customer accounts
 
-`/fa/account/` and `/en/account/` provide optional SMS OTP signup/sign-in, consent settings, linked new orders and shop-selected club discount codes. Checkout and tracking remain available to guests. The admin customer page lists registered members and current marketing preferences; discount settings can opt a code into the club. Marketing campaigns are not sent automatically. Configure the separate OTP secret, Kavenegar template/key and feature flag described in [deployment](docs/DEPLOYMENT.md); the static preview cannot send codes or log customers in.
+`/fa/account/` and `/en/account/` provide registration with SMS verification followed by email verification, password login using email or mobile, consent settings, the latest 20 orders, and up to 20 named saved addresses. Live checkout requires a verified account; recipient details may differ from the buyer. Guest tracking remains available for older orders. The admin customer page lists registered members and current marketing preferences; discount settings can opt a code into the club. Marketing campaigns are not sent automatically. Configure the separate OTP secret, Kavenegar template/key, Resend API key/verified sender and feature flag described in [deployment](docs/DEPLOYMENT.md); the static preview cannot send codes or log customers in.
 
 ## Completion pass — communications and verification
 
-Contact inbox and scheduled bilingual club announcements are available at `/admin/communications/`. Admin settings include password change with session revocation; trusted server operators can use `npm run admin:recover` for an existing active admin. No marketing messages are sent by these features. Guest checkout remains independent of accounts.
+Contact inbox and scheduled bilingual club announcements are available at `/admin/communications/`. Admin settings include password change with session revocation; trusted server operators can use `npm run admin:recover` for an existing active admin. No marketing messages are sent by these features. Live checkout requires a signed-in verified customer. The static payment prototype remains a separate simulation.
 
 The PostgreSQL integration suite (`npm run test:integration`) exercises stock/capacity races, order idempotency, OTP redemption, account ownership, cancellation, admin password rotation and stale announcement edits. It refuses a non-test database URL. GitHub Actions runs migrations, seeds and checks with an isolated PostgreSQL service. External payment/SMS/Cloudinary acceptance remains a separate deployment task.
 

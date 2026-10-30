@@ -1,10 +1,11 @@
+import {hasAdminPermission,type AdminPermission} from '@/lib/admin/permissions';
 import 'server-only';
 import {createHash} from 'node:crypto';
 import type {NextAuthOptions} from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import {getServerSession} from 'next-auth';
 import {getDb} from './db';
-import {authorizeCustomer} from './customer-otp';
+import {authorizeCustomer,authorizeCustomerPassword} from './customer-otp';
 import {isDemoCatalog} from './catalog';
 import {consumeRateLimit} from './rate-limit';
 import {loginSchema} from '@/lib/validation/admin';
@@ -15,7 +16,7 @@ export async function authorizeAdmin(credentials:unknown){
   const parsed=loginSchema.safeParse(credentials);if(!parsed.success)return null;
   const {mobile,password}=parsed.data,digest=createHash('sha256').update(mobile).digest('hex');
   if(!await consumeRateLimit('admin-login:global',60,60) || !await consumeRateLimit(`admin-login:${digest}`,5,600))return null;
-  const user=await getDb().user.findUnique({where:{mobile}});
+  const user=await getDb().user.findUnique({where:mobile.includes('@')?{email:mobile}:{mobile}});
   const valid=await verifyPassword(password,user?.passwordHash??null);
   if(!valid || !user?.active || user.role!=='ADMIN' || user.twoFactorEnabled)return null;
   return {id:user.id,name:user.name,sessionVersion:user.sessionVersion,role:'ADMIN'};
@@ -23,14 +24,15 @@ export async function authorizeAdmin(credentials:unknown){
 export const authOptions:NextAuthOptions={
  secret:process.env.NEXTAUTH_SECRET,
  session:{strategy:'jwt',maxAge:8*60*60},pages:{signIn:'/admin/login/'},
- providers:[CredentialsProvider({name:'Roya Admin',credentials:{mobile:{label:'Mobile',type:'text'},password:{label:'Password',type:'password'}},authorize:authorizeAdmin}),CredentialsProvider({id:'customer-otp',name:'Roya Customer',credentials:{challengeId:{label:'Challenge',type:'text'},code:{label:'Code',type:'text'}},authorize:authorizeCustomer})],
+ providers:[CredentialsProvider({name:'Roya Admin',credentials:{mobile:{label:'Mobile',type:'text'},password:{label:'Password',type:'password'}},authorize:authorizeAdmin}),CredentialsProvider({id:'customer-registration',name:'Roya Customer',credentials:{challengeId:{label:'Challenge',type:'text'},code:{label:'Code',type:'text'}},authorize:authorizeCustomer}),CredentialsProvider({id:'customer-password',name:'Customer password',credentials:{identifier:{label:'Email or mobile',type:'text'},password:{label:'Password',type:'password'}},authorize:authorizeCustomerPassword})],
  callbacks:{async jwt({token,user}){if(user){token.adminId=(user as {role?:string}).role==='ADMIN'?user.id:undefined;token.customerId=(user as {role?:string}).role==='CUSTOMER'?user.id:undefined;token.sessionVersion=(user as {sessionVersion?:number}).sessionVersion;}return token;},async session({session,token}){session.customerId=typeof token.customerId==='string'?token.customerId:undefined;session.adminId=typeof token.adminId==='string'?token.adminId:undefined;session.sessionVersion=typeof token.sessionVersion==='number'?token.sessionVersion:undefined;return session;}}
 };
-export async function requireAdmin(){
+export async function requireAdmin(permission?:AdminPermission|'admins'){
  if(isDemoCatalog() || !process.env.DATABASE_URL)throw new ShopError('UNAUTHORIZED',401);
  const session=await getServerSession(authOptions);
  if(!session?.adminId)throw new ShopError('UNAUTHORIZED',401);
- const user=await getDb().user.findUnique({where:{id:session.adminId},select:{id:true,name:true,active:true,role:true,sessionVersion:true}});
+ const user=await getDb().user.findUnique({where:{id:session.adminId},select:{id:true,name:true,active:true,role:true,sessionVersion:true,adminOwner:true,adminPermissions:true,mustChangePassword:true}});
  if(!user || !user.active || user.role!=='ADMIN' || user.sessionVersion!==session.sessionVersion)throw new ShopError('UNAUTHORIZED',401);
+ if(permission&&(user.mustChangePassword||!hasAdminPermission(user,permission)))throw new ShopError(user.mustChangePassword?'PASSWORD_CHANGE_REQUIRED':'FORBIDDEN',403);
  return user;
 }

@@ -5,7 +5,7 @@ import {audit} from '@/lib/server/admin-products';
 import {json,ShopError} from '@/lib/server/shop-http';
 export const runtime='nodejs';
 export async function POST(request:Request){try{
- const {user,body}=await adminBody(request,smsPolicyEditSchema);
+ const {user,body}=await adminBody(request,smsPolicyEditSchema,'settings');
  const result=await getDb().$transaction(async tx=>{
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended('settings:sms-policy',0))::text`;
   const old=await tx.setting.findUnique({where:{key:'sms-policy'}});

@@ -1,3 +1,4 @@
+import {canViewAdminSection,hasAdminPermission} from '@/lib/admin/permissions';
 import {smsEnabled} from './sms-policy';
 import {seoSettingsSchema} from '@/lib/validation/seo';
 import {bankTransferSettingsSchema,emptyBankTransferSettings} from '@/lib/validation/bank-transfer';
@@ -15,9 +16,9 @@ import type {Prisma} from '@/generated/prisma/client';
 const summary={id:true,trackingCode:true,customerName:true,mobile:true,status:true,paymentMethod:true,paymentStatus:true,totalToman:true,createdAt:true,estimatedDeliveryAt:true,refundRequired:true} as const;
 export async function getAdminData(section:string,options:{page?:number;q?:string;status?:string;id?:string;mobile?:string}={}):Promise<AdminData>{
  if(isDemoCatalog())return demoAdminData();
- await connection();await requireAdmin();const db=getDb(),data=emptyData(),page=Math.max(1,Math.min(10000,options.page??1)),take=20,skip=(page-1)*take;data.page=page;
+ await connection();const user=await requireAdmin();if(user.mustChangePassword)throw new ShopError('PASSWORD_CHANGE_REQUIRED',403);if(!canViewAdminSection(user,section))throw new ShopError('FORBIDDEN',403);const db=getDb(),data=emptyData(),page=Math.max(1,Math.min(10000,options.page??1)),take=20,skip=(page-1)*take;data.page=page;data.access={adminOwner:user.adminOwner,adminPermissions:user.adminPermissions,mustChangePassword:user.mustChangePassword};
  const q=(options.q??'').slice(0,100);
- if(section==='dashboard'){
+ if(section==='dashboard'&&(hasAdminPermission(user,'orders')||hasAdminPermission(user,'payments'))){
   const [products,orders,pending,recent]=await Promise.all([db.product.count(),db.order.count(),db.order.count({where:{status:'PENDING'}}),db.order.findMany({select:summary,orderBy:{createdAt:'desc'},take:5})]);data.stats={products,orders,pending};data.orders=JSON.parse(JSON.stringify(recent));
  }
  if(section==='products'){
@@ -32,7 +33,7 @@ export async function getAdminData(section:string,options:{page?:number;q?:strin
  }
  if(section==='customers'){
   const memberWhere:Prisma.UserWhereInput={role:'CUSTOMER',...(q?{OR:[{name:{contains:q}},{mobile:{contains:q}}]}:{})};
-  const [members,memberCount]=await Promise.all([db.user.findMany({where:memberWhere,select:{id:true,name:true,mobile:true,marketingSms:true,createdAt:true},orderBy:{createdAt:'desc'},take,skip}),db.user.count({where:memberWhere})]);data.members=members.map(m=>({...m,createdAt:m.createdAt.toISOString()}));
+  const [members,memberCount]=await Promise.all([db.user.findMany({where:memberWhere,select:{id:true,name:true,mobile:true,marketingSms:true,createdAt:true},orderBy:{createdAt:'desc'},take,skip}),db.user.count({where:memberWhere})]);data.members=members.map(m=>({...m,mobile:m.mobile??'',createdAt:m.createdAt.toISOString()}));
   const where:Prisma.OrderWhereInput=q?{OR:[{mobile:{contains:q}},{customerName:{contains:q}}]}:{};
   const rows=await db.order.groupBy({by:['mobile'],where,_count:{_all:true},_sum:{totalToman:true},_max:{createdAt:true},orderBy:{_max:{createdAt:'desc'}},take,skip});
   const latest=await db.order.findMany({where:{mobile:{in:rows.map(r=>r.mobile)}},distinct:['mobile'],orderBy:{createdAt:'desc'},select:{mobile:true,customerName:true}});
@@ -40,12 +41,14 @@ export async function getAdminData(section:string,options:{page?:number;q?:strin
   data.customers=rows.map(r=>({mobile:r.mobile,name:latest.find(n=>n.mobile===r.mobile)?.customerName??'',orders:r._count._all,totalToman:r._sum.totalToman??0,lastOrder:r._max.createdAt!.toISOString()}));
  }
  if(section==='settings'){
-  const sms=await db.setting.findUnique({where:{key:'sms-policy'}}),budget=await db.smsTestBudget.findUnique({where:{id:'initial-five'}});data.sms={enabled:await smsEnabled(),used:budget?.used??0,testMode:process.env.ROYA_SMS_MODE!=='production',updatedAt:sms?.updatedAt.toISOString()??null};
-  const seo=await db.setting.findUnique({where:{key:'seo'}});data.seo={settings:seoSettingsSchema.safeParse(seo?.value).data??{enabled:false,googleVerification:''},updatedAt:seo?.updatedAt.toISOString()??null};
-  const bank=await db.setting.findUnique({where:{key:'bank-transfer'}});data.bankTransfer={settings:bankTransferSettingsSchema.safeParse(bank?.value).data??emptyBankTransferSettings(),updatedAt:bank?.updatedAt.toISOString()??null};
-  const shipping=await db.setting.findUnique({where:{key:'shipping'}});data.shipping=shippingSettingsSchema.safeParse(shipping?.value).data??defaultShippingSettings;
-  const [zones,discounts,contact]=await Promise.all([db.deliveryZone.findMany({orderBy:{cityFa:'asc'}}),db.discountCode.findMany({orderBy:{createdAt:'desc'}}),db.setting.findUnique({where:{key:'contact'}})]);
-  data.zones=JSON.parse(JSON.stringify(zones));data.discounts=JSON.parse(JSON.stringify(discounts));data.contact=contactSettingsSchema.safeParse(contact?.value).data??{};
+  if(hasAdminPermission(user,'settings')){
+   const [seo,contact,sms]=await Promise.all([db.setting.findUnique({where:{key:'seo'}}),db.setting.findUnique({where:{key:'contact'}}),db.setting.findUnique({where:{key:'sms-policy'}})]);
+   data.seo={settings:seoSettingsSchema.safeParse(seo?.value).data??{enabled:false,googleVerification:''},updatedAt:seo?.updatedAt.toISOString()??null};data.contact=contactSettingsSchema.safeParse(contact?.value).data??{};
+   const budget=await db.smsTestBudget.findUnique({where:{id:'initial-five'}});data.sms={enabled:await smsEnabled(),used:budget?.used??0,testMode:process.env.ROYA_SMS_MODE!=='production',updatedAt:sms?.updatedAt.toISOString()??null};
+  }
+  if(hasAdminPermission(user,'bankAccounts')){const bank=await db.setting.findUnique({where:{key:'bank-transfer'}});data.bankTransfer={settings:bankTransferSettingsSchema.safeParse(bank?.value).data??emptyBankTransferSettings(),updatedAt:bank?.updatedAt.toISOString()??null};}
+  if(hasAdminPermission(user,'shipping')){const [shipping,zones]=await Promise.all([db.setting.findUnique({where:{key:'shipping'}}),db.deliveryZone.findMany({orderBy:{cityFa:'asc'}})]);data.shipping=shippingSettingsSchema.safeParse(shipping?.value).data??defaultShippingSettings;data.zones=JSON.parse(JSON.stringify(zones));}
+  if(hasAdminPermission(user,'discounts'))data.discounts=JSON.parse(JSON.stringify(await db.discountCode.findMany({orderBy:{createdAt:'desc'}})));
  }
  if(section==='order'){
   const o=await db.order.findUnique({where:{id:options.id??''},select:{...summary,reservationExpiresAt:true,reservationExpiredAt:true,shippingSnapshot:true,courierDispatch:{select:{id:true,requestState:true,externalId:true,externalStatus:true,quotedFeeToman:true,actualFeeToman:true,readyAt:true,lastSyncedAt:true}},invoiceNumber:true,paymentReference:true,paymentConfirmedAt:true,transferReference:true,address:true,city:true,deliveryNotes:true,deliveryZoneNameSnapshot:true,subtotalToman:true,discountToman:true,deliveryFeeToman:true,items:{select:{id:true,productNameFa:true,unit:true,quantity:true,lineTotalToman:true}},statusHistory:{select:{status:true,createdAt:true},orderBy:{createdAt:'asc'}},buyerEmail:true,cryptoPayment:{select:{amountUsdCents:true,requestState:true,invoiceId:true,invoiceStatus:true,additionalStatus:true}},paymentAttempts:{select:{requestState:true}}}});

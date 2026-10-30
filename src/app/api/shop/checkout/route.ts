@@ -9,9 +9,10 @@ import {bankTransferDetails} from '@/lib/server/manual-payment';
 export const runtime='nodejs';
 export const maxDuration=60;
 export async function POST(request:Request){try{
+ const customer=await optionalCustomer();if(!customer)throw new ShopError('UNAUTHORIZED',401);
   const input=await readShopBody(request,domesticCheckoutSchema,'checkout');await mobileLimit(input.mobile,'checkout',5);
   let order;
-  try{order=await placeOrder(input,await optionalCustomer());}
+  try{order=await placeOrder(input,customer);}
   catch(error){if(error instanceof ShopError&&['PAYMENT_UNAVAILABLE','BANK_TRANSFER_UNAVAILABLE','MOBILE_VERIFICATION_REQUIRED','MOBILE_VERIFICATION_UNAVAILABLE'].includes(error.code))return json({error:error.code,checkoutNotStarted:true},error.status);throw error;}
   await expireOrderReservation(order.id);
   order=await getDb().order.findUniqueOrThrow({where:{id:order.id}});

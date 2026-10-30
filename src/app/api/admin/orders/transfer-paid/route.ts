@@ -3,7 +3,7 @@ import {json} from '@/lib/server/shop-http';
 import {confirmTransfer,confirmTransferSchema} from '@/lib/server/manual-payment';
 export const runtime='nodejs';
 export async function POST(request:Request){try{
- const {user,body}=await adminBody(request,confirmTransferSchema);
+ const {user,body}=await adminBody(request,confirmTransferSchema,'payments');
  await confirmTransfer(body,user.id);
  return json({ok:true});
 }catch(e){return adminFailure(e);}}

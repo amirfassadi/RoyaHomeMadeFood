@@ -1,0 +1,6 @@
+export const adminPermissionLabels={products:'مدیریت محصولات و رسانه',orders:'مدیریت سفارش و ارسال',payments:'تأیید و بررسی پرداخت',bankAccounts:'تغییر کارت و حساب‌های بانکی',shipping:'تنظیم محدوده و هزینه ارسال',discounts:'مدیریت کدهای تخفیف',communications:'پیام‌ها و خبرهای باشگاه',customers:'مشاهده مشتریان و سوابق',settings:'تنظیمات تماس، سئو و پیامک'} as const;
+export type AdminPermission=keyof typeof adminPermissionLabels;
+export type AdminAccess={adminOwner:boolean;adminPermissions:readonly string[];mustChangePassword:boolean};
+export const noAdminAccess:AdminAccess={adminOwner:false,adminPermissions:[],mustChangePassword:false};
+export function hasAdminPermission(access:Pick<AdminAccess,'adminOwner'|'adminPermissions'>,permission:AdminPermission|'admins'){return access.adminOwner||permission!=='admins'&&access.adminPermissions.includes(permission);}
+export function canViewAdminSection(access:AdminAccess,section:string){if(section==='dashboard')return true;if(section==='settings')return true;if(section==='order'&&hasAdminPermission(access,'customers'))return true;if(section==='order'||section==='orders')return hasAdminPermission(access,'orders')||hasAdminPermission(access,'payments');if(section==='customer')return hasAdminPermission(access,'customers');return hasAdminPermission(access,section as AdminPermission|'admins');}

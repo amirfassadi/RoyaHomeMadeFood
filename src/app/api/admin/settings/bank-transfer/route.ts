@@ -5,7 +5,7 @@ import {audit} from '@/lib/server/admin-products';
 import {json,ShopError} from '@/lib/server/shop-http';
 export const runtime='nodejs';
 export async function POST(request:Request){try{
- const {user,body}=await adminBody(request,bankTransferEditSchema);
+ const {user,body}=await adminBody(request,bankTransferEditSchema,'bankAccounts');
  const saved=await getDb().$transaction(async tx=>{
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended('settings:bank-transfer',0))::text`;
   const current=await tx.setting.findUnique({where:{key:'bank-transfer'}});

@@ -6,7 +6,7 @@ import {json,ShopError} from '@/lib/server/shop-http';
 import {revalidateTag} from 'next/cache';
 export const runtime='nodejs';
 export async function POST(request:Request){try{
- const {user,body}=await adminBody(request,seoEditSchema);
+ const {user,body}=await adminBody(request,seoEditSchema,'settings');
  const saved=await getDb().$transaction(async tx=>{
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended('settings:seo',0))::text`;
   const old=await tx.setting.findUnique({where:{key:'seo'}});

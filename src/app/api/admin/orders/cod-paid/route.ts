@@ -5,5 +5,5 @@ import {recordCodPayment} from '@/lib/server/admin-orders';
 export const runtime='nodejs';
 export const maxDuration=60;
 export async function POST(request:Request){try{
-const {user,body}=await adminBody(request,orderIdSchema);await recordCodPayment(body.id,user.id);return json({ok:true});
+const {user,body}=await adminBody(request,orderIdSchema,'payments');await recordCodPayment(body.id,user.id);return json({ok:true});
 }catch(e){return adminFailure(e);}}

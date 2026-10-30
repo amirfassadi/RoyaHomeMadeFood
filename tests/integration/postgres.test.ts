@@ -1,3 +1,4 @@
+import {createAdminUser,updateAdminUser} from '../../src/lib/server/admin-users';
 import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash,randomUUID} from 'node:crypto';
@@ -23,13 +24,13 @@ let category:any,zone:any,admin:any,oldSmsPolicy:any;
 const checkoutChallengeIds:string[]=[];
 const userIds:string[]=[],productIds:string[]=[],challengeIds:string[]=[],messageIds:string[]=[],announcementIds:string[]=[];
 before(async()=>{
- Object.assign(process.env,{DATABASE_URL:url,ROYA_DEMO_CATALOG:'0',CUSTOMER_ACCOUNTS_ENABLED:'1',NEXTAUTH_SECRET:'test-only-session-secret'.repeat(2),CUSTOMER_OTP_SECRET:'test-only-otp-secret'.repeat(2),KAVENEGAR_API_KEY:'test-never-sent',KAVENEGAR_OTP_TEMPLATE:'test'});delete process.env.SITES_STATIC_PREVIEW;
+ Object.assign(process.env,{DATABASE_URL:url,ROYA_DEMO_CATALOG:'0',CUSTOMER_ACCOUNTS_ENABLED:'1',NEXTAUTH_SECRET:'test-only-session-secret'.repeat(2),CUSTOMER_OTP_SECRET:'test-only-otp-secret'.repeat(2),KAVENEGAR_API_KEY:'test-never-sent',KAVENEGAR_OTP_TEMPLATE:'test',RESEND_API_KEY:'test-never-sent',CUSTOMER_EMAIL_FROM:'verify@example.com'});delete process.env.SITES_STATIC_PREVIEW;
  Object.assign(globalThis,{royaDb:db});
  oldSmsPolicy=await db.setting.findUnique({where:{key:'sms-policy'}});
  await db.setting.upsert({where:{key:'sms-policy'},create:{key:'sms-policy',value:{enabled:true}},update:{value:{enabled:true}}});
  category=await db.category.create({data:{slug:prefix,nameFa:'دسته آزمایشی',nameEn:'Integration test'}});
  zone=await db.deliveryZone.create({data:{cityFa:prefix,cityEn:'Test',nameFa:prefix,nameEn:'Test',feeToman:1000,deliveryMinutes:30}});
- admin=await db.user.create({data:{name:'Integration admin',mobile:`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`,role:'ADMIN',passwordHash:await hashPassword('Initial test password 123')}});userIds.push(admin.id);
+ admin=await db.user.create({data:{name:'Integration admin',mobile:`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`,role:'ADMIN',adminOwner:true,passwordHash:await hashPassword('Initial test password 123')}});userIds.push(admin.id);
 });
 after(async()=>{
  // Delete only this suite's fixtures, in foreign-key order.
@@ -38,7 +39,7 @@ after(async()=>{
  await db.paymentAttempt.deleteMany({where:{orderId:{in:ids}}});await db.order.deleteMany({where:{id:{in:ids}}});
  await db.productDailyUsage.deleteMany({where:{productId:{in:productIds}}});await db.product.deleteMany({where:{id:{in:productIds}}});
  await db.checkoutMobileChallenge.deleteMany({where:{id:{in:checkoutChallengeIds}}});
- await db.customerLoginChallenge.deleteMany({where:{id:{in:challengeIds}}});await db.marketingConsentEvent.deleteMany({where:{userId:{in:userIds}}});await db.user.deleteMany({where:{id:{in:userIds}}});
+ await db.customerRegistration.deleteMany({where:{id:{in:challengeIds}}});await db.marketingConsentEvent.deleteMany({where:{userId:{in:userIds}}});await db.user.deleteMany({where:{id:{in:userIds}}});
  await db.contactMessage.deleteMany({where:{id:{in:messageIds}}});await db.clubAnnouncement.deleteMany({where:{id:{in:announcementIds}}});await db.adminAudit.deleteMany({where:{adminId:admin?.id??'never'}});
  if(oldSmsPolicy)await db.setting.update({where:{key:'sms-policy'},data:{value:oldSmsPolicy.value}});else await db.setting.deleteMany({where:{key:'sms-policy'}});
  if(zone)await db.deliveryZone.delete({where:{id:zone.id}});if(category)await db.category.delete({where:{id:category.id}});await db.$disconnect();
@@ -54,11 +55,11 @@ test('PostgreSQL serializes the last stock/capacity unit and cancellation releas
 test('PostgreSQL returns one order for concurrent identical idempotency keys',async()=>{const p=await product(),payload=input(p),orders=await Promise.all([placeOrder(payload),placeOrder(payload)]);assert.equal(orders[0].id,orders[1].id);assert.equal(await db.order.count({where:{idempotencyKey:payload.idempotencyKey}}),1);});
 test('OTP redemption is single-use under real row/advisory locks and only new member orders are linked',async()=>{
  const id=randomUUID(),mobile=`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`,code='001234';challengeIds.push(id);
- await db.customerLoginChallenge.create({data:{id,mobile,name:'Verified buyer',marketingSms:false,ready:true,verifier:otpDigest(process.env.CUSTOMER_OTP_SECRET!,id,mobile,code),expiresAt:new Date(Date.now()+300000)}});
+ await db.customerRegistration.create({data:{id,mobile,email:`${id}@example.com`,name:'Verified buyer',passwordHash:await hashPassword('Integration customer password 123'),marketingSms:false,mobileReady:true,mobileVerifiedAt:new Date(),mobileVerifier:otpDigest(process.env.CUSTOMER_OTP_SECRET!,`mobile:${id}`,mobile,'999999'),emailReady:true,emailVerifier:otpDigest(process.env.CUSTOMER_OTP_SECRET!,`email:${id}`,`${id}@example.com`,code),emailExpiresAt:new Date(Date.now()+300000),expiresAt:new Date(Date.now()+900000)}});
  const result=await Promise.all([authorizeCustomer({challengeId:id,code}),authorizeCustomer({challengeId:id,code})]);assert.equal(result.filter(Boolean).length,1);
  const account=result.find(Boolean)!;userIds.push(account.id);const owner=await db.user.findUniqueOrThrow({where:{id:account.id}});assert.equal(owner.role,'CUSTOMER');assert.equal(owner.marketingSms,false);assert.equal(await db.marketingConsentEvent.count({where:{userId:owner.id}}),1);
  const p=await product(),order=await placeOrder({...input(p),mobile},{id:owner.id,mobile,sessionVersion:owner.sessionVersion});assert.equal(order.userId,owner.id);
- const another=await product(),guest=await placeOrder(input(another),{id:owner.id,mobile,sessionVersion:owner.sessionVersion});assert.equal(guest.userId,null);
+ const another=await product(),guest=await placeOrder(input(another),{id:owner.id,mobile,sessionVersion:owner.sessionVersion});assert.equal(guest.userId,owner.id);
 });
 test('admin password change verifies old credentials and revokes current sessions',async()=>{
  const before=await db.user.findUniqueOrThrow({where:{id:admin.id}});await assert.rejects(()=>changeAdminPassword(admin.id,'Wrong password','New test password 456',before.sessionVersion),/CURRENT_PASSWORD/);
@@ -177,4 +178,13 @@ test('pausing SMS permits guest checkout without proof and preserves the SMS tes
   await assert.rejects(()=>sendVerificationSms('09120000001','123456'),/SMS_PAUSED/);
   assert.deepEqual(await db.smsTestBudget.findUnique({where:{id:'initial-five'}}),before);
  }finally{await db.setting.update({where:{key:'sms-policy'},data:{value:{enabled:true}}});}
+});
+
+test('owner creates email-only limited admins and access changes revoke their sessions',async()=>{
+ const actor=await db.user.findUniqueOrThrow({where:{id:admin.id}});
+ const created=await createAdminUser(actor.id,actor.sessionVersion,{name:'Integration limited admin',identifier:`${randomUUID()}@example.com`,temporaryPassword:'Temporary integration password 123',permissions:['orders']});userIds.push(created.id);
+ assert.equal(created.mobile,null);assert.equal(created.adminOwner,false);assert.equal(created.mustChangePassword,true);
+ const stored=await db.user.findUniqueOrThrow({where:{id:created.id}});assert(await verifyPassword('Temporary integration password 123',stored.passwordHash));
+ await assert.rejects(()=>createAdminUser(stored.id,stored.sessionVersion,{name:'Escalation',identifier:`${randomUUID()}@example.com`,temporaryPassword:'Temporary integration password 456',permissions:['bankAccounts']}),/FORBIDDEN/);
+ const updated=await updateAdminUser(actor.id,actor.sessionVersion,{id:created.id,expectedSessionVersion:created.sessionVersion,active:true,permissions:['orders','bankAccounts']});assert.equal(updated.sessionVersion,created.sessionVersion+1);assert(updated.adminPermissions.includes('bankAccounts'));
 });

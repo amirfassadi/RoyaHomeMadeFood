@@ -13,7 +13,7 @@ async function main(){
  try{await db.$transaction(async tx=>{
   await tx.$queryRaw`SELECT "id" FROM "User" WHERE "mobile"=${mobile} FOR UPDATE`;
   const user=await tx.user.findUnique({where:{mobile}});if(!user||user.role!=='ADMIN'||!user.active||user.twoFactorEnabled)throw new Error('Recovery requires an existing active admin without unsupported 2FA');
-  await tx.user.update({where:{id:user.id},data:{passwordHash,sessionVersion:{increment:1}}});await tx.adminAudit.create({data:{adminId:user.id,action:'ADMIN_PASSWORD_RECOVERED',targetId:user.id}});
+  await tx.user.update({where:{id:user.id},data:{passwordHash,mustChangePassword:false,sessionVersion:{increment:1}}});await tx.adminAudit.create({data:{adminId:user.id,action:'ADMIN_PASSWORD_RECOVERED',targetId:user.id}});
  });console.log('Password recovered. Old sessions revoked. No password was printed.');}finally{await db.$disconnect();}
 }
 main().catch(()=>{console.error('Recovery failed or was cancelled. Check input and database access; no account role or active state was changed.');process.exitCode=1;});

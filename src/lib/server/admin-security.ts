@@ -14,7 +14,7 @@ export async function changeAdminPassword(adminId:string,currentPassword:string,
   await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id"=${adminId} FOR UPDATE`;
   const locked=await tx.user.findUnique({where:{id:adminId}});
   if(!locked?.active||locked.role!=='ADMIN'||locked.passwordHash!==user.passwordHash||locked.sessionVersion!==user.sessionVersion)throw new ShopError('CONFLICT',409);
-  await tx.user.update({where:{id:adminId},data:{passwordHash,sessionVersion:{increment:1}}});
+  await tx.user.update({where:{id:adminId},data:{passwordHash,mustChangePassword:false,sessionVersion:{increment:1}}});
   await audit(tx,adminId,'ADMIN_PASSWORD_CHANGED',adminId);
  });
 }

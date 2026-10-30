@@ -1,3 +1,6 @@
+import {smsEnabled} from '@/lib/server/sms-policy';
+import {customerAddresses} from '@/lib/server/customer-addresses';
+import {customerLoginEnabled,customerRegistrationEnabled} from '@/lib/server/customer-otp';
 import {optionalCustomer} from '@/lib/server/customer-session';
 import {getDb} from '@/lib/server/db';
 import {profileSchema,consentVersion} from '@/lib/customer/validation';
@@ -11,3 +14,5 @@ export async function POST(request:Request){try{
   await tx.user.update({where:{id:user.id},data:input});
  });return json({saved:true});
 }catch(e){return failure(e);}}
+
+export async function GET(){try{const user=await optionalCustomer();return json({loginEnabled:customerLoginEnabled(),registrationEnabled:customerRegistrationEnabled()&&await smsEnabled(),customer:user?{name:user.name,mobile:user.mobile,email:user.email,addresses:await customerAddresses(user.id)}:null});}catch(e){return failure(e);}}
