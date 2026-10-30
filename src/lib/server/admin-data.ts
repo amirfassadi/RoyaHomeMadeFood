@@ -16,7 +16,7 @@ import {emptyData,type AdminData} from '@/lib/admin/types';
 import {demoAdminData} from '@/lib/admin/demo';
 import {contactSettingsSchema} from '@/lib/validation/contact';
 import type {Prisma} from '@/generated/prisma/client';
-const summary={id:true,trackingCode:true,customerName:true,mobile:true,status:true,paymentMethod:true,paymentStatus:true,totalToman:true,createdAt:true,estimatedDeliveryAt:true,refundRequired:true} as const;
+const summary={transferReport:true,id:true,trackingCode:true,customerName:true,mobile:true,status:true,paymentMethod:true,paymentStatus:true,totalToman:true,createdAt:true,estimatedDeliveryAt:true,refundRequired:true} as const;
 export async function getAdminData(section:string,options:{page?:number;q?:string;status?:string;id?:string;mobile?:string}={}):Promise<AdminData>{
  if(isDemoCatalog())return demoAdminData();
  await connection();const user=await requireAdmin();if(user.mustChangePassword)throw new ShopError('PASSWORD_CHANGE_REQUIRED',403);if(!canViewAdminSection(user,section))throw new ShopError('FORBIDDEN',403);const db=getDb(),data=emptyData(),page=Math.max(1,Math.min(10000,options.page??1)),take=20,skip=(page-1)*take;data.page=page;data.access={adminOwner:user.adminOwner,adminPermissions:user.adminPermissions,mustChangePassword:user.mustChangePassword};

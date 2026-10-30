@@ -7,6 +7,7 @@ export const quoteSchema = z.object({items: z.array(item).min(1).max(30).refine(
 export const checkoutSchema = quoteSchema.extend({mobileProof:z.object({challengeId:z.uuid(),token:z.string().regex(/^[a-f0-9]{64}$/)}).strict().optional(),name: z.string().trim().min(2).max(100), mobile: mobileSchema, address: z.string().trim().min(10).max(1000), notes: z.string().trim().max(1000).default(''), locale: z.enum(['fa','en']), paymentMethod: z.enum(['ZARINPAL','BANK_TRANSFER','CASH_ON_DELIVERY','BTCPAY']), idempotencyKey: z.uuid(), expectedTotal: z.number().int().nonnegative().max(2147483647)}).strict();
 export const internationalCheckoutSchema = checkoutSchema.extend({paymentMethod:z.literal('BTCPAY'),buyerEmail:z.email().max(254),expectedUsdCents:z.number().int().positive().max(2147483647)}).strict();
 export const domesticCheckoutSchema = checkoutSchema.extend({paymentMethod:z.enum(['ZARINPAL','BANK_TRANSFER'])}).strict();
-export const trackingSchema = z.object({trackingCode: z.string().trim().toUpperCase().regex(/^ROYA-[A-F0-9]{24}$/), mobile: mobileSchema}).strict();
+export const orderCodeSchema=z.string().trim().transform(toLatinDigits).transform(s=>s.toUpperCase()).pipe(z.string().regex(/^(?:ROYA-[A-F0-9]{24}|[0-9]{8}-[0-9]{4,})$/));
+export const trackingSchema = z.object({trackingCode: orderCodeSchema, mobile: mobileSchema}).strict();
 export type QuoteInput = z.infer<typeof quoteSchema>;
 export type CheckoutInput = z.infer<typeof checkoutSchema> & {buyerEmail?:string;expectedUsdCents?:number};

@@ -168,12 +168,13 @@ model DiscountCode {
 
 model Order {
   id                         String         @id @default(cuid())
-  // Generate cryptographically random tracking codes in checkout; never expose sequential IDs.
+  // Short daily numbers are identifiers; access is checked against the customer session.
   invoiceNumber              String?        @unique
   paymentReference           String?        @unique
   paymentConfirmedAt         DateTime?      @db.Timestamptz(3)
   transferReference          String?        @unique
   bankTransferSnapshot       Json?
+  transferReport             Json?
   trackingCode               String         @unique @db.VarChar(32)
   idempotencyKey             String         @unique @db.VarChar(64)
   requestFingerprint         String         @db.VarChar(64)
@@ -456,4 +457,9 @@ model CustomerAddress {
  createdAt DateTime @default(now()) @db.Timestamptz(3)
  updatedAt DateTime @updatedAt @db.Timestamptz(3)
  @@index([userId, createdAt])
+}
+
+model OrderDailySequence {
+  day String @id @db.VarChar(10)
+  last Int
 }

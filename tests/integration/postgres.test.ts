@@ -1,3 +1,6 @@
+import {reportCustomerTransfer} from '../../src/lib/server/transfer-report';
+import {authorizeCustomerPassword} from '../../src/lib/server/customer-otp';
+import {saveCustomerAddress} from '../../src/lib/server/customer-addresses';
 import {saveEmailSettings,requestEmailTest,verifyEmailTest} from '../../src/lib/server/admin-email';
 import {emailConfigured} from '../../src/lib/server/email';
 import {customerOrderHistory,customerOrderTracking,changeCustomerPassword} from '../../src/lib/server/customer-account';
@@ -208,4 +211,36 @@ test('customer history is private and a password change invalidates the old sess
  const history=await customerOrderHistory(owner.id,1);assert(history.orders.length>0);const code=history.orders[0].trackingCode;
  assert.equal((await customerOrderTracking(owner.id,code)).trackingCode,code);await assert.rejects(()=>customerOrderTracking(admin.id,code),/NOT_FOUND/);
  await changeCustomerPassword(owner.id,owner.sessionVersion,'Integration customer password 123','Updated customer password 456');const changed=await db.user.findUniqueOrThrow({where:{id:owner.id}});assert.equal(changed.sessionVersion,owner.sessionVersion+1);assert(await verifyPassword('Updated customer password 456',changed.passwordHash));assert(changed.mobileVerifiedAt);assert.equal(changed.emailVerifiedAt,null);
+});
+
+
+test('customer signup, address, short concurrent invoices, transfer report, admin verification and delivery complete together',async()=>{
+ const oldBank=await db.setting.findUnique({where:{key:'bank-transfer'}});
+ await db.setting.upsert({where:{key:'bank-transfer'},create:{key:'bank-transfer',value:{enabled:true,accounts:[{id:'00000000-0000-4000-8000-000000000001',holder:'Flow test shop',card:'6037000000000000',iban:'',active:true}]}},update:{value:{enabled:true,accounts:[{id:'00000000-0000-4000-8000-000000000001',holder:'Flow test shop',card:'6037000000000000',iban:'',active:true}]}}});
+ try{
+ const id=randomUUID(),mobile=`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`,email=`${id}@example.com`,code='004321',password='Complete flow password 123';challengeIds.push(id);
+ await db.customerRegistration.create({data:{id,mobile,email,name:'Complete flow buyer',passwordHash:await hashPassword(password),mobileReady:true,mobileVerifier:otpDigest(process.env.CUSTOMER_OTP_SECRET!,`mobile:${id}`,mobile,code),expiresAt:new Date(Date.now()+900000)}});
+ const signed=await authorizeCustomer({challengeId:id,code});assert(signed);userIds.push(signed.id);
+ assert.equal((await authorizeCustomerPassword({identifier:email,password}))?.id,signed.id);
+ assert.equal((await db.user.findUniqueOrThrow({where:{id:signed.id}})).emailVerifiedAt,null);
+ await saveCustomerAddress(signed.id,{title:'Home',recipientName:'Recipient',mobile,zoneId:zone.id,address:'Complete flow test address',destination:null});
+ const bank=await bankTransferDetails(),p1=await product(),p2=await product(),customer={id:signed.id,mobile,sessionVersion:signed.sessionVersion};
+ const orders=await Promise.all([p1,p2].map(p=>placeOrder({...input(p),paymentMethod:'BANK_TRANSFER'},customer)));
+ for(const o of orders){assert.match(o.trackingCode,/^\d{8}-\d{4,}$/);assert.equal(o.invoiceNumber,o.trackingCode);assert.equal(o.paymentReference,o.trackingCode.replace('-',''));}
+ assert.equal(Math.abs(Number(orders[0].trackingCode.split('-')[1])-Number(orders[1].trackingCode.split('-')[1])),1);
+ const order=orders[0],reportInput={trackingCode:order.trackingCode,reference:`BANK-${id}`,amountToman:order.totalToman,paidAt:new Date().toISOString(),accountId:bank.accounts[0].id,note:'Customer submitted bank receipt reference',expectedReportedAt:null};
+ await assert.rejects(()=>reportCustomerTransfer({id:admin.id,sessionVersion:0},reportInput),/NOT_FOUND/);
+ const saved=await reportCustomerTransfer(customer,reportInput);assert.equal((await db.order.findUniqueOrThrow({where:{id:order.id}})).paymentStatus,'PENDING');
+ await assert.rejects(()=>reportCustomerTransfer(customer,reportInput),/CONFLICT/);
+ const confirmation={id:order.id,reference:reportInput.reference,amountToman:order.totalToman};
+ await assert.rejects(()=>confirmTransfer(confirmation,admin.id),/CONFLICT/);
+ await confirmTransfer({...confirmation,expectedReportAt:saved.report.reportedAt},admin.id);
+ await confirmTransfer({...confirmation,expectedReportAt:saved.report.reportedAt},admin.id);
+ const paid=await db.order.findUniqueOrThrow({where:{id:order.id}});assert.equal(paid.paymentStatus,'PAID');assert(paid.paymentConfirmedAt);assert(paid.estimatedDeliveryAt>paid.paymentConfirmedAt);
+ await assert.rejects(()=>reportCustomerTransfer(customer,{...reportInput,expectedReportedAt:saved.report.reportedAt}),/TRANSITION/);
+ await changeOrderStatus(order.id,'PENDING','PREPARING',admin.id);await changeOrderStatus(order.id,'PREPARING','SHIPPED',admin.id);await changeOrderStatus(order.id,'SHIPPED','DELIVERED',admin.id);
+ const history=await customerOrderHistory(customer.id);assert(history.orders.some(o=>o.trackingCode===order.trackingCode&&o.status==='DELIVERED'&&o.paymentStatus==='PAID'));
+ assert.equal((await customerOrderTracking(customer.id,order.trackingCode)).trackingCode,order.trackingCode);
+ await assert.rejects(()=>customerOrderTracking(admin.id,order.trackingCode),/NOT_FOUND/);
+ }finally{if(oldBank)await db.setting.update({where:{key:'bank-transfer'},data:{value:oldBank.value!}});else await db.setting.deleteMany({where:{key:'bank-transfer'}});}
 });

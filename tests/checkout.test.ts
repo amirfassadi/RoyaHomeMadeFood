@@ -34,3 +34,5 @@ test('capacity date rolls over in Tehran, not server UTC',()=>{
  assert.equal(capacityDay(new Date('2026-10-10T21:00:00Z')),'2026-10-11');
  assert.equal(capacityDay(new Date('2026-10-10T19:00:00Z')),'2026-10-10');
 });
+
+ test('tracking accepts Persian daily numbers and retains legacy codes',()=>{assert.equal(trackingSchema.parse({trackingCode:'۱۴۰۵۰۸۰۸-۰۰۰۱',mobile:'۰۹۱۲۳۴۵۶۷۸۹'}).trackingCode,'14050808-0001');});
