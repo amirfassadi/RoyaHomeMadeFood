@@ -1,3 +1,6 @@
+import {emailSettingsView} from './email';
+import {customerLoginEnabled} from './customer-otp';
+import {smsConfigured} from './sms';
 import {canViewAdminSection,hasAdminPermission} from '@/lib/admin/permissions';
 import {smsEnabled} from './sms-policy';
 import {seoSettingsSchema} from '@/lib/validation/seo';
@@ -41,6 +44,7 @@ export async function getAdminData(section:string,options:{page?:number;q?:strin
   data.customers=rows.map(r=>({mobile:r.mobile,name:latest.find(n=>n.mobile===r.mobile)?.customerName??'',orders:r._count._all,totalToman:r._sum.totalToman??0,lastOrder:r._max.createdAt!.toISOString()}));
  }
  if(section==='settings'){
+  if(user.adminOwner){data.email=await emailSettingsView();data.registration={accountsEnabled:customerLoginEnabled(),smsConfigured:smsConfigured()};}
   if(hasAdminPermission(user,'settings')){
    const [seo,contact,sms]=await Promise.all([db.setting.findUnique({where:{key:'seo'}}),db.setting.findUnique({where:{key:'contact'}}),db.setting.findUnique({where:{key:'sms-policy'}})]);
    data.seo={settings:seoSettingsSchema.safeParse(seo?.value).data??{enabled:false,googleVerification:''},updatedAt:seo?.updatedAt.toISOString()??null};data.contact=contactSettingsSchema.safeParse(contact?.value).data??{};

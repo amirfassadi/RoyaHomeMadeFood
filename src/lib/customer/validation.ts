@@ -12,3 +12,5 @@ export const customerPasswordSchema=z.object({identifier:z.string().trim().max(2
 export const profileSchema=z.object({name:z.string().trim().min(2).max(100),marketingSms:z.boolean()}).strict();
 export const addressSchema=z.object({id:z.string().min(1).max(100).optional(),title:z.string().trim().min(1).max(50),recipientName:z.string().trim().min(2).max(100),mobile:mobileSchema,zoneId:z.string().min(1).max(100),address:z.string().trim().min(10).max(1000),destination:coordinatesSchema.nullable().optional()}).strict();
 export const deleteAddressSchema=z.object({id:z.string().min(1).max(100)}).strict();
+export const customerPasswordChangeSchema=z.object({currentPassword:z.string().min(1).max(128),newPassword:passwordSchema}).strict().refine(v=>v.currentPassword!==v.newPassword);
+export const customerOrdersQuerySchema=z.object({page:z.coerce.number().int().min(1).max(10000).default(1),trackingCode:z.string().regex(/^ROYA-[A-F0-9]{24}$/).optional()}).strict();

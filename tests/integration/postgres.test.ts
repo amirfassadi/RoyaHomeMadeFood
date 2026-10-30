@@ -1,3 +1,6 @@
+import {saveEmailSettings,requestEmailTest,verifyEmailTest} from '../../src/lib/server/admin-email';
+import {emailConfigured} from '../../src/lib/server/email';
+import {customerOrderHistory,customerOrderTracking,changeCustomerPassword} from '../../src/lib/server/customer-account';
 import {createAdminUser,updateAdminUser} from '../../src/lib/server/admin-users';
 import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
@@ -187,4 +190,22 @@ test('owner creates email-only limited admins and access changes revoke their se
  const stored=await db.user.findUniqueOrThrow({where:{id:created.id}});assert(await verifyPassword('Temporary integration password 123',stored.passwordHash));
  await assert.rejects(()=>createAdminUser(stored.id,stored.sessionVersion,{name:'Escalation',identifier:`${randomUUID()}@example.com`,temporaryPassword:'Temporary integration password 456',permissions:['bankAccounts']}),/FORBIDDEN/);
  const updated=await updateAdminUser(actor.id,actor.sessionVersion,{id:created.id,expectedSessionVersion:created.sessionVersion,active:true,permissions:['orders','bankAccounts']});assert.equal(updated.sessionVersion,created.sessionVersion+1);assert(updated.adminPermissions.includes('bankAccounts'));
+});
+
+test('panel email configuration is encrypted and only a received test code enables registration',async()=>{
+ const old=await db.setting.findUnique({where:{key:'customer-email'}}),originalFetch=globalThis.fetch;let code='';
+ try{
+  const settings=await saveEmailSettings({enabled:true,from:'account@mail.example.com',apiKey:'re_integration_test_not_a_real_key',expectedUpdatedAt:old?.updatedAt.toISOString()??null},admin.id);
+  assert.equal(await emailConfigured(),false);const stored=await db.setting.findUniqueOrThrow({where:{key:'customer-email'}});assert(!JSON.stringify(stored.value).includes('re_integration_test_not_a_real_key'));
+  globalThis.fetch=async()=>{throw new Error('intercepted test must supply fetch mock');};
+  globalThis.fetch=async(_url,options)=>{const body=JSON.parse(String(options?.body));code=body.text.match(/\d{6}/)[0];return Response.json({id:'integration-email-mock'});};
+  const sent=await requestEmailTest({to:'owner@example.com',expectedUpdatedAt:settings.updatedAt},admin.id);assert.equal(await emailConfigured(),false);
+  const results=await Promise.allSettled([verifyEmailTest({testId:sent.testId,code},admin.id),verifyEmailTest({testId:sent.testId,code},admin.id)]);assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(await emailConfigured(),true);
+ }finally{globalThis.fetch=originalFetch;if(old)await db.setting.upsert({where:{key:'customer-email'},create:{key:'customer-email',value:old.value!},update:{value:old.value!}});else await db.setting.deleteMany({where:{key:'customer-email'}});}
+});
+test('customer history is private and a password change invalidates the old session version',async()=>{
+ const owner=await db.user.findFirstOrThrow({where:{role:'CUSTOMER',emailVerifiedAt:{not:null}}});
+ const history=await customerOrderHistory(owner.id,1);assert(history.orders.length>0);const code=history.orders[0].trackingCode;
+ assert.equal((await customerOrderTracking(owner.id,code)).trackingCode,code);await assert.rejects(()=>customerOrderTracking(admin.id,code),/NOT_FOUND/);
+ await changeCustomerPassword(owner.id,owner.sessionVersion,'Integration customer password 123','Updated customer password 456');const changed=await db.user.findUniqueOrThrow({where:{id:owner.id}});assert.equal(changed.sessionVersion,owner.sessionVersion+1);assert(await verifyPassword('Updated customer password 456',changed.passwordHash));assert(changed.mobileVerifiedAt&&changed.emailVerifiedAt);
 });

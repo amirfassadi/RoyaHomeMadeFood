@@ -15,4 +15,4 @@ export async function POST(request:Request){try{
  });return json({saved:true});
 }catch(e){return failure(e);}}
 
-export async function GET(){try{const user=await optionalCustomer();return json({loginEnabled:customerLoginEnabled(),registrationEnabled:customerRegistrationEnabled()&&await smsEnabled(),customer:user?{name:user.name,mobile:user.mobile,email:user.email,addresses:await customerAddresses(user.id)}:null});}catch(e){return failure(e);}}
+export async function GET(){try{const user=await optionalCustomer();return json({loginEnabled:customerLoginEnabled(),registrationEnabled:(await customerRegistrationEnabled())&&await smsEnabled(),customer:user?{name:user.name,mobile:user.mobile,email:user.email,addresses:await customerAddresses(user.id)}:null});}catch(e){return failure(e);}}
