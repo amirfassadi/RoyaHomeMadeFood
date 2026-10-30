@@ -64,6 +64,8 @@ model User {
   adminPermissions   String[] @default([])
   mustChangePassword Boolean @default(false)
   mobileVerifiedAt   DateTime? @db.Timestamptz(3)
+  marketingEmail Boolean @default(false)
+  notices CustomerNotice[]
   marketingSms       Boolean @default(false)
   consentEvents      MarketingConsentEvent[]
   orders             Order[]
@@ -176,6 +178,9 @@ model Order {
   transferReference          String?        @unique
   bankTransferSnapshot       Json?
   transferReport             Json?
+  transferReviewStatus       String @default("NONE") @db.VarChar(16)
+  transferReviewReason       String? @db.VarChar(500)
+  transferReviewedAt         DateTime? @db.Timestamptz(3)
   trackingCode               String         @unique @db.VarChar(32)
   idempotencyKey             String         @unique @db.VarChar(64)
   requestFingerprint         String         @db.VarChar(64)
@@ -221,6 +226,7 @@ model Order {
   @@index([mobile, createdAt])
   @@index([userId, createdAt])
   @@index([status, reservationExpiresAt])
+  @@index([transferReviewStatus, createdAt])
 }
 
 // Persist intent before calling the courier. Unknown outcomes must be reconciled, never retried.
@@ -494,4 +500,42 @@ model CustomerAddress {
 model OrderDailySequence {
   day String @id @db.VarChar(10)
   last Int
+}
+
+model CustomerNotice {
+ id String @id @default(cuid())
+ userId String
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ dedupeKey String @unique
+ orderId String?
+ campaignId String?
+ kind String @db.VarChar(32)
+ title String @db.VarChar(150)
+ body String @db.Text
+ preference String @default("AUTO") @db.VarChar(10)
+ status String @default("HELD") @db.VarChar(16)
+ channel String? @db.VarChar(10)
+ errorCode String? @db.VarChar(40)
+ notBefore DateTime @default(now()) @db.Timestamptz(3)
+ sentAt DateTime? @db.Timestamptz(3)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @db.Timestamptz(3)
+ @@index([status,notBefore])
+ @@index([userId,createdAt])
+ @@index([campaignId,status])
+}
+model CustomerCampaign {
+ id String @id @default(cuid())
+ title String @db.VarChar(150)
+ body String @db.Text
+ category String @db.VarChar(20)
+ purpose String @db.VarChar(16)
+ audience String @db.VarChar(20)
+ identifier String? @db.VarChar(254)
+ preference String @default("AUTO") @db.VarChar(10)
+ status String @default("DRAFT") @db.VarChar(16)
+ notBefore DateTime @db.Timestamptz(3)
+ createdBy String
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @db.Timestamptz(3)
 }

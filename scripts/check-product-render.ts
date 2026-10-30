@@ -12,7 +12,7 @@ async function main(){
  if(!url||!/^\/(roya_test|roya_integration_test)$/.test(new URL(url).pathname))throw new Error('Product render check requires an isolated integration database.');
  const db=new PrismaClient({adapter:new PrismaPg({connectionString:url})});
  const slug=`render-check-${randomUUID()}`;
- let adminId:string|undefined,categoryId:string|undefined,productId:string|undefined,zoneId:string|undefined,orderId:string|undefined,logs='',spawnError:Error|undefined;
+ let buyerId:string|undefined,reviewOrderId:string|undefined,adminId:string|undefined,categoryId:string|undefined,productId:string|undefined,zoneId:string|undefined,orderId:string|undefined,logs='',spawnError:Error|undefined;
  const port=3417,sessionSecret='isolated-render-check-session-secret-only';
  // The product is deliberately created after next build: its slug must work
  // on the first request without having been included in generateStaticParams.
@@ -46,6 +46,17 @@ async function main(){
   const detail=await fetch(`http://127.0.0.1:${port}/admin/orders/${pending.id}/`,{headers,signal:AbortSignal.timeout(20000)});
   const detailHtml=await detail.text();assert.equal(detail.status,200,`Admin page returned ${detail.status}`);assert(detailHtml.includes('جزئیات سفارش')&&!detailHtml.includes('پنل در دسترس نیست'),'Authenticated admin order page did not render.');
   console.log('Authenticated production admin order API and page render OK for a runtime-created order.');
+  const workspace=await fetch(`http://127.0.0.1:${port}/api/admin/campaigns/`,{headers,signal:AbortSignal.timeout(20000)});assert.equal(workspace.status,200);assert.equal((await workspace.json()).policy.enabled,false,'Customer delivery must stay disabled by default.');
+  const buyer=await db.user.create({data:{name:'Runtime review buyer',role:'CUSTOMER',mobile:`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`,email:`${randomUUID()}@example.com`,mobileVerifiedAt:new Date()}});buyerId=buyer.id;
+  const reportAt=new Date().toISOString(),bankId='00000000-0000-4000-8000-000000000001';
+  const reviewOrder=await db.order.create({data:{userId:buyer.id,trackingCode:'ROYA-'+randomUUID().replaceAll('-','').slice(0,24).toUpperCase(),idempotencyKey:randomUUID(),requestFingerprint:'0'.repeat(64),locale:'fa',capacityDay:'2026-10-30',customerName:buyer.name,mobile:buyer.mobile!,address:'Runtime review test address',city:'Test',deliveryZoneId:zone.id,deliveryZoneNameSnapshot:'Test',paymentMethod:'BANK_TRANSFER',paymentStatus:'PENDING',subtotalToman:1000,deliveryFeeToman:0,totalToman:1000,longestPreparationMinutes:5,zoneDeliveryMinutes:5,estimatedDeliveryAt:new Date(),transferReviewStatus:'PENDING',transferReport:{reference:'12345678',amountToman:1000,paidAt:reportAt,reportedAt:reportAt,accountId:bankId,note:''},bankTransferSnapshot:{accounts:[{id:bankId,holder:'Runtime test',card:'6037000000000000',iban:'',active:true}]}}});reviewOrderId=reviewOrder.id;
+  const reviewPage=await fetch(`http://127.0.0.1:${port}/admin/orders/${reviewOrder.id}/`,{headers,signal:AbortSignal.timeout(20000)});const reviewHtml=await reviewPage.text();assert.equal(reviewPage.status,200);assert(reviewHtml.includes('رد واریز و ثبت دلیل'));assert(reviewHtml.includes('هنوز تأیید یا رد نشده'));
+  const rejected=await fetch(`http://127.0.0.1:${port}/api/admin/orders/transfer-reject/`,{method:'POST',headers:{...headers,Origin:`http://127.0.0.1:${port}`,'Content-Type':'application/json'},body:JSON.stringify({id:reviewOrder.id,expectedReportAt:reportAt,reason:'Runtime bank reference not received'}),signal:AbortSignal.timeout(20000)});assert.equal(rejected.status,200,await rejected.text());
+  assert.equal((await db.order.findUniqueOrThrow({where:{id:reviewOrder.id}})).transferReviewStatus,'REJECTED');assert.equal(await db.customerNotice.count({where:{orderId:reviewOrder.id,status:'HELD'}}),1);
+  const customerJwt=await encode({secret:sessionSecret,token:{customerId:buyer.id,sessionVersion:buyer.sessionVersion},maxAge:600});
+  const account=await fetch(`http://127.0.0.1:${port}/fa/account/`,{headers:{Cookie:`next-auth.session-token=${customerJwt}`,'User-Agent':'Googlebot'},signal:AbortSignal.timeout(20000)});const accountHtml=await account.text();assert.equal(account.status,200);assert(accountHtml.includes('Runtime bank reference not received'));assert(accountHtml.includes('خبرها و پیشنهادها را ایمیلی دریافت کنم'));
+  console.log('Production bank-review reminder, rejection API, held notification, disabled campaign delivery and buyer inbox render OK.');
+
   let expired=false;
   for(let n=0;n<40;n++){if((await db.order.findUniqueOrThrow({where:{id:pending.id}})).status==='CANCELLED'){expired=true;break;}await delay(250);}
   assert(expired,'Production startup did not run reservation expiry.');
@@ -70,6 +81,8 @@ async function main(){
   server.kill('SIGTERM');
   await Promise.race([new Promise<void>(resolve=>{if(server.exitCode!==null)resolve();else server.once('exit',()=>resolve());}),delay(5000)]);
   if(server.exitCode===null)server.kill('SIGKILL');
+  if(reviewOrderId)await db.order.deleteMany({where:{id:reviewOrderId}});
+  if(buyerId)await db.user.deleteMany({where:{id:buyerId}});
   if(adminId)await db.user.deleteMany({where:{id:adminId}});
   if(orderId)await db.order.deleteMany({where:{id:orderId}});
   if(zoneId)await db.deliveryZone.deleteMany({where:{id:zoneId}});

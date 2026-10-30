@@ -11,6 +11,7 @@ export async function POST(request:Request){try{
   await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id"=${user.id} FOR UPDATE`;
   const current=await tx.user.findUnique({where:{id:user.id}});if(!current?.active||current.role!=='CUSTOMER'||current.sessionVersion!==user.sessionVersion)throw new ShopError('UNAUTHORIZED',401);
   if(current.marketingSms!==input.marketingSms)await tx.marketingConsentEvent.create({data:{userId:user.id,allowed:input.marketingSms,policyVersion:consentVersion,source:'account-settings'}});
+  if(input.marketingEmail!==undefined&&current.marketingEmail!==input.marketingEmail)await tx.marketingConsentEvent.create({data:{userId:user.id,allowed:input.marketingEmail,policyVersion:'email-news-v1',source:'account-settings'}});
   await tx.user.update({where:{id:user.id},data:input});
  });return json({saved:true});
 }catch(e){return failure(e);}}
