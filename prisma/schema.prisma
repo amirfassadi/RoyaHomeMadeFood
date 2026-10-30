@@ -69,6 +69,7 @@ model User {
   marketingSms       Boolean @default(false)
   consentEvents      MarketingConsentEvent[]
   orders             Order[]
+  supportThread      SupportThread?
   createdAt          DateTime @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime @updatedAt @db.Timestamptz(3)
 }
@@ -424,6 +425,37 @@ model CheckoutMobileChallenge {
 model SmsTestBudget {
  id String @id
  used Int @default(0)
+}
+
+// Sequences and read receipts are allocated under a row lock on the thread.
+model SupportThread {
+ id String @id @default(cuid())
+ userId String @unique
+ user User @relation(fields:[userId], references:[id], onDelete:Restrict)
+ lastSequence Int @default(0)
+ lastCustomerSequence Int @default(0)
+ lastAdminSequence Int @default(0)
+ customerReadSequence Int @default(0)
+ adminReadSequence Int @default(0)
+ messages SupportMessage[]
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @db.Timestamptz(3)
+ @@index([updatedAt, id])
+}
+
+model SupportMessage {
+ id String @id @default(cuid())
+ threadId String
+ thread SupportThread @relation(fields:[threadId], references:[id], onDelete:Restrict)
+ sequence Int
+ // Sender identity is assigned by the server, never accepted from the client.
+ senderId String
+ fromAdmin Boolean
+ clientId String @db.Uuid
+ body String @db.VarChar(2000)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ @@unique([threadId, sequence])
+ @@unique([threadId, senderId, clientId])
 }
 
 

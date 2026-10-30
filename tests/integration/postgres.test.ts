@@ -1,3 +1,4 @@
+import {supportAction,customerSupportHistory,supportInbox} from '../../src/lib/server/support';
 import {rejectTransfer} from '../../src/lib/server/manual-payment';
 import {manageCampaign,deliveryPolicy,deliveryPolicyKey} from '../../src/lib/server/customer-messages';
 import {dispatchPendingNotices} from '../../src/lib/server/notice-delivery';
@@ -48,7 +49,7 @@ after(async()=>{
  await db.paymentAttempt.deleteMany({where:{orderId:{in:ids}}});await db.order.deleteMany({where:{id:{in:ids}}});
  await db.productDailyUsage.deleteMany({where:{productId:{in:productIds}}});await db.product.deleteMany({where:{id:{in:productIds}}});
  await db.checkoutMobileChallenge.deleteMany({where:{id:{in:checkoutChallengeIds}}});
- await db.customerRegistration.deleteMany({where:{id:{in:challengeIds}}});await db.marketingConsentEvent.deleteMany({where:{userId:{in:userIds}}});await db.user.deleteMany({where:{id:{in:userIds}}});
+ await db.customerRegistration.deleteMany({where:{id:{in:challengeIds}}});await db.marketingConsentEvent.deleteMany({where:{userId:{in:userIds}}});const supportThreads=await db.supportThread.findMany({where:{userId:{in:userIds}},select:{id:true}}); await db.supportMessage.deleteMany({where:{threadId:{in:supportThreads.map(t=>t.id)}}}); await db.supportThread.deleteMany({where:{userId:{in:userIds}}}); await db.user.deleteMany({where:{id:{in:userIds}}});
  await db.contactMessage.deleteMany({where:{id:{in:messageIds}}});await db.clubAnnouncement.deleteMany({where:{id:{in:announcementIds}}});await db.adminAudit.deleteMany({where:{adminId:admin?.id??'never'}});
  if(oldSmsPolicy)await db.setting.update({where:{key:'sms-policy'},data:{value:oldSmsPolicy.value}});else await db.setting.deleteMany({where:{key:'sms-policy'}});
  if(zone)await db.deliveryZone.delete({where:{id:zone.id}});if(category)await db.category.delete({where:{id:category.id}});await db.$disconnect();
@@ -271,4 +272,25 @@ test('bank reports hold reservations for review; rejection is audited and queued
  await db.user.update({where:{id:buyer.id},data:{marketingEmail:true}});await manageCampaign({action:'prepare',id:c.id,expectedUpdatedAt:c.updatedAt.toISOString()},admin.id);c=await db.customerCampaign.findUniqueOrThrow({where:{id:c.id}});assert.equal(c.status,'PREPARED');assert.equal(await db.customerNotice.count({where:{campaignId:c.id,status:'HELD'}}),1);
  await assert.rejects(()=>manageCampaign({action:'release',id:c.id,expectedUpdatedAt:c.updatedAt.toISOString()},admin.id),/DELIVERY_DISABLED/);await dispatchPendingNotices();assert.equal(requests,0);
  }finally{globalThis.fetch=originalFetch;await db.customerCampaign.deleteMany({where:{id:{in:campaignIds}}});if(oldPolicy)await db.setting.upsert({where:{key:deliveryPolicyKey},create:{key:deliveryPolicyKey,value:oldPolicy.value!},update:{value:oldPolicy.value!}});else await db.setting.deleteMany({where:{key:deliveryPolicyKey}});if(oldBank)await db.setting.upsert({where:{key:'bank-transfer'},create:{key:'bank-transfer',value:oldBank.value!},update:{value:oldBank.value!}});else await db.setting.deleteMany({where:{key:'bank-transfer'}});}
+});
+
+test('support sequences, retries and read receipts serialize under PostgreSQL row locks',async()=>{
+ const user=await db.user.create({data:{name:'Support test customer',mobileVerifiedAt:new Date(),emailVerifiedAt:null}});userIds.push(user.id);
+ const actor={id:user.id,sessionVersion:user.sessionVersion,fromAdmin:false};
+ const input={action:'send' as const,body:'First question',clientId:randomUUID()};
+ await Promise.all([supportAction(actor,input),supportAction(actor,input)]);
+ const thread=await db.supportThread.findUniqueOrThrow({where:{userId:user.id}});
+ assert.equal(await db.supportMessage.count({where:{threadId:thread.id}}),1);
+ const staff=await db.user.findUniqueOrThrow({where:{id:admin.id}});
+ await Promise.all([
+  supportAction(actor,{action:'send',body:'Another question',clientId:randomUUID()}),
+  supportAction({id:staff.id,sessionVersion:staff.sessionVersion,fromAdmin:true},{action:'send',body:'Support reply',clientId:randomUUID()},thread.id)
+ ]);
+ const history=await customerSupportHistory(user.id);assert.deepEqual(history.messages.map(m=>m.sequence),[1,2,3]);
+ assert((await supportInbox(1,true)).threads.some(t=>t.id===thread.id));
+ await Promise.all([supportAction(actor,{action:'read',throughSequence:3}),supportAction(actor,{action:'read',throughSequence:1})]);
+ assert.equal((await db.supportThread.findUniqueOrThrow({where:{id:thread.id}})).customerReadSequence,3);
+ const other=await db.user.create({data:{name:'Other support customer'}});userIds.push(other.id);
+ assert.equal((await customerSupportHistory(other.id)).threadId,null);
+ const earlier=await customerSupportHistory(user.id,3);assert.deepEqual(earlier.messages.map(m=>m.sequence),[1,2]);
 });
