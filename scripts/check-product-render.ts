@@ -46,6 +46,10 @@ async function main(){
   const detail=await fetch(`http://127.0.0.1:${port}/admin/orders/${pending.id}/`,{headers,signal:AbortSignal.timeout(20000)});
   const detailHtml=await detail.text();assert.equal(detail.status,200,`Admin page returned ${detail.status}`);assert(detailHtml.includes('جزئیات سفارش')&&!detailHtml.includes('پنل در دسترس نیست'),'Authenticated admin order page did not render.');
   console.log('Authenticated production admin order API and page render OK for a runtime-created order.');
+  // Create catalog fixtures before the buyer page can warm the shared catalog cache.
+  const category=await db.category.create({data:{slug,nameFa:'دسته آزمون رندر',nameEn:'Render test category'}});categoryId=category.id;
+  const product=await db.product.create({data:{slug,categoryId,nameFa:'محصول آزمون رندر',nameEn:'Product render verification',descriptionFa:'محصول موقت برای بررسی اجرای صفحه محصول',descriptionEn:'Temporary product for verifying production page rendering.',priceToman:100000,unit:'PACK',priceBasisQuantity:1,minOrderQuantity:1,orderStepQuantity:1,preparationMinutes:60}});productId=product.id;
+  assert.equal(await db.product.count({where:{id:productId,active:true,category:{active:true}}}),1,'Runtime product fixture is not visible in the test database.');
   const workspace=await fetch(`http://127.0.0.1:${port}/api/admin/campaigns/`,{headers,signal:AbortSignal.timeout(20000)});assert.equal(workspace.status,200);assert.equal((await workspace.json()).policy.enabled,false,'Customer delivery must stay disabled by default.');
   const buyer=await db.user.create({data:{name:'Runtime review buyer',role:'CUSTOMER',mobile:`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`,email:`${randomUUID()}@example.com`,mobileVerifiedAt:new Date()}});buyerId=buyer.id;
   const reportAt=new Date().toISOString(),bankId='00000000-0000-4000-8000-000000000001';
@@ -62,9 +66,6 @@ async function main(){
   assert(expired,'Production startup did not run reservation expiry.');
   assert.equal(Number((await db.product.findUniqueOrThrow({where:{id:maintenanceProduct.id}})).stockQuantity),1);
   console.log('Production reservation worker automatically expired a stale order and released stock.');
-  const category=await db.category.create({data:{slug,nameFa:'دسته آزمون رندر',nameEn:'Render test category'}});categoryId=category.id;
-  const product=await db.product.create({data:{slug,categoryId,nameFa:'محصول آزمون رندر',nameEn:'Product render verification',descriptionFa:'محصول موقت برای بررسی اجرای صفحه محصول',descriptionEn:'Temporary product for verifying production page rendering.',priceToman:100000,unit:'PACK',priceBasisQuantity:1,minOrderQuantity:1,orderStepQuantity:1,preparationMinutes:60}});productId=product.id;
-  assert.equal(await db.product.count({where:{id:productId,active:true,category:{active:true}}}),1,'Runtime product fixture is not visible in the test database.');
   for(const locale of ['fa','en']){
    const response=await fetch(`http://127.0.0.1:${port}/${locale}/products/${slug}/`,{headers:{'User-Agent':'Googlebot'},signal:AbortSignal.timeout(20000)});
    const html=await response.text();
