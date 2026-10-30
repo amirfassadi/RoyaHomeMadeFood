@@ -14,8 +14,11 @@ export async function readEmailConfiguration(){
  const key=process.env.RESEND_API_KEY?.trim(),from=process.env.CUSTOMER_EMAIL_FROM?.trim();
  return key&&from?{enabled:true,from,apiKey:key,verifiedAt:null,test:null,source:'environment' as const,updatedAt:null}:null;
 }
-export async function emailConfigured(){const c=await readEmailConfiguration();return !!c?.enabled&&(c.source==='environment'||!!c.verifiedAt);}
-export async function emailSettingsView():Promise<EmailSettingsView>{const c=await readEmailConfiguration();return {enabled:c?.enabled??false,configured:!!c?.enabled&&(c.source==='environment'||!!c.verifiedAt),from:c?.from??'',keyPresent:!!c?.apiKey,source:c?.source??'none',verified:c?.source==='environment'||!!c?.verifiedAt,updatedAt:c?.updatedAt??null,testPending:!!c?.test?.ready&&Date.parse(c.test.expiresAt)>Date.now()};}
+export async function emailConfigured(){try{const c=await readEmailConfiguration();return !!c?.enabled&&(c.source==='environment'||!!c.verifiedAt);}catch(e){if(e instanceof ShopError&&e.code==='EMAIL_CONFIGURATION')return false;throw e;}}
+export async function emailSettingsView():Promise<EmailSettingsView>{
+ try{const c=await readEmailConfiguration();return {enabled:c?.enabled??false,configured:!!c?.enabled&&(c.source==='environment'||!!c.verifiedAt),from:c?.from??'',keyPresent:!!c?.apiKey,source:c?.source??'none',verified:c?.source==='environment'||!!c?.verifiedAt,updatedAt:c?.updatedAt??null,testPending:!!c?.test?.ready&&Date.parse(c.test.expiresAt)>Date.now()};}
+ catch(e){if(!(e instanceof ShopError)||e.code!=='EMAIL_CONFIGURATION')throw e;const row=await getDb().setting.findUnique({where:{key:emailSettingsKey}}),parsed=storedEmailSettingsSchema.safeParse(row?.value);return {enabled:false,configured:false,from:parsed.success?parsed.data.from:'',keyPresent:false,source:row?'panel':'none',verified:false,updatedAt:row?.updatedAt.toISOString()??null,testPending:false,configurationError:true};}
+}
 export type EmailConfiguration=NonNullable<Awaited<ReturnType<typeof readEmailConfiguration>>>;
 export async function sendEmailWithConfiguration(config:EmailConfiguration,input:{to:string;subject:string;text:string}){
  try{const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${config.apiKey}`,'Content-Type':'application/json'},body:JSON.stringify({from:config.from,to:[input.to],subject:input.subject,text:input.text}),signal:AbortSignal.timeout(10000),cache:'no-store',redirect:'error'});const result=await response.json();if(!response.ok||typeof result.id!=='string')throw new Error();}catch{throw new ShopError('EMAIL_UNAVAILABLE',503);}
