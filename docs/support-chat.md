@@ -1,6 +1,6 @@
 # Account support chat
 
-Customers open `/fa/support/` or `/en/support/` using the floating support link or the link in their account. Existing customer authentication is required; sign-in and registration return to the conversation. Messages are plain text, up to 2,000 characters. They remain in PostgreSQL and new messages refresh every six seconds while the page is visible. Earlier messages can be paged backwards.
+Customers open `/fa/support/` or `/en/support/` using the floating support link or the link in their account. Existing customer authentication with verified mobile is required; email verification follows the current storefront policy and is not separately required by chat; sign-in and registration return to the conversation. Messages are plain text, up to 2,000 characters. They remain in PostgreSQL and new messages refresh every six seconds while the page is visible. Earlier messages can be paged backwards.
 
 Administrators use `/admin/support/`. The owner automatically has access; other administrators need the new **چت پشتیبانی و سوابق مشتری** (`support`) permission, granted in the existing staff management page. This permission explicitly includes customer name, mobile, email, account status, the latest 20 orders, payment status and payment references. Order detail links additionally respect the existing order/customer/payment permissions. Support staff do not gain permission to confirm or change payments.
 

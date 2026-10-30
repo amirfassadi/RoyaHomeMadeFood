@@ -36,6 +36,8 @@ test('customer writes use account ownership, ignore supplied thread IDs and make
  assert.equal(s.messages.length,1);assert.equal(s.messages[0].threadId,'thread');assert.equal(s.messages[0].senderId,'customer');assert.equal(s.messages[0].fromAdmin,false);assert.equal(s.thread.lastCustomerSequence,1);
  await assert.rejects(()=>supportAction(customer,{...input,body:'Changed retry'}),/CONFLICT/);
 });
+test('SMS-verified customers can chat while email verification is deferred',async()=>{const s=setup();s.users.customer.emailVerifiedAt=null;await supportAction(customer,send());assert.equal(s.messages.length,1);});
+
 test('read receipts never move backwards or acknowledge future messages; replies are audited',async()=>{
  const s=setup();await supportAction(customer,send());await supportAction(admin,send('Reply'),'thread');
  assert.equal(s.thread.lastAdminSequence,2);assert.equal(s.audits(),1);
@@ -43,7 +45,7 @@ test('read receipts never move backwards or acknowledge future messages; replies
  await assert.rejects(()=>supportAction(admin,{action:'read',throughSequence:3},'thread'),/INVALID/);
 });
 test('disabled, stale, unverified and promoted accounts cannot send',async()=>{
- for(const change of [{active:false},{sessionVersion:2},{emailVerifiedAt:null},{mobileVerifiedAt:null},{role:'ADMIN'}]){const s=setup();Object.assign(s.users.customer,change);await assert.rejects(()=>supportAction(customer,send()),/UNAUTHORIZED/);assert.equal(s.messages.length,0);}
+ for(const change of [{active:false},{sessionVersion:2},{mobileVerifiedAt:null},{role:'ADMIN'}]){const s=setup();Object.assign(s.users.customer,change);await assert.rejects(()=>supportAction(customer,send()),/UNAUTHORIZED/);assert.equal(s.messages.length,0);}
 });
 test('support permission is independent; revocation, password change, missing threads and rate limits reject writes',async()=>{
  assert(canViewAdminSection({adminPermissions:['support'],adminOwner:false,mustChangePassword:false},'support'));

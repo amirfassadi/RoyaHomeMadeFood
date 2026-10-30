@@ -1,3 +1,4 @@
+import {parseTransferReport} from '@/lib/validation/transfer-report';
 import {emailSettingsView} from './email';
 import {customerLoginEnabled} from './customer-otp';
 import {smsConfigured} from './sms';
@@ -16,7 +17,7 @@ import {emptyData,type AdminData} from '@/lib/admin/types';
 import {demoAdminData} from '@/lib/admin/demo';
 import {contactSettingsSchema} from '@/lib/validation/contact';
 import type {Prisma} from '@/generated/prisma/client';
-const summary={id:true,trackingCode:true,customerName:true,mobile:true,status:true,paymentMethod:true,paymentStatus:true,totalToman:true,createdAt:true,estimatedDeliveryAt:true,refundRequired:true} as const;
+const summary={transferReport:true,id:true,trackingCode:true,customerName:true,mobile:true,status:true,paymentMethod:true,paymentStatus:true,totalToman:true,createdAt:true,estimatedDeliveryAt:true,refundRequired:true} as const;
 export async function getAdminData(section:string,options:{page?:number;q?:string;status?:string;id?:string;mobile?:string}={}):Promise<AdminData>{
  if(isDemoCatalog())return demoAdminData();
  await connection();const user=await requireAdmin();if(user.mustChangePassword)throw new ShopError('PASSWORD_CHANGE_REQUIRED',403);if(!canViewAdminSection(user,section))throw new ShopError('FORBIDDEN',403);const db=getDb(),data=emptyData(),page=Math.max(1,Math.min(10000,options.page??1)),take=20,skip=(page-1)*take;data.page=page;data.access={adminOwner:user.adminOwner,adminPermissions:user.adminPermissions,mustChangePassword:user.mustChangePassword};
@@ -55,9 +56,9 @@ export async function getAdminData(section:string,options:{page?:number;q?:strin
   if(hasAdminPermission(user,'discounts'))data.discounts=JSON.parse(JSON.stringify(await db.discountCode.findMany({orderBy:{createdAt:'desc'}})));
  }
  if(section==='order'){
-  const o=await db.order.findUnique({where:{id:options.id??''},select:{...summary,reservationExpiresAt:true,reservationExpiredAt:true,shippingSnapshot:true,courierDispatch:{select:{id:true,requestState:true,externalId:true,externalStatus:true,quotedFeeToman:true,actualFeeToman:true,readyAt:true,lastSyncedAt:true}},invoiceNumber:true,paymentReference:true,paymentConfirmedAt:true,transferReference:true,address:true,city:true,deliveryNotes:true,deliveryZoneNameSnapshot:true,subtotalToman:true,discountToman:true,deliveryFeeToman:true,items:{select:{id:true,productNameFa:true,unit:true,quantity:true,lineTotalToman:true}},statusHistory:{select:{status:true,createdAt:true},orderBy:{createdAt:'asc'}},buyerEmail:true,cryptoPayment:{select:{amountUsdCents:true,requestState:true,invoiceId:true,invoiceStatus:true,additionalStatus:true}},paymentAttempts:{select:{requestState:true}}}});
+  const o=await db.order.findUnique({where:{id:options.id??''},select:{...summary,reservationExpiresAt:true,reservationExpiredAt:true,shippingSnapshot:true,bankTransferSnapshot:true,courierDispatch:{select:{id:true,requestState:true,externalId:true,externalStatus:true,quotedFeeToman:true,actualFeeToman:true,readyAt:true,lastSyncedAt:true}},invoiceNumber:true,paymentReference:true,paymentConfirmedAt:true,transferReference:true,address:true,city:true,deliveryNotes:true,deliveryZoneNameSnapshot:true,subtotalToman:true,discountToman:true,deliveryFeeToman:true,items:{select:{id:true,productNameFa:true,unit:true,quantity:true,lineTotalToman:true}},statusHistory:{select:{status:true,createdAt:true},orderBy:{createdAt:'asc'}},buyerEmail:true,cryptoPayment:{select:{amountUsdCents:true,requestState:true,invoiceId:true,invoiceStatus:true,additionalStatus:true}},paymentAttempts:{select:{requestState:true}}}});
   if(!o)throw new ShopError('NOT_FOUND',404);
-  const {paymentAttempts,cryptoPayment,...safe}=o;data.detail=JSON.parse(JSON.stringify({...safe,items:o.items.map(i=>({...i,quantity:Number(i.quantity)})),cryptoPayment,requestState:cryptoPayment?.requestState??paymentAttempts[0]?.requestState??null}));
+  const {paymentAttempts,cryptoPayment,...safe}=o;data.detail=JSON.parse(JSON.stringify({...safe,transferReport:parseTransferReport(o.transferReport),items:o.items.map(i=>({...i,quantity:Number(i.quantity)})),cryptoPayment,requestState:cryptoPayment?.requestState??paymentAttempts[0]?.requestState??null}));
  }
  return data;
 }

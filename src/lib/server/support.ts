@@ -47,7 +47,7 @@ export async function supportAction(actor:SupportActor,action:SupportAction,thre
   const user=await tx.user.findUnique({where:{id:actor.id}});
   if(!user?.active||user.sessionVersion!==actor.sessionVersion||user.role!==(actor.fromAdmin?'ADMIN':'CUSTOMER'))throw new ShopError('UNAUTHORIZED',401);
   if(actor.fromAdmin&&(user.mustChangePassword||!hasAdminPermission(user,'support')))throw new ShopError('FORBIDDEN',403);
-  if(!actor.fromAdmin&&(!user.mobileVerifiedAt||!user.emailVerifiedAt))throw new ShopError('UNAUTHORIZED',401);
+  if(!actor.fromAdmin&&!user.mobileVerifiedAt)throw new ShopError('UNAUTHORIZED',401);
   const thread=actor.fromAdmin
    ?await tx.supportThread.findUnique({where:{id:threadId??''}})
    :action.action==='send'

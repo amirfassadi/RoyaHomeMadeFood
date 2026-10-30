@@ -1,3 +1,4 @@
+import {encode} from 'next-auth/jwt';
 import {spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {cpSync} from 'node:fs';
@@ -11,8 +12,8 @@ async function main(){
  if(!url||!/^\/(roya_test|roya_integration_test)$/.test(new URL(url).pathname))throw new Error('Product render check requires an isolated integration database.');
  const db=new PrismaClient({adapter:new PrismaPg({connectionString:url})});
  const slug=`render-check-${randomUUID()}`;
- let categoryId:string|undefined,productId:string|undefined,zoneId:string|undefined,orderId:string|undefined,logs='',spawnError:Error|undefined;
- const port=3417;
+ let adminId:string|undefined,categoryId:string|undefined,productId:string|undefined,zoneId:string|undefined,orderId:string|undefined,logs='',spawnError:Error|undefined;
+ const port=3417,sessionSecret='isolated-render-check-session-secret-only';
  // The product is deliberately created after next build: its slug must work
  // on the first request without having been included in generateStaticParams.
  // Match the deployed standalone layout rather than reusing next start's
@@ -24,7 +25,7 @@ async function main(){
  const zone=await db.deliveryZone.create({data:{cityFa:slug,cityEn:'Test',nameFa:slug,nameEn:'Test',feeToman:0,deliveryMinutes:0}});zoneId=zone.id;
  await db.productDailyUsage.create({data:{productId:maintenanceProduct.id,day:'2026-10-01',quantity:1}});
  const pending=await db.order.create({data:{trackingCode:'ROYA-'+randomUUID().replaceAll('-','').slice(0,24).toUpperCase(),idempotencyKey:randomUUID(),requestFingerprint:'0'.repeat(64),locale:'en',capacityDay:'2026-10-01',customerName:'Expiry test',mobile:'09120000001',address:'Temporary test address',city:'Test',deliveryZoneId:zone.id,deliveryZoneNameSnapshot:'Test',paymentMethod:'BANK_TRANSFER',paymentStatus:'PENDING',subtotalToman:1000,deliveryFeeToman:0,totalToman:1000,longestPreparationMinutes:0,zoneDeliveryMinutes:0,estimatedDeliveryAt:new Date(),reservationExpiresAt:new Date(0),items:{create:{productId:maintenanceProduct.id,productNameFa:'آزمون',productNameEn:'Test',unit:'PACK',quantity:1,priceBasisQuantity:1,unitPriceToman:1000,lineTotalToman:1000,preparationMinutes:0,stockReserved:true}}}});orderId=pending.id;
- const server=spawn(process.execPath,['.next/standalone/server.js'],{env:{...process.env,NODE_ENV:'production',HOSTNAME:'127.0.0.1',PORT:String(port),DATABASE_URL:url,DIRECT_URL:url,ROYA_DEMO_CATALOG:'0',SITES_STATIC_PREVIEW:'0',NEXT_PUBLIC_SITE_URL:'https://shop.example'},stdio:['ignore','pipe','pipe']});
+ const server=spawn(process.execPath,['.next/standalone/server.js'],{env:{...process.env,NODE_ENV:'production',HOSTNAME:'127.0.0.1',PORT:String(port),DATABASE_URL:url,DIRECT_URL:url,ROYA_DEMO_CATALOG:'0',SITES_STATIC_PREVIEW:'0',NEXTAUTH_SECRET:sessionSecret,NEXTAUTH_URL:`http://127.0.0.1:${port}`,NEXT_PUBLIC_SITE_URL:`http://127.0.0.1:${port}`},stdio:['ignore','pipe','pipe']});
  server.on('error',error=>{spawnError=error;});
  const capture=(chunk:Buffer)=>{logs=(logs+chunk.toString()).slice(-20000);};
  server.stdout.on('data',capture);server.stderr.on('data',capture);
@@ -37,6 +38,14 @@ async function main(){
    await delay(250);
   }
   assert(ready,'Production server did not become ready.');
+  const admin=await db.user.create({data:{name:'Render check admin',role:'ADMIN',adminOwner:true}});adminId=admin.id;
+  const jwt=await encode({secret:sessionSecret,token:{adminId:admin.id,sessionVersion:admin.sessionVersion},maxAge:600});
+  const headers={Cookie:`next-auth.session-token=${jwt}`,'User-Agent':'Googlebot'};
+  const api=await fetch(`http://127.0.0.1:${port}/api/admin/data/?section=order&id=${pending.id}`,{headers,signal:AbortSignal.timeout(20000)});
+  const apiBody=await api.json();assert.equal(api.status,200,`Admin detail API failed: ${JSON.stringify(apiBody)}`);assert.equal(apiBody.detail.id,pending.id);
+  const detail=await fetch(`http://127.0.0.1:${port}/admin/orders/${pending.id}/`,{headers,signal:AbortSignal.timeout(20000)});
+  const detailHtml=await detail.text();assert.equal(detail.status,200,`Admin page returned ${detail.status}`);assert(detailHtml.includes('جزئیات سفارش')&&!detailHtml.includes('پنل در دسترس نیست'),'Authenticated admin order page did not render.');
+  console.log('Authenticated production admin order API and page render OK for a runtime-created order.');
   let expired=false;
   for(let n=0;n<40;n++){if((await db.order.findUniqueOrThrow({where:{id:pending.id}})).status==='CANCELLED'){expired=true;break;}await delay(250);}
   assert(expired,'Production startup did not run reservation expiry.');
@@ -61,6 +70,7 @@ async function main(){
   server.kill('SIGTERM');
   await Promise.race([new Promise<void>(resolve=>{if(server.exitCode!==null)resolve();else server.once('exit',()=>resolve());}),delay(5000)]);
   if(server.exitCode===null)server.kill('SIGKILL');
+  if(adminId)await db.user.deleteMany({where:{id:adminId}});
   if(orderId)await db.order.deleteMany({where:{id:orderId}});
   if(zoneId)await db.deliveryZone.deleteMany({where:{id:zoneId}});
   await db.product.deleteMany({where:{id:maintenanceProduct.id}});

@@ -68,7 +68,7 @@ export async function placeOrder(input: CheckoutInput,customer?:{id:string;mobil
     if(customer){
       await tx.$queryRaw`SELECT \"id\" FROM \"User\" WHERE \"id\"=${customer.id} FOR SHARE`;
       const owner=await tx.user.findUnique({where:{id:customer.id}});
-      if(owner?.active&&owner.role==='CUSTOMER'&&owner.mobileVerifiedAt&&owner.emailVerifiedAt&&owner.sessionVersion===customer.sessionVersion)userId=owner.id;
+      if(owner?.active&&owner.role==='CUSTOMER'&&owner.mobileVerifiedAt&&owner.sessionVersion===customer.sessionVersion)userId=owner.id;
       else throw new ShopError('UNAUTHORIZED',401);
     }
     if(!userId&&await smsEnabled(tx))await consumeCheckoutProof(tx,input.mobile,input.mobileProof);
@@ -82,9 +82,13 @@ export async function placeOrder(input: CheckoutInput,customer?:{id:string;mobil
       await tx.productDailyUsage.upsert({where:{productId_day:{productId:item.productId,day:q.day}},create:{productId:item.productId,day:q.day,quantity:item.quantity},update:{quantity:{increment:item.quantity}}});
     }
     if(q.discount)await tx.discountCode.update({where:{id:q.discount.id},data:{usedCount:{increment:1}}});
-    const trackingCode=`ROYA-${randomBytes(12).toString('hex').toUpperCase()}`;
-    const invoiceNumber=`INV-${trackingCode.slice(5)}`;
-    const paymentReference=BigInt('0x'+createHash('sha256').update(`${trackingCode}:${invoiceNumber}`).digest('hex').slice(0,20)).toString();
+    // Transactional per-day counter stays unique across instances and rolls back on failure.
+    const sequence=await tx.orderDailySequence.upsert({where:{day:q.day},create:{day:q.day,last:1},update:{last:{increment:1}}});
+    const parts=new Intl.DateTimeFormat('en-US-u-ca-persian',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+    const date=['year','month','day'].map(type=>parts.find(p=>p.type===type)!.value).join('');
+    const trackingCode=`${date}-${String(sequence.last).padStart(4,'0')}`;
+    const invoiceNumber=trackingCode;
+    const paymentReference=trackingCode.replace('-','');
     return tx.order.create({data:{reservationExpiresAt:new Date(now.getTime()+3600000),...(bankTransfer?{bankTransferSnapshot:{accounts:bankTransfer.accounts}}:{}),invoiceNumber,paymentReference,trackingCode,idempotencyKey:input.idempotencyKey,requestFingerprint:fingerprint,locale:input.locale,capacityDay:q.day,userId,customerName:input.name,mobile:input.mobile,address:input.address,city:q.zone.cityFa,deliveryNotes:input.notes,deliveryZoneId:q.zone.id,deliveryZoneNameSnapshot:q.zone.nameFa,paymentMethod:input.paymentMethod,buyerEmail:crypto?input.buyerEmail:undefined,paymentStatus:'PENDING',subtotalToman:q.subtotalToman,discountToman:q.discountToman,deliveryFeeToman:q.deliveryFeeToman,shippingSnapshot:'deliveryProvider' in q?{provider:q.deliveryProvider,courierFeeToman:q.courierFeeToman,markupToman:q.shippingMarkupToman,markupPercent:q.shippingMarkupPercent,origin:q.shippingOrigin,destination:input.destination,quotedAt:now.toISOString()}:undefined,totalToman:q.totalToman,discountCodeId:q.discount?.id,discountCodeSnapshot:q.discount?.code,longestPreparationMinutes:q.longestPreparationMinutes,zoneDeliveryMinutes:q.zone.deliveryMinutes,estimatedDeliveryAt:q.estimatedDeliveryAt,...(crypto&&foreign?{cryptoPayment:{create:{amountUsdCents:foreign.amountUsdCents,tomanPerUsd:crypto.rate,rateExpiresAt:new Date(crypto.expires),storeId:crypto.store,gatewayOrigin:crypto.url}}}:{}),items:{create:q.items},statusHistory:{create:{status:'PENDING'}},...(gateway?{paymentAttempts:{create:{amountToman:q.totalToman,callbackNonce:randomBytes(32).toString('hex'),merchantId:gateway.merchantId,sandbox:gateway.sandbox}}}:{})}});
   },{maxWait:10000,timeout:15000});
 }

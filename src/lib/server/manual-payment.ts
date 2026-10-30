@@ -1,3 +1,4 @@
+import {bankReferenceSchema,parseTransferReport} from '@/lib/validation/transfer-report';
 import 'server-only';
 import {z} from 'zod';
 import {bankTransferSettingsSchema,bankTransferSnapshotSchema,type BankTransferDetails} from '@/lib/validation/bank-transfer';
@@ -25,7 +26,7 @@ export async function bankTransferDetails(snapshot?:unknown):Promise<BankTransfe
  const setting=await getDb().setting.findUnique({where:{key:'bank-transfer'}});
  return configuredBankTransfer(setting?.value);
 }
-export const confirmTransferSchema=z.object({id:z.string().min(1).max(100),reference:z.string().trim().regex(/^[A-Za-z0-9-]{4,100}$/),amountToman:z.number().int().positive()}).strict();
+export const confirmTransferSchema=z.object({id:z.string().min(1).max(100),reference:bankReferenceSchema,amountToman:z.number().int().positive(),expectedReportAt:z.iso.datetime().nullable().optional()}).strict();
 export async function confirmTransfer(input:z.infer<typeof confirmTransferSchema>,adminId:string){
  return getDb().$transaction(async tx=>{
   await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id"=${input.id} FOR UPDATE`;
@@ -36,6 +37,8 @@ export async function confirmTransfer(input:z.infer<typeof confirmTransferSchema
    if(order.transferReference!==input.reference)throw new ShopError('CONFLICT',409);
    return;
   }
+  const report=parseTransferReport(order.transferReport);
+  if((report?.reportedAt??null)!==(input.expectedReportAt??null))throw new ShopError('CONFLICT',409);
   const now=new Date(),expired=await expireLockedReservation(tx,order,new Date());
   await tx.order.update({where:{id:order.id},data:{paymentStatus:'PAID',paymentConfirmedAt:now,transferReference:input.reference,...(order.status==='CANCELLED'||expired?{refundRequired:true}:{estimatedDeliveryAt:estimateDelivery(now,[order.longestPreparationMinutes],order.zoneDeliveryMinutes)})}});
   await audit(tx,adminId,'BANK_TRANSFER_CONFIRMED',order.id);
