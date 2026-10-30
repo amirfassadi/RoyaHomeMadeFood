@@ -10,7 +10,7 @@ import {formatDate,formatNumber,formatToman} from '@/lib/format';
 import type {Locale} from '@/i18n/routing';
 import {trackingSchema} from '@/lib/validation/checkout';
 import {PrototypeTracking} from './prototype-tracking';
-type Tracked=Pick<Receipt,'transferReport'|'canReportTransfer'|'transferReference'|'invoiceNumber'|'paymentReference'|'bankTransfer'|'reservationExpiresAt'|'reservationExpiredAt'|'refundRequired'>&{courier?:{state:string;status:string|null;lastSyncedAt:string|null}|null;amountUsdCents?:number;trackingCode:string;status:string;paymentStatus:string;paymentMethod:string;totalToman:number;estimatedDeliveryAt:string|null;items:{nameFa:string;nameEn:string;quantity:number;unit:string;lineTotalToman:number}[];history:{status:string;date:string}[];paymentUrl:string|null};
+type Tracked=Pick<Receipt,'transferReviewStatus'|'transferReviewReason'|'transferReviewedAt'|'transferReport'|'canReportTransfer'|'transferReference'|'invoiceNumber'|'paymentReference'|'bankTransfer'|'reservationExpiresAt'|'reservationExpiredAt'|'refundRequired'>&{courier?:{state:string;status:string|null;lastSyncedAt:string|null}|null;amountUsdCents?:number;trackingCode:string;status:string;paymentStatus:string;paymentMethod:string;totalToman:number;estimatedDeliveryAt:string|null;items:{nameFa:string;nameEn:string;quantity:number;unit:string;lineTotalToman:number}[];history:{status:string;date:string}[];paymentUrl:string|null};
 export function TrackingForm({isDemo}:{isDemo:boolean}){
  return isDemo?<PrototypeTracking/>:<LiveTrackingForm isDemo={false}/>;
 }

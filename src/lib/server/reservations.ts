@@ -21,6 +21,7 @@ export async function releaseInventory(tx:Prisma.TransactionClient,o:ReservedOrd
 // Caller must hold the Order row lock. Gateway records are preserved: a later
 // successful payment requires refund review, never fulfilment from freed stock.
 export async function expireLockedReservation(tx:Prisma.TransactionClient,o:ReservedOrder,now=new Date()){
+ if(o.paymentMethod==='BANK_TRANSFER'&&o.transferReviewStatus==='PENDING')return false;
  if(o.status!=='PENDING'||!o.inventoryReserved||!['UNPAID','PENDING','FAILED'].includes(o.paymentStatus)||!o.reservationExpiresAt||o.reservationExpiresAt>now)return false;
  if(await tx.courierDispatch.findUnique({where:{orderId:o.id}}))return false;
  await releaseInventory(tx,o);
@@ -37,7 +38,7 @@ export async function expireOrderReservation(id:string,now=new Date()){
  },{timeout:15000});
 }
 export async function expireDueReservations(now=new Date()){
- const orders=await getDb().order.findMany({where:{status:'PENDING',inventoryReserved:true,paymentStatus:{in:['UNPAID','PENDING','FAILED']},reservationExpiresAt:{lte:now}},select:{id:true},orderBy:{reservationExpiresAt:'asc'},take:50});
+ const orders=await getDb().order.findMany({where:{status:'PENDING',transferReviewStatus:{not:'PENDING'},inventoryReserved:true,paymentStatus:{in:['UNPAID','PENDING','FAILED']},reservationExpiresAt:{lte:now}},select:{id:true},orderBy:{reservationExpiresAt:'asc'},take:50});
  let expired=0;
  for(const o of orders)if(await expireOrderReservation(o.id,now))expired++;
  return expired;

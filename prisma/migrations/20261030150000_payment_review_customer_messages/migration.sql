@@ -1,0 +1,12 @@
+ALTER TABLE "User" ADD COLUMN "marketingEmail" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Order" ADD COLUMN "transferReviewStatus" VARCHAR(16) NOT NULL DEFAULT 'NONE', ADD COLUMN "transferReviewReason" VARCHAR(500), ADD COLUMN "transferReviewedAt" TIMESTAMPTZ(3);
+UPDATE "Order" SET "transferReviewStatus"='PENDING' WHERE "paymentMethod"='BANK_TRANSFER' AND "paymentStatus" IN ('UNPAID','PENDING','FAILED') AND "transferReport" IS NOT NULL AND ("status"='PENDING' OR "reservationExpiredAt" IS NOT NULL);
+UPDATE "Order" SET "reservationExpiresAt"=NULL WHERE "transferReviewStatus"='PENDING' AND "status"='PENDING';
+CREATE INDEX "Order_transferReviewStatus_createdAt_idx" ON "Order"("transferReviewStatus","createdAt");
+CREATE TABLE "CustomerNotice" ("id" TEXT NOT NULL,"userId" TEXT NOT NULL,"dedupeKey" TEXT NOT NULL,"orderId" TEXT,"campaignId" TEXT,"kind" VARCHAR(32) NOT NULL,"title" VARCHAR(150) NOT NULL,"body" TEXT NOT NULL,"preference" VARCHAR(10) NOT NULL DEFAULT 'AUTO',"status" VARCHAR(16) NOT NULL DEFAULT 'HELD',"channel" VARCHAR(10),"errorCode" VARCHAR(40),"notBefore" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"sentAt" TIMESTAMPTZ(3),"createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMPTZ(3) NOT NULL,CONSTRAINT "CustomerNotice_pkey" PRIMARY KEY("id"));
+CREATE UNIQUE INDEX "CustomerNotice_dedupeKey_key" ON "CustomerNotice"("dedupeKey");
+CREATE INDEX "CustomerNotice_status_notBefore_idx" ON "CustomerNotice"("status","notBefore");
+CREATE INDEX "CustomerNotice_userId_createdAt_idx" ON "CustomerNotice"("userId","createdAt");
+CREATE INDEX "CustomerNotice_campaignId_status_idx" ON "CustomerNotice"("campaignId","status");
+ALTER TABLE "CustomerNotice" ADD CONSTRAINT "CustomerNotice_userId_fkey" FOREIGN KEY("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+CREATE TABLE "CustomerCampaign" ("id" TEXT NOT NULL,"title" VARCHAR(150) NOT NULL,"body" TEXT NOT NULL,"category" VARCHAR(20) NOT NULL,"purpose" VARCHAR(16) NOT NULL,"audience" VARCHAR(20) NOT NULL,"identifier" VARCHAR(254),"preference" VARCHAR(10) NOT NULL DEFAULT 'AUTO',"status" VARCHAR(16) NOT NULL DEFAULT 'DRAFT',"notBefore" TIMESTAMPTZ(3) NOT NULL,"createdBy" TEXT NOT NULL,"createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMPTZ(3) NOT NULL,CONSTRAINT "CustomerCampaign_pkey" PRIMARY KEY("id"));

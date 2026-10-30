@@ -10,7 +10,7 @@ export const requestCodeSchema=z.object({mobile:mobileSchema,name:z.string().tri
 export const verifyCodeSchema=z.object({challengeId:z.uuid(),code:z.string().transform(toLatinDigits).pipe(z.string().regex(/^\d{6}$/))});
 export const resendEmailSchema=z.object({challengeId:z.uuid()}).strict();
 export const customerPasswordSchema=z.object({identifier:z.string().trim().max(254).transform(value=>value.includes('@')?value.toLowerCase():toLatinDigits(value).replace(/[\s-]/g,'')),password:passwordSchema});
-export const profileSchema=z.object({name:z.string().trim().min(2).max(100),marketingSms:z.boolean()}).strict();
+export const profileSchema=z.object({name:z.string().trim().min(2).max(100),marketingSms:z.boolean(),marketingEmail:z.boolean().optional()}).strict();
 export const addressSchema=z.object({id:z.string().min(1).max(100).optional(),title:z.string().trim().min(1).max(50),recipientName:z.string().trim().min(2).max(100),mobile:mobileSchema,zoneId:z.string().min(1).max(100),address:z.string().trim().min(10).max(1000),destination:coordinatesSchema.nullable().optional()}).strict();
 export const deleteAddressSchema=z.object({id:z.string().min(1).max(100)}).strict();
 export const customerPasswordChangeSchema=z.object({currentPassword:z.string().min(1).max(128),newPassword:passwordSchema}).strict().refine(v=>v.currentPassword!==v.newPassword);

@@ -17,11 +17,13 @@ import {emptyData,type AdminData} from '@/lib/admin/types';
 import {demoAdminData} from '@/lib/admin/demo';
 import {contactSettingsSchema} from '@/lib/validation/contact';
 import type {Prisma} from '@/generated/prisma/client';
-const summary={transferReport:true,id:true,trackingCode:true,customerName:true,mobile:true,status:true,paymentMethod:true,paymentStatus:true,totalToman:true,createdAt:true,estimatedDeliveryAt:true,refundRequired:true} as const;
-export async function getAdminData(section:string,options:{page?:number;q?:string;status?:string;id?:string;mobile?:string}={}):Promise<AdminData>{
+const summary={transferReviewStatus:true,transferReviewReason:true,transferReviewedAt:true,transferReport:true,id:true,trackingCode:true,customerName:true,mobile:true,status:true,paymentMethod:true,paymentStatus:true,totalToman:true,createdAt:true,estimatedDeliveryAt:true,refundRequired:true} as const;
+export async function getAdminData(section:string,options:{page?:number;q?:string;status?:string;id?:string;mobile?:string;review?:string}={}):Promise<AdminData>{
  if(isDemoCatalog())return demoAdminData();
  await connection();const user=await requireAdmin();if(user.mustChangePassword)throw new ShopError('PASSWORD_CHANGE_REQUIRED',403);if(!canViewAdminSection(user,section))throw new ShopError('FORBIDDEN',403);const db=getDb(),data=emptyData(),page=Math.max(1,Math.min(10000,options.page??1)),take=20,skip=(page-1)*take;data.page=page;data.access={adminOwner:user.adminOwner,adminPermissions:user.adminPermissions,mustChangePassword:user.mustChangePassword};
  const q=(options.q??'').slice(0,100);
+ if(hasAdminPermission(user,'payments')||hasAdminPermission(user,'orders'))data.pendingReviews=await db.order.count({where:{paymentMethod:'BANK_TRANSFER',transferReviewStatus:'PENDING',paymentStatus:{not:'PAID'}}});
+ data.reviewOnly=options.review==='pending';
  if(section==='dashboard'&&(hasAdminPermission(user,'orders')||hasAdminPermission(user,'payments'))){
   const [products,orders,pending,recent]=await Promise.all([db.product.count(),db.order.count(),db.order.count({where:{status:'PENDING'}}),db.order.findMany({select:summary,orderBy:{createdAt:'desc'},take:5})]);data.stats={products,orders,pending};data.orders=JSON.parse(JSON.stringify(recent));
  }
@@ -32,7 +34,7 @@ export async function getAdminData(section:string,options:{page?:number;q?:strin
  }
  if(section==='orders'||section==='customer'){
   const statuses=['PENDING','PREPARING','SHIPPED','DELIVERED','CANCELLED'];
-  const where:Prisma.OrderWhereInput={...(statuses.includes(options.status??'')?{status:options.status as Prisma.OrderWhereInput['status']}:{}),...(options.mobile?{mobile:options.mobile}:{}),...(q?{OR:[{trackingCode:{contains:q,mode:'insensitive'}},{invoiceNumber:{contains:q,mode:'insensitive'}},{paymentReference:{contains:q}},{transferReference:{contains:q}},{customerName:{contains:q}},{mobile:{contains:q}}]}:{})};
+  const where:Prisma.OrderWhereInput={...(options.review==='pending'?{paymentMethod:'BANK_TRANSFER',transferReviewStatus:'PENDING',paymentStatus:{not:'PAID'}}:{}),...(statuses.includes(options.status??'')?{status:options.status as Prisma.OrderWhereInput['status']}:{}),...(options.mobile?{mobile:options.mobile}:{}),...(q?{OR:[{trackingCode:{contains:q,mode:'insensitive'}},{invoiceNumber:{contains:q,mode:'insensitive'}},{paymentReference:{contains:q}},{transferReference:{contains:q}},{customerName:{contains:q}},{mobile:{contains:q}}]}:{})};
   const [rows,count]=await Promise.all([db.order.findMany({where,select:summary,orderBy:{createdAt:'desc'},take,skip}),db.order.count({where})]);data.orders=JSON.parse(JSON.stringify(rows));data.totalPages=Math.max(1,Math.ceil(count/take));
  }
  if(section==='customers'){

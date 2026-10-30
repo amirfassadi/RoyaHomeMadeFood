@@ -7,3 +7,5 @@ export const submitTransferReportSchema=transferReportSchema.extend({trackingCod
 export const storedTransferReportSchema=transferReportSchema.extend({reportedAt:z.iso.datetime()}).strict();
 export type TransferReport=z.infer<typeof storedTransferReportSchema>;
 export function parseTransferReport(value:unknown){return storedTransferReportSchema.safeParse(value).data??null;}
+
+export const rejectTransferSchema=z.object({id:z.string().min(1).max(100),expectedReportAt:z.iso.datetime(),reason:z.string().trim().min(5).max(500)}).strict();

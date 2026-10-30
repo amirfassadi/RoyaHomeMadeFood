@@ -1,3 +1,6 @@
+import {rejectTransfer} from '../../src/lib/server/manual-payment';
+import {manageCampaign,deliveryPolicy,deliveryPolicyKey} from '../../src/lib/server/customer-messages';
+import {dispatchPendingNotices} from '../../src/lib/server/notice-delivery';
 import {reportCustomerTransfer} from '../../src/lib/server/transfer-report';
 import {authorizeCustomerPassword} from '../../src/lib/server/customer-otp';
 import {saveCustomerAddress} from '../../src/lib/server/customer-addresses';
@@ -243,4 +246,29 @@ test('customer signup, address, short concurrent invoices, transfer report, admi
  assert.equal((await customerOrderTracking(customer.id,order.trackingCode)).trackingCode,order.trackingCode);
  await assert.rejects(()=>customerOrderTracking(admin.id,order.trackingCode),/NOT_FOUND/);
  }finally{if(oldBank)await db.setting.update({where:{key:'bank-transfer'},data:{value:oldBank.value!}});else await db.setting.deleteMany({where:{key:'bank-transfer'}});}
+});
+
+
+test('bank reports hold reservations for review; rejection is audited and queued without sending; campaigns require consent and explicit release',async()=>{
+ const oldPolicy=await db.setting.findUnique({where:{key:deliveryPolicyKey}}),oldBank=await db.setting.findUnique({where:{key:'bank-transfer'}}),campaignIds:string[]=[];
+ const originalFetch=globalThis.fetch;let requests=0;globalThis.fetch=async()=>{requests++;throw new Error('External sends forbidden in this test');};
+ try{
+ await db.setting.deleteMany({where:{key:deliveryPolicyKey}});assert.equal((await deliveryPolicy()).policy.enabled,false);
+ const accountId='00000000-0000-4000-8000-000000000001';await db.setting.upsert({where:{key:'bank-transfer'},create:{key:'bank-transfer',value:{enabled:true,accounts:[{id:accountId,holder:'Test shop',card:'6037000000000000',iban:'',active:true}]}},update:{value:{enabled:true,accounts:[{id:accountId,holder:'Test shop',card:'6037000000000000',iban:'',active:true}]}}});
+ const buyer=await db.user.create({data:{name:'Review test buyer',role:'CUSTOMER',mobile:`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`,email:`${randomUUID()}@example.com`,mobileVerifiedAt:new Date()}});userIds.push(buyer.id);
+ const customer={id:buyer.id,mobile:buyer.mobile!,sessionVersion:buyer.sessionVersion},p=await product(),order=await placeOrder({...input(p),paymentMethod:'BANK_TRANSFER'},customer);
+ const raw={trackingCode:order.trackingCode,reference:`BANK-${randomUUID()}`,amountToman:order.totalToman,paidAt:new Date().toISOString(),accountId,note:'Review test',expectedReportedAt:null};
+ const first=await reportCustomerTransfer(customer,raw);let current=await db.order.findUniqueOrThrow({where:{id:order.id}});assert.equal(current.transferReviewStatus,'PENDING');assert.equal(current.reservationExpiresAt,null);
+ await db.order.update({where:{id:order.id},data:{reservationExpiresAt:new Date(0)}});assert.equal(await expireOrderReservation(order.id),false);assert.equal((await db.order.findUniqueOrThrow({where:{id:order.id}})).status,'PENDING');assert.equal(Number((await db.product.findUniqueOrThrow({where:{id:p.id}})).stockQuantity),0);
+ const rejection={id:order.id,expectedReportAt:first.report.reportedAt,reason:'شماره پیگیری در حساب مقصد یافت نشد'};
+ await Promise.all([rejectTransfer(rejection,admin.id),rejectTransfer(rejection,admin.id)]);current=await db.order.findUniqueOrThrow({where:{id:order.id}});assert.equal(current.transferReviewStatus,'REJECTED');assert.equal(current.paymentStatus,'PENDING');assert(current.reservationExpiresAt!>new Date());
+ assert.equal(await db.customerNotice.count({where:{orderId:order.id,status:'HELD'}}),1);assert.equal(await db.adminAudit.count({where:{targetId:order.id,action:'BANK_TRANSFER_REJECTED'}}),1);await dispatchPendingNotices();assert.equal(requests,0);
+ await assert.rejects(()=>confirmTransfer({id:order.id,reference:raw.reference,amountToman:order.totalToman,expectedReportAt:first.report.reportedAt},admin.id),/CONFLICT/);
+ const corrected=await reportCustomerTransfer(customer,{...raw,reference:`BANK-${randomUUID()}`,expectedReportedAt:first.report.reportedAt});assert.equal((await db.order.findUniqueOrThrow({where:{id:order.id}})).transferReviewStatus,'PENDING');
+ await confirmTransfer({id:order.id,reference:corrected.report.reference,amountToman:order.totalToman,expectedReportAt:corrected.report.reportedAt},admin.id);assert.equal((await db.order.findUniqueOrThrow({where:{id:order.id}})).paymentStatus,'PAID');
+ const saved=await manageCampaign({action:'save',campaign:{title:'پیشنهاد جدید',body:'متن پیشنهاد تخفیف دوره‌ای آزمایشی',category:'DISCOUNT',purpose:'MARKETING',audience:'CUSTOMER',identifier:buyer.email!,preference:'EMAIL',notBefore:new Date().toISOString()}},admin.id);campaignIds.push(saved.id!);
+ let c=await db.customerCampaign.findUniqueOrThrow({where:{id:saved.id}});assert.equal(c.status,'DRAFT');await assert.rejects(()=>manageCampaign({action:'prepare',id:c.id,expectedUpdatedAt:c.updatedAt.toISOString()},admin.id),/NO_RECIPIENTS/);
+ await db.user.update({where:{id:buyer.id},data:{marketingEmail:true}});await manageCampaign({action:'prepare',id:c.id,expectedUpdatedAt:c.updatedAt.toISOString()},admin.id);c=await db.customerCampaign.findUniqueOrThrow({where:{id:c.id}});assert.equal(c.status,'PREPARED');assert.equal(await db.customerNotice.count({where:{campaignId:c.id,status:'HELD'}}),1);
+ await assert.rejects(()=>manageCampaign({action:'release',id:c.id,expectedUpdatedAt:c.updatedAt.toISOString()},admin.id),/DELIVERY_DISABLED/);await dispatchPendingNotices();assert.equal(requests,0);
+ }finally{globalThis.fetch=originalFetch;await db.customerCampaign.deleteMany({where:{id:{in:campaignIds}}});if(oldPolicy)await db.setting.upsert({where:{key:deliveryPolicyKey},create:{key:deliveryPolicyKey,value:oldPolicy.value!},update:{value:oldPolicy.value!}});else await db.setting.deleteMany({where:{key:deliveryPolicyKey}});if(oldBank)await db.setting.upsert({where:{key:'bank-transfer'},create:{key:'bank-transfer',value:oldBank.value!},update:{value:oldBank.value!}});else await db.setting.deleteMany({where:{key:'bank-transfer'}});}
 });

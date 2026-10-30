@@ -26,3 +26,5 @@ test('late bank confirmation expires the reservation first and records refund re
  await confirmTransfer(input,'admin');assert.equal(order.status,'CANCELLED');assert.equal(order.refundRequired,true);assert.equal(order.paymentStatus,'PAID');assert.equal(order.estimatedDeliveryAt,eta);
  await confirmTransfer(input,'admin');assert.equal(counts().released,1);
 });
+
+test('reported bank transfer waits for the admin decision even after the old deadline',async()=>{const {order,tx,counts}=setup();order.transferReviewStatus='PENDING';assert.equal(await expireLockedReservation(tx,order),false);assert.equal(order.status,'PENDING');assert.equal(counts().released,0);});
