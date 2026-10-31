@@ -1,3 +1,4 @@
+import {consumeRateLimits} from '../../src/lib/server/rate-limit';
 import {supportAction,customerSupportHistory,supportInbox} from '../../src/lib/server/support';
 import {rejectTransfer} from '../../src/lib/server/manual-payment';
 import {manageCampaign,deliveryPolicy,deliveryPolicyKey} from '../../src/lib/server/customer-messages';
@@ -293,4 +294,29 @@ test('support sequences, retries and read receipts serialize under PostgreSQL ro
  const other=await db.user.create({data:{name:'Other support customer'}});userIds.push(other.id);
  assert.equal((await customerSupportHistory(other.id)).threadId,null);
  const earlier=await customerSupportHistory(user.id,3);assert.deepEqual(earlier.messages.map(m=>m.sequence),[1,2]);
+});
+
+
+test('SMS quota reservation rolls back all buckets on rejection and serializes concurrent sends',async()=>{
+ const globalKey=`${prefix}:quota:global`,mobileKey=`${prefix}:quota:mobile`,otherKey=`${prefix}:quota:other`;
+ const quota=(key:string,limit:number,windowSeconds=60)=>({key,limit,windowSeconds});
+ const keys=[globalKey,mobileKey,otherKey];
+ try{
+  const requests=await Promise.all(Array.from({length:6},()=>consumeRateLimits([quota(globalKey,30),quota(mobileKey,1)])));
+  assert.equal(requests.filter(r=>r.allowed).length,1);
+  assert(requests.filter(r=>!r.allowed).every(r=>r.retryAfter>0&&r.retryAfter<=60));
+  assert.equal((await db.rateLimitBucket.findUniqueOrThrow({where:{key:globalKey}})).count,1);
+  assert.equal((await db.rateLimitBucket.findUniqueOrThrow({where:{key:mobileKey}})).count,1);
+  // One exhausted recipient cannot consume the global budget or a new bucket.
+  assert.equal((await consumeRateLimits([quota(otherKey,10),quota(mobileKey,1),quota(globalKey,30)])).allowed,false);
+  assert.equal(await db.rateLimitBucket.findUnique({where:{key:otherKey}}),null);
+  assert.equal((await db.rateLimitBucket.findUniqueOrThrow({where:{key:globalKey}})).count,1);
+  await db.rateLimitBucket.update({where:{key:mobileKey},data:{expiresAt:new Date(Date.now()-1000)}});
+  assert.equal((await consumeRateLimits([quota(globalKey,30),quota(mobileKey,1)])).allowed,true);
+  assert.equal((await db.rateLimitBucket.findUniqueOrThrow({where:{key:mobileKey}})).count,1);
+  // The client must wait for the longest blocked window, not just the cooldown.
+  await db.$executeRaw`UPDATE "RateLimitBucket" SET "count"=30, "expiresAt"=clock_timestamp()+INTERVAL '1 hour' WHERE "key"=${globalKey}`;
+  const blocked=await consumeRateLimits([quota(globalKey,30,3600),quota(mobileKey,1)]);
+  assert.equal(blocked.allowed,false);assert(blocked.retryAfter>3500&&blocked.retryAfter<=3600,`unexpected retry duration: ${blocked.retryAfter}`);
+ }finally{await db.rateLimitBucket.deleteMany({where:{key:{in:keys}}});}
 });

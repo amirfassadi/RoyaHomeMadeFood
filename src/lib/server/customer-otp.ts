@@ -5,7 +5,7 @@ import 'server-only';
 import {randomInt,randomUUID,createHash} from 'node:crypto';
 import {getDb} from './db';
 import {isDemoCatalog} from './catalog';
-import {consumeRateLimit} from './rate-limit';
+import {consumeRateLimit,consumeRateLimits} from './rate-limit';
 import {ShopError} from './shop-http';
 import {hashPassword,verifyPassword} from '@/lib/admin/password';
 import {otpDigest,otpMatches} from '@/lib/customer/otp';
@@ -20,11 +20,19 @@ export async function requestCustomerCode(raw:unknown){
  if(!await smsEnabled())throw new ShopError('SMS_PAUSED',503);
  if(!await customerRegistrationEnabled())throw new ShopError('UNAVAILABLE',503);
  const {password,...input}=requestCodeSchema.parse(raw);
- if(!await consumeRateLimit('customer:sms:global',30,3600))throw new ShopError('RATE_LIMIT',429);
- await limit(input.mobile,'send-cooldown',1,60);await limit(input.mobile,'send',3,600);await limit(input.mobile,'daily',10,86400);await limit(input.email,'email-register',10,86400);
  const db=getDb(),existing=await db.user.findFirst({where:{OR:[{mobile:input.mobile},{email:input.email}]}});
  // Legacy mobile-only customers may complete registration after proving both contacts.
  if(existing&&(!existing.active||existing.role!=='CUSTOMER'||existing.passwordHash||existing.emailVerifiedAt||existing.mobile!==input.mobile))throw new ShopError('ACCOUNT_EXISTS',409);
+ const mobileKey=createHash('sha256').update(input.mobile).digest('hex'),emailKey=createHash('sha256').update(input.email).digest('hex');
+ const quota=await consumeRateLimits([
+  {key:'customer:sms:global',limit:30,windowSeconds:3600},
+  {key:`customer:send-cooldown:${mobileKey}`,limit:1,windowSeconds:60},
+  {key:`customer:send:${mobileKey}`,limit:3,windowSeconds:600},
+  {key:`customer:daily:${mobileKey}`,limit:10,windowSeconds:86400},
+  {key:`customer:email-register:${emailKey}`,limit:10,windowSeconds:86400}
+ ]);
+ if(!quota.allowed)throw new ShopError('RATE_LIMIT',429,quota.retryAfter);
+ // Keep accepted send attempts charged even on provider timeout: SMS may have been sent.
  const id=randomUUID(),code=newCode(),now=new Date(),passwordHash=await hashPassword(password);
  await db.$transaction(async tx=>{
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`customer:${input.mobile}`},0))::text`;
