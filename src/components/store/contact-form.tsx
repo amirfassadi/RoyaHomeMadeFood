@@ -10,7 +10,7 @@ export function ContactForm({disabledReason}: {disabledReason?: 'preview' | 'una
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); if (busy || disabledReason) return;
     const form = e.currentTarget, data = new FormData(form);
-    const parsed = contactSchema.safeParse({name: data.get('name'), mobile: data.get('mobile'), message: data.get('message'), website: data.get('website') ?? '', locale});
+    const parsed = contactSchema.safeParse({name: data.get('name'), mobile: data.get('mobile'), email: data.get('email')||undefined, message: data.get('message'), website: data.get('website') ?? '', locale});
     if (!parsed.success) {setStatus('invalid'); return;}
     setBusy(true); setStatus(null);
     try {
@@ -24,6 +24,7 @@ export function ContactForm({disabledReason}: {disabledReason?: 'preview' | 'una
     <fieldset disabled={!!disabledReason || busy} className="grid gap-5">
       <div><label htmlFor="contact-name" className="text-sm font-semibold">{t('name')}</label><input id="contact-name" name="name" required minLength={2} maxLength={100} autoComplete="name" placeholder={t('namePlaceholder')} className={inputClass}/></div>
       <div><label htmlFor="contact-mobile" className="text-sm font-semibold">{t('mobile')}</label><input id="contact-mobile" name="mobile" type="tel" inputMode="tel" required maxLength={20} autoComplete="tel" placeholder={t('mobilePlaceholder')} className={inputClass} dir="ltr"/></div>
+      <div><label htmlFor="contact-email" className="text-sm font-semibold">{t('replyEmail')}</label><input id="contact-email" name="email" type="email" maxLength={254} autoComplete="email" className={inputClass} dir="ltr"/><p className="mt-2 text-xs leading-6 text-roya-muted">{t('replyHint')}</p></div>
       <div><label htmlFor="contact-message" className="text-sm font-semibold">{t('message')}</label><textarea id="contact-message" name="message" required minLength={10} maxLength={3000} rows={6} placeholder={t('messagePlaceholder')} className={`${inputClass} py-3 leading-7`}/></div>
       <div className="hidden" aria-hidden="true"><input name="website" tabIndex={-1} autoComplete="off"/></div>
       <p id="contact-privacy" className="text-xs leading-6 text-roya-muted">{t('privacy')}</p><Button type="submit" aria-describedby="contact-privacy">{t(busy ? 'sending' : 'send')}<Send size={17}/></Button>

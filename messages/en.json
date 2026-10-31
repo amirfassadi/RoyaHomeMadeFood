@@ -198,7 +198,7 @@
     "invalid": "Enter your name, an Iranian mobile number, and a message of at least 10 characters.",
     "preview": "Messages are not sent in this preview.",
     "unavailable": "Message submission is not yet enabled.",
-    "privacy": "Your name, mobile number and message are retained to respond to your request.",
+    "privacy": "Your name, mobile, optional email and message are stored to handle and reply to this request.",
     "info": "Contact Roya",
     "phone": "Phone",
     "email": "Email",
@@ -206,7 +206,9 @@
     "hours": "Response hours",
     "pending": "Contact information will be available soon.",
     "faqLink": "You may find your answer here",
-    "faq": "Frequently asked questions"
+    "faq": "Frequently asked questions",
+    "replyHint": "If you have an account with this mobile, replies appear in My messages. Otherwise, we can reply by SMS or email.",
+    "replyEmail": "Email (optional, for a reply)"
   },
   "FAQ": {
     "title": "Frequently asked questions",

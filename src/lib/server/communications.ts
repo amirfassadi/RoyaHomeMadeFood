@@ -1,3 +1,4 @@
+import {contactReplyAvailability} from './contact-replies';
 import 'server-only';
 import {connection} from 'next/server';
 import {isDemoCatalog} from './catalog';
@@ -12,8 +13,10 @@ export async function getCommunications(page=1,filter='all'):Promise<ContactInbo
  if(isDemoCatalog())return {page:1,totalPages:1,unread:1,messages:[{id:'demo-message',name:'مشتری نمونه',mobile:'',message:'این پیام نمونه برای بررسی صندوق تماس است.',locale:'fa',readAt:null,createdAt:'2026-10-11T08:00:00.000Z'}],announcements:[]};
  await connection();await requireAdmin('communications');
  const db=getDb(),where=filter==='unread'?{readAt:null}:filter==='read'?{readAt:{not:null}}:{};
- const [messages,total,unread,announcements]=await Promise.all([db.contactMessage.findMany({where,take:20,skip:(page-1)*20,orderBy:{createdAt:'desc'}}),db.contactMessage.count({where}),db.contactMessage.count({where:{readAt:null}}),db.clubAnnouncement.findMany({take:50,orderBy:{createdAt:'desc'}})]);
- return {page,totalPages:Math.max(1,Math.ceil(total/20)),unread,messages:messages.map(m=>({...m,readAt:m.readAt?.toISOString()??null,createdAt:m.createdAt.toISOString()})),announcements:announcements.map(a=>({...a,startsAt:a.startsAt?.toISOString()??null,expiresAt:a.expiresAt?.toISOString()??null,updatedAt:a.updatedAt.toISOString()}))};
+ const [messages,total,unread,announcements]=await Promise.all([db.contactMessage.findMany({where,take:20,skip:(page-1)*20,orderBy:{createdAt:'desc'},include:{replies:{take:50,orderBy:{createdAt:'desc'}}}}),db.contactMessage.count({where}),db.contactMessage.count({where:{readAt:null}}),db.clubAnnouncement.findMany({take:50,orderBy:{createdAt:'desc'}})]);
+ const members=await db.user.findMany({where:{mobile:{in:messages.map(m=>m.mobile)},active:true,role:'CUSTOMER',mobileVerifiedAt:{not:null}},select:{mobile:true}}),memberMobiles=new Set(members.map(u=>u.mobile));
+ const replyDelivery=await contactReplyAvailability();
+ return {replyDelivery,page,totalPages:Math.max(1,Math.ceil(total/20)),unread,messages:messages.map(m=>({...m,canPanelReply:memberMobiles.has(m.mobile),replies:[...m.replies].reverse().map(r=>({id:r.id,body:r.body,channel:r.channel,status:r.status==='SENDING'&&Date.now()-r.createdAt.getTime()>300000?'UNKNOWN':r.status,createdAt:r.createdAt.toISOString()})),readAt:m.readAt?.toISOString()??null,createdAt:m.createdAt.toISOString()})),announcements:announcements.map(a=>({...a,startsAt:a.startsAt?.toISOString()??null,expiresAt:a.expiresAt?.toISOString()??null,updatedAt:a.updatedAt.toISOString()}))};
 }
 export async function saveCommunication(input:z.infer<typeof communicationActionSchema>,adminId:string){
  return getDb().$transaction(async tx=>{

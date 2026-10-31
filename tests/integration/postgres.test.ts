@@ -1,3 +1,4 @@
+import {replyToContact} from '../../src/lib/server/contact-replies';
 import {consumeRateLimits} from '../../src/lib/server/rate-limit';
 import {supportAction,customerSupportHistory,supportInbox} from '../../src/lib/server/support';
 import {rejectTransfer} from '../../src/lib/server/manual-payment';
@@ -13,7 +14,7 @@ import {createAdminUser,updateAdminUser} from '../../src/lib/server/admin-users'
 import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash,randomUUID} from 'node:crypto';
-import {PrismaClient} from '../../src/generated/prisma/client';
+import {PrismaClient,Prisma} from '../../src/generated/prisma/client';
 import {PrismaPg} from '@prisma/adapter-pg';
 import {bankTransferDetails,confirmTransfer} from '../../src/lib/server/manual-payment';
 import {placeOrder} from '../../src/lib/server/checkout';
@@ -319,4 +320,32 @@ test('SMS quota reservation rolls back all buckets on rejection and serializes c
   const blocked=await consumeRateLimits([quota(globalKey,30,3600),quota(mobileKey,1)]);
   assert.equal(blocked.allowed,false);assert(blocked.retryAfter>3500&&blocked.retryAfter<=3600,`unexpected retry duration: ${blocked.retryAfter}`);
  }finally{await db.rateLimitBucket.deleteMany({where:{key:{in:keys}}});}
+});
+
+
+test('contact replies serialize concurrent retries, publish only to the matching member and send guest email once',async()=>{
+ const memberMobile=`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`,guestMobile=`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`;
+ const member=await db.user.create({data:{name:'Contact reply test',mobile:memberMobile,email:`${prefix}-contact@example.com`,mobileVerifiedAt:new Date()}});userIds.push(member.id);
+ const contact=await db.contactMessage.create({data:{name:'Member',mobile:memberMobile,email:'untrusted-contact@example.com',message:'Member contact question',locale:'en'}});messageIds.push(contact.id);
+ const guest=await db.contactMessage.create({data:{name:'Guest',mobile:guestMobile,email:'guest-test@example.com',message:'Guest contact question',locale:'en'}});messageIds.push(guest.id);
+ const oldPolicy=await db.setting.findUnique({where:{key:'customer-delivery-policy'}}),originalFetch=globalThis.fetch;
+ const payload={contactMessageId:contact.id,requestKey:randomUUID(),channel:'PANEL' as const,body:'Private contact answer'};
+ try{
+  await db.setting.upsert({where:{key:'customer-delivery-policy'},create:{key:'customer-delivery-policy',value:{enabled:false,transactional:false,marketing:false}},update:{value:{enabled:false,transactional:false,marketing:false}}});
+  const replies=await Promise.all(Array.from({length:6},()=>replyToContact(payload,admin.id)));
+  assert.equal(new Set(replies.map(r=>r.reply.id)).size,1);
+  assert.equal(await db.contactReply.count({where:{contactMessageId:contact.id}}),1);
+  assert.equal(await db.customerNotice.count({where:{userId:member.id,kind:'CONTACT_REPLY',status:'IN_APP'}}),1);
+  assert.equal(await db.customerNotice.count({where:{userId:admin.id,kind:'CONTACT_REPLY'}}),0);
+  await assert.rejects(()=>replyToContact({...payload,body:'Changed answer'},admin.id),/CONFLICT/);
+  await db.setting.update({where:{key:'customer-delivery-policy'},data:{value:{enabled:true,transactional:true,marketing:false}}});
+  let sends=0;globalThis.fetch=async(url,options)=>{assert.equal(String(url),'https://api.resend.com/emails');assert.deepEqual(JSON.parse(String(options?.body)).to,['guest-test@example.com']);sends++;return Response.json({id:'mock-contact-reply'});};
+  const emailReply={contactMessageId:guest.id,requestKey:randomUUID(),channel:'EMAIL' as const,body:'Guest contact answer'};
+  await Promise.all(Array.from({length:5},()=>replyToContact(emailReply,admin.id)));
+  assert.equal(sends,1);assert.equal(await db.contactReply.count({where:{contactMessageId:guest.id,status:'ACCEPTED'}}),1);
+  assert((await db.contactMessage.findUniqueOrThrow({where:{id:guest.id}})).readAt);
+ }finally{
+  globalThis.fetch=originalFetch;
+  if(oldPolicy)await db.setting.update({where:{key:oldPolicy.key},data:{value:oldPolicy.value??Prisma.JsonNull}});else await db.setting.deleteMany({where:{key:'customer-delivery-policy'}});
+ }
 });
