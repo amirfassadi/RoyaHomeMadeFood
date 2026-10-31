@@ -17,6 +17,7 @@ export async function contactReplyAvailability(){
 const view=(reply:{id:string;channel:string;body:string;status:string;createdAt:Date})=>({id:reply.id,channel:reply.channel,body:reply.body,status:reply.status,createdAt:reply.createdAt.toISOString()});
 export async function replyToContact(raw:z.infer<typeof contactReplySchema>,adminId:string){
  const input=contactReplySchema.parse(raw),db=getDb();
+ const emailReady=input.channel==='EMAIL'?await emailConfigured():false;
  const prepared=await db.$transaction(async tx=>{
   // Serialize retries even if the same request key is used for another contact.
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`contact-reply:${input.requestKey}`},0))::text`;
@@ -36,10 +37,10 @@ export async function replyToContact(raw:z.infer<typeof contactReplySchema>,admi
   if(input.channel!=='PANEL'){
    const {policy}=await deliveryPolicy(tx);
    if(!policy.enabled||!policy.transactional)throw new ShopError('DELIVERY_DISABLED',409);
-   if(input.channel==='EMAIL'&&(!contact.email||!await emailConfigured()))throw new ShopError('EMAIL_UNAVAILABLE',503);
+   if(input.channel==='EMAIL'&&(!contact.email||!emailReady))throw new ShopError('EMAIL_UNAVAILABLE',503);
    if(input.channel==='SMS'&&(!await smsEnabled(tx)||!process.env.KAVENEGAR_API_KEY?.trim()||!process.env.KAVENEGAR_SENDER?.trim()))throw new ShopError('SMS_UNAVAILABLE',503);
   }
-  if(!await consumeRateLimit(`contact-reply:${adminId}`,20,600))throw new ShopError('RATE_LIMIT',429,600);
+  if(!await consumeRateLimit(`contact-reply:${adminId}`,20,600,tx))throw new ShopError('RATE_LIMIT',429,600);
   const reply=await tx.contactReply.create({data:{...input,adminId,userId:user?.id??null,status:input.channel==='PANEL'?'IN_APP':'SENDING'}});
   if(user)await tx.customerNotice.create({data:{userId:user.id,dedupeKey:`contact-reply:${reply.id}`,kind:'CONTACT_REPLY',title:'پاسخ پیام ارتباط با ما | Contact reply',body:input.body,preference:'PANEL',status:'IN_APP'}});
   await tx.contactMessage.update({where:{id:contact.id},data:{readAt:new Date()}});
