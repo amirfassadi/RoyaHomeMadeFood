@@ -18,8 +18,8 @@ async function consume(db:Pick<Prisma.TransactionClient,'$queryRaw'>,{key,limit,
   return {allowed:rows[0].count<=limit,retryAfter:rows[0].retryAfter??windowSeconds};
 }
 // A single atomic upsert; concurrent requests share limits across server instances.
-export async function consumeRateLimit(key:string,limit:number,windowSeconds:number){
-  return (await consume(getDb(),{key,limit,windowSeconds})).allowed;
+export async function consumeRateLimit(key:string,limit:number,windowSeconds:number,db:Pick<Prisma.TransactionClient,'$queryRaw'>=getDb()){
+  return (await consume(db,{key,limit,windowSeconds})).allowed;
 }
 // Reserve all send quotas together. A rejected request consumes none of them.
 // Stable row-lock ordering prevents deadlocks between concurrent reservations.

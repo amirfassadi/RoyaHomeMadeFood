@@ -344,6 +344,9 @@ test('contact replies serialize concurrent retries, publish only to the matching
   await Promise.all(Array.from({length:5},()=>replyToContact(emailReply,admin.id)));
   assert.equal(sends,1);assert.equal(await db.contactReply.count({where:{contactMessageId:guest.id,status:'ACCEPTED'}}),1);
   assert((await db.contactMessage.findUniqueOrThrow({where:{id:guest.id}})).readAt);
+  // More concurrent requests than pool connections must not need a second connection inside the transaction.
+  await Promise.all(Array.from({length:12},()=>replyToContact({...payload,requestKey:randomUUID()},admin.id)));
+  assert.equal(await db.contactReply.count({where:{contactMessageId:contact.id}}),13);
  }finally{
   globalThis.fetch=originalFetch;
   if(oldPolicy)await db.setting.update({where:{key:oldPolicy.key},data:{value:oldPolicy.value??Prisma.JsonNull}});else await db.setting.deleteMany({where:{key:'customer-delivery-policy'}});
