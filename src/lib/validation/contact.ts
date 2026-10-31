@@ -3,6 +3,7 @@ import {toLatinDigits} from '@/lib/format';
 export const contactSchema = z.object({
   name: z.string().trim().min(2).max(100),
   mobile: z.string().transform(s => toLatinDigits(s).replace(/[\s-]/g, '')).pipe(z.string().regex(/^09\d{9}$/)),
+  email: z.string().trim().toLowerCase().pipe(z.union([z.literal(''),z.email().max(254)])).nullable().optional().transform(value=>value||null),
   message: z.string().trim().min(10).max(3000),
   locale: z.enum(['fa', 'en']), website: z.string().max(200).default(''),
 });
@@ -12,3 +13,10 @@ export const contactSettingsSchema = z.object({
   hoursFa: z.string().max(300).optional(), hoursEn: z.string().max(300).optional(),
 });
 export type ContactSettings = z.infer<typeof contactSettingsSchema>;
+
+export const contactReplySchema=z.object({
+ contactMessageId:z.string().min(1).max(100),
+ requestKey:z.uuid(),
+ channel:z.enum(['PANEL','EMAIL','SMS']),
+ body:z.string().trim().min(2).max(2000)
+}).strict();

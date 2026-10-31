@@ -25,13 +25,13 @@ export async function POST(request: Request) {
     const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
     const parsed = contactSchema.safeParse(body);
     if (!parsed.success || parsed.data.website) return NextResponse.json({error: 'INVALID'}, {status: 400});
-    const {name, mobile, message, locale} = parsed.data;
+    const {name, mobile, email, message, locale} = parsed.data;
     // Check the fixed shared bucket first: rotating phone numbers must not
     // create unlimited per-number buckets after the shared cap is exhausted.
     if (!await consumeRateLimit('contact:global', 50, 600)) return NextResponse.json({error: 'RATE_LIMIT'}, {status: 429, headers: {'Retry-After': '600'}});
     const digest = createHash('sha256').update(mobile).digest('hex');
     if (!await consumeRateLimit(`contact:mobile:${digest}`, 3, 600)) return NextResponse.json({error: 'RATE_LIMIT'}, {status: 429, headers: {'Retry-After': '600'}});
-    await getDb().contactMessage.create({data: {name, mobile, message, locale}});
+    await getDb().contactMessage.create({data: {name, mobile, email, message, locale}});
     return NextResponse.json({ok: true}, {status: 201, headers: {'Cache-Control': 'no-store'}});
   } catch (error) {
     if (error instanceof SyntaxError) return NextResponse.json({error: 'INVALID'}, {status: 400});

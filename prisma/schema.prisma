@@ -318,6 +318,8 @@ model ContactMessage {
   readAt    DateTime? @db.Timestamptz(3)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   @@index([createdAt])
+  email String? @db.VarChar(254)
+  replies ContactReply[]
 }
 
 // Capacity is reserved for the Tehran calendar day on which the order is accepted.
@@ -538,4 +540,20 @@ model CustomerCampaign {
  createdBy String
  createdAt DateTime @default(now()) @db.Timestamptz(3)
  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+
+model ContactReply {
+ id String @id @default(cuid())
+ contactMessageId String
+ contactMessage ContactMessage @relation(fields:[contactMessageId],references:[id],onDelete:Cascade)
+ requestKey String @unique @db.Uuid
+ adminId String
+ userId String?
+ channel String @db.VarChar(10)
+ body String @db.Text
+ status String @db.VarChar(16)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @db.Timestamptz(3)
+ @@index([contactMessageId,createdAt])
 }
