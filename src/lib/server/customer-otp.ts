@@ -9,13 +9,46 @@ import {consumeRateLimit,consumeRateLimits} from './rate-limit';
 import {ShopError} from './shop-http';
 import {hashPassword,verifyPassword} from '@/lib/admin/password';
 import {otpDigest,otpMatches} from '@/lib/customer/otp';
-import {consentVersion,requestCodeSchema,verifyCodeSchema,resendEmailSchema,customerPasswordSchema} from '@/lib/customer/validation';
+import {consentVersion,customerSignupSchema,requestCodeSchema,verifyCodeSchema,resendEmailSchema,customerPasswordSchema} from '@/lib/customer/validation';
 function secret(){const value=process.env.CUSTOMER_OTP_SECRET;if(!value||value.length<32)throw new ShopError('UNAVAILABLE',503);return value;}
 export function customerLoginEnabled(){return !isDemoCatalog()&&process.env.CUSTOMER_ACCOUNTS_ENABLED==='1'&&!!process.env.DATABASE_URL&&(process.env.NEXTAUTH_SECRET?.length??0)>=32;}
+export function customerSignupEnabled(){return customerLoginEnabled();}
 export async function customerRegistrationEnabled(){return customerLoginEnabled()&&(process.env.CUSTOMER_OTP_SECRET?.length??0)>=32&&!!process.env.KAVENEGAR_API_KEY&&!!process.env.KAVENEGAR_OTP_TEMPLATE;}
 async function limit(value:string,kind:string,count:number,seconds:number){const key=createHash('sha256').update(value).digest('hex');if(!await consumeRateLimit(`customer:${kind}:${key}`,count,seconds))throw new ShopError('RATE_LIMIT',429);}
 const newCode=()=>String(randomInt(0,1000000)).padStart(6,'0');
 function digest(id:string,value:string,code:string,kind:'mobile'|'email'){return otpDigest(secret(),`${kind}:${id}`,value,code);}
+export async function registerCustomer(raw:unknown){
+ if(!customerSignupEnabled())throw new ShopError('UNAVAILABLE',503);
+ const input=customerSignupSchema.parse(raw),db=getDb(),identifiers=[
+  ...(input.mobile?[{mobile:input.mobile}]:[]),
+  ...(input.email?[{email:{equals:input.email,mode:'insensitive' as const}}]:[])
+ ];
+ const where={OR:identifiers};
+ if(await db.user.findFirst({where,select:{id:true}}))throw new ShopError('ACCOUNT_EXISTS',409);
+ const buckets=[
+  {key:'customer:signup:global',limit:30,windowSeconds:3600},
+  ...(input.mobile?[{key:`customer:signup:${createHash('sha256').update(input.mobile).digest('hex')}`,limit:5,windowSeconds:600}]:[]),
+  ...(input.email?[{key:`customer:signup:${createHash('sha256').update(input.email).digest('hex')}`,limit:5,windowSeconds:600}]:[])
+ ];
+ const quota=await consumeRateLimits(buckets);
+ if(!quota.allowed)throw new ShopError('RATE_LIMIT',429,quota.retryAfter);
+ const passwordHash=await hashPassword(input.password);
+ try{
+  await db.$transaction(async tx=>{
+   const existing=await tx.user.findFirst({where,select:{id:true}});
+   if(existing)throw new ShopError('ACCOUNT_EXISTS',409);
+   await tx.user.create({data:{
+    name:input.name,mobile:input.mobile??null,email:input.email??null,passwordHash,
+    role:'CUSTOMER',marketingSms:input.marketingSms,emailVerifiedAt:null,mobileVerifiedAt:null,
+    consentEvents:{create:{allowed:input.marketingSms,policyVersion:consentVersion,source:'registration'}}
+   }});
+  });
+ }catch(error){
+  if(typeof error==='object'&&error!==null&&'code' in error&&error.code==='P2002')throw new ShopError('ACCOUNT_EXISTS',409);
+  throw error;
+ }
+ return {created:true};
+}
 export async function requestCustomerCode(raw:unknown){
  if(!await smsEnabled())throw new ShopError('SMS_PAUSED',503);
  if(!await customerRegistrationEnabled())throw new ShopError('UNAVAILABLE',503);
@@ -106,9 +139,11 @@ export async function authorizeCustomerPassword(raw:unknown){
  const parsed=customerPasswordSchema.safeParse(raw);if(!parsed.success)return null;
  const {identifier,password}=parsed.data;
  try{if(!await consumeRateLimit('customer:password:global',60,60))return null;await limit(identifier,'password',5,600);}catch{return null;}
- const user=await getDb().user.findUnique({where:identifier.includes('@')?{email:identifier}:{mobile:identifier}});
+ const user=identifier.includes('@')
+  ?await getDb().user.findFirst({where:{email:{equals:identifier,mode:'insensitive'}}})
+  :await getDb().user.findUnique({where:{mobile:identifier}});
  const valid=await verifyPassword(password,user?.passwordHash??null);
- if(!valid||!user?.active||user.role!=='CUSTOMER'||user.twoFactorEnabled||!user.mobileVerifiedAt)return null;
+ if(!valid||!user?.active||user.role!=='CUSTOMER'||user.twoFactorEnabled)return null;
  return {id:user.id,name:user.name,role:'CUSTOMER',sessionVersion:user.sessionVersion};
 }
 
