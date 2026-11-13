@@ -13,8 +13,8 @@ export async function reportCustomerTransfer(user:{id:string;sessionVersion:numb
   if(!found)throw new ShopError('NOT_FOUND',404);
   await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id"=${found.id} FOR UPDATE`;
   const order=await tx.order.findUniqueOrThrow({where:{id:found.id},include:{items:true}});
-  const owner=await tx.user.findUnique({where:{id:user.id}});
-  if(order.userId!==user.id||!owner?.active||owner.role!=='CUSTOMER'||!owner.mobileVerifiedAt||owner.sessionVersion!==user.sessionVersion)throw new ShopError('UNAUTHORIZED',401);
+    const owner=await tx.user.findUnique({where:{id:user.id}});
+    if(order.userId!==user.id||!owner?.active||owner.role!=='CUSTOMER'||owner.sessionVersion!==user.sessionVersion)throw new ShopError('UNAUTHORIZED',401);
   if(order.paymentMethod!=='BANK_TRANSFER'||order.paymentStatus==='PAID'||order.paymentStatus==='REFUNDED'||order.status==='CANCELLED'&&!order.reservationExpiredAt)throw new ShopError('TRANSITION',409);
   const existing=parseTransferReport(order.transferReport);
   if((existing?.reportedAt??null)!==expectedReportedAt)throw new ShopError('CONFLICT',409);

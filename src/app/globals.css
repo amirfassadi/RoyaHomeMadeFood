@@ -27,3 +27,16 @@ button:not(:disabled), a { cursor: pointer; }
 @media (min-width: 768px) { .section-shell { width: min(100% - 5rem, 1200px); } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 @media print { header, .no-print { display: none !important; } body { background: white; } }
+
+/* Let grid and form contents shrink within narrow mobile viewports. */
+:where(.grid, .flex) > * { min-inline-size: 0; }
+fieldset { min-inline-size: 0; }
+input:not([type="checkbox"]):not([type="radio"]), select, textarea { max-inline-size: 100%; }
+main { overflow-wrap: anywhere; }
+.support-link { bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px)); }
+footer { padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 639px) {
+  /* 16px inputs keep Safari from zooming the layout on focus. */
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 16px; }
+  .support-link { inline-size: 3rem; justify-content: center; padding-inline: 0; }
+}

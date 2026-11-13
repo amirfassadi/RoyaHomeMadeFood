@@ -11,8 +11,10 @@ export const maxDuration=60;
 export async function POST(request:Request){try{
  const customer=await optionalCustomer();if(!customer)throw new ShopError('UNAUTHORIZED',401);
   const input=await readShopBody(request,domesticCheckoutSchema,'checkout');await mobileLimit(input.mobile,'checkout',5);
+  // اطمینان از اینکه mobile همیشه string است
+  const orderCustomer = customer ? { ...customer, mobile: customer.mobile ?? input.mobile } : undefined;
   let order;
-  try{order=await placeOrder(input,customer);}
+  try{order=await placeOrder(input,orderCustomer);}
   catch(error){if(error instanceof ShopError&&['PAYMENT_UNAVAILABLE','BANK_TRANSFER_UNAVAILABLE','MOBILE_VERIFICATION_REQUIRED','MOBILE_VERIFICATION_UNAVAILABLE'].includes(error.code))return json({error:error.code,checkoutNotStarted:true},error.status);throw error;}
   await expireOrderReservation(order.id);
   order=await getDb().order.findUniqueOrThrow({where:{id:order.id}});

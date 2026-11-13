@@ -28,7 +28,7 @@ export function CartPage(){
    subtotal+=amount;
    return <article key={i.productId} className="flex flex-wrap items-center gap-5 rounded-2xl border border-roya-line bg-white p-5">
     {p?.media[0] && <Image src={p.media[0].url} alt={locale==='fa'?p.nameFa:p.nameEn} width={96} height={96} className="size-24 rounded-xl object-cover"/>}
-    <div className="min-w-40 flex-1"><h2 className="mb-3 font-bold">{p?(locale==='fa'?p.nameFa:p.nameEn):t('PRODUCT_CHANGED')}</h2>{p && <QuantitySelector value={i.quantity} minimum={p.minOrderQuantity} step={p.orderStepQuantity} maximum={max} unit={units(p.unit)} onChange={q=>c.setQuantity(i.productId,q)}/>}<p className="mt-3 text-sm">{<CurrencyPrice toman={amount}/>}</p>{!ok && <p role="alert" className="mt-3 text-sm text-roya-brown">{t('itemChanged')}</p>}</div>
+    <div className="min-w-0 basis-full flex-1 sm:basis-40"><h2 className="mb-3 font-bold">{p?(locale==='fa'?p.nameFa:p.nameEn):t('PRODUCT_CHANGED')}</h2>{p && <QuantitySelector value={i.quantity} minimum={p.minOrderQuantity} step={p.orderStepQuantity} maximum={max} unit={units(p.unit)} onChange={q=>c.setQuantity(i.productId,q)}/>}<p className="mt-3 text-sm">{<CurrencyPrice toman={amount}/>}</p>{!ok && <p role="alert" className="mt-3 text-sm text-roya-brown">{t('itemChanged')}</p>}</div>
     {!ok && p && (max==null || max>=p.minOrderQuantity) && <Button variant="secondary" onClick={()=>c.setQuantity(i.productId,p.minOrderQuantity)}>{t('resetQuantity')}</Button>}<Button variant="ghost" onClick={()=>c.remove(i.productId)}>{t('remove')}</Button>
    </article>;
  });

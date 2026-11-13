@@ -21,6 +21,16 @@ test('only an active customer with a verified matching mobile gets in-panel repl
  for(const change of [null,{active:false},{role:'ADMIN'},{mobileVerifiedAt:null}]){const s=setup();if(change)s.user={...s.user,...change};else s.user=null;await assert.rejects(()=>replyToContact(input(),'admin'),/CONTACT_NO_ACCOUNT/);assert.equal(s.notices.length,0);}
  const s=setup();s.enabled=true;await assert.rejects(()=>replyToContact(input('SMS'),'admin'),/CONTACT_USE_PANEL/);assert.equal(s.replies.length,0);
 });
+test('a guest contact matching an unverified account mobile is never linked to that account',async()=>{
+ const s=setup();s.user={...s.user,mobileVerifiedAt:null};s.enabled=true;
+ const original=globalThis.fetch;globalThis.fetch=async()=>Response.json({id:'accepted'});
+ try{
+  const result=await replyToContact(input('EMAIL'),'admin');
+  assert.equal(result.reply.status,'ACCEPTED');
+  assert.equal(s.replies[0].userId,null);
+  assert.equal(s.notices.length,0);
+ }finally{globalThis.fetch=original;}
+});
 test('guest email reply uses the stored contact address once, not any client-selected destination',async()=>{
  const s=setup(false);s.enabled=true;const original=globalThis.fetch,calls:any[]=[];
  globalThis.fetch=async(url,options)=>{calls.push({url,body:JSON.parse(String(options?.body))});return Response.json({id:'accepted'});};

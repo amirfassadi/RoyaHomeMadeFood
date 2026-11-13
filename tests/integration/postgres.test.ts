@@ -19,7 +19,7 @@ import {PrismaPg} from '@prisma/adapter-pg';
 import {bankTransferDetails,confirmTransfer} from '../../src/lib/server/manual-payment';
 import {placeOrder} from '../../src/lib/server/checkout';
 import {changeOrderStatus} from '../../src/lib/server/admin-orders';
-import {authorizeCustomer} from '../../src/lib/server/customer-otp';
+import {authorizeCustomer,registerCustomer} from '../../src/lib/server/customer-otp';
 import {otpDigest} from '../../src/lib/customer/otp';
 import {changeAdminPassword} from '../../src/lib/server/admin-security';
 import {hashPassword,verifyPassword} from '../../src/lib/admin/password';
@@ -72,6 +72,31 @@ test('OTP redemption is single-use under real row/advisory locks and only new me
  const account=result.find(Boolean)!;userIds.push(account.id);const owner=await db.user.findUniqueOrThrow({where:{id:account.id}});assert.equal(owner.role,'CUSTOMER');assert.equal(owner.marketingSms,false);assert.equal(await db.marketingConsentEvent.count({where:{userId:owner.id}}),1);
  const p=await product(),order=await placeOrder({...input(p),mobile},{id:owner.id,mobile,sessionVersion:owner.sessionVersion});assert.equal(order.userId,owner.id);
  const another=await product(),guest=await placeOrder(input(another),{id:owner.id,mobile,sessionVersion:owner.sessionVersion});assert.equal(guest.userId,owner.id);
+});
+test('PostgreSQL password signup supports unverified email-only and mobile-only accounts',async()=>{
+ const contacts=[
+  {email:`${prefix}-email@example.com`,mobile:'',recipientMobile:`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`},
+  {email:'',mobile:`09${String(Math.floor(Math.random()*1e9)).padStart(9,'0')}`,recipientMobile:''}
+ ];
+ const accounts:any[]=[];
+ for(const contact of contacts){
+  await registerCustomer({name:'Password signup integration',email:contact.email,mobile:contact.mobile,password:'Integration customer password 123',marketingSms:false});
+  const owner=await db.user.findUniqueOrThrow({where:contact.email?{email:contact.email}:{mobile:contact.mobile}});
+  assert.equal(owner.emailVerifiedAt,null);assert.equal(owner.mobileVerifiedAt,null);accounts.push(owner);userIds.push(owner.id);
+ }
+ for(let index=0;index<accounts.length;index++){
+  const owner=accounts[index],other=accounts[1-index],recipientMobile=owner.mobile??contacts[index].recipientMobile;
+  const addressInput={title:'Integration home',recipientName:'Test recipient',mobile:recipientMobile,zoneId:zone.id,address:'Integration test building and unit',destination:null};
+  await saveCustomerAddress(owner.id,addressInput);
+  const address=await db.customerAddress.findFirstOrThrow({where:{userId:owner.id}});
+  await assert.rejects(()=>saveCustomerAddress(other.id,{...addressInput,id:address.id,title:'Not owned'}),/NOT_FOUND/);
+  await changeCustomerPassword(owner.id,owner.sessionVersion,'Integration customer password 123','Updated customer password 456');
+  const updated=await db.user.findUniqueOrThrow({where:{id:owner.id}});
+  assert.equal(updated.sessionVersion,owner.sessionVersion+1);assert(await verifyPassword('Updated customer password 456',updated.passwordHash));
+  assert.equal(updated.emailVerifiedAt,null);assert.equal(updated.mobileVerifiedAt,null);
+  const p=await product(),order=await placeOrder({...input(p),mobile:recipientMobile},{id:owner.id,mobile:recipientMobile,sessionVersion:updated.sessionVersion});
+  assert.equal(order.userId,owner.id);
+ }
 });
 test('admin password change verifies old credentials and revokes current sessions',async()=>{
  const before=await db.user.findUniqueOrThrow({where:{id:admin.id}});await assert.rejects(()=>changeAdminPassword(admin.id,'Wrong password','New test password 456',before.sessionVersion),/CURRENT_PASSWORD/);
